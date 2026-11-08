@@ -1,6 +1,7 @@
 import { json } from '../lib/json.js';
 import { slugify } from '../lib/slugify.js';
 import { safeUrl } from '../lib/escape.js';
+import { cleanProductName, mapMaisonCategory, suggestedCompareEur } from '../lib/merch.js';
 import { refreshProductFromCJ } from '../cj.js';
 
 const PRODUCT_COLS =
@@ -51,15 +52,23 @@ export async function importLumeProduct(request, env) {
     if (!p || !p.id || !p.name) return json({ ok: false, error: 'Missing product id/name' }, 400);
     const cost = Number(p.costUSD || 0) || 0;
     const retail = Number(p.retailPriceEUR || 0) || 0;
+    const rawName = String(p.name).slice(0, 240);
+    const name = cleanProductName(rawName) || rawName;
+    const category = mapMaisonCategory(name, p.category);
+    const compare = suggestedCompareEur(retail);
+    const slug = slugify(name);
+    const description = `A considered piece for calm interiors — curated for Maison Marnier.\n\n${name}`;
     const sku = ('LL-CJ-' + String(p.sku || p.id).replace(/[^A-Za-z0-9]/g, '').slice(-18)).toUpperCase();
     const image = safeUrl(p.image, '');
     await env.LUME_DB.prepare(
-      `INSERT INTO products (lume_sku,supplier,supplier_product_id,supplier_sku,name,image_url,supplier_cost_usd,retail_price_eur,category,stock,delivery_days,status,updated_at)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP)
+      `INSERT INTO products (lume_sku,supplier,supplier_product_id,supplier_sku,name,image_url,supplier_cost_usd,retail_price_eur,compare_at_price_eur,category,stock,delivery_days,status,slug,description,updated_at)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP)
        ON CONFLICT(supplier_product_id) DO UPDATE SET
          supplier_sku=excluded.supplier_sku,name=excluded.name,image_url=excluded.image_url,
          supplier_cost_usd=excluded.supplier_cost_usd,retail_price_eur=excluded.retail_price_eur,
-         category=excluded.category,stock=excluded.stock,delivery_days=excluded.delivery_days,
+         compare_at_price_eur=excluded.compare_at_price_eur,category=excluded.category,
+         stock=excluded.stock,delivery_days=excluded.delivery_days,slug=excluded.slug,
+         description=CASE WHEN products.description IS NULL OR products.description='' THEN excluded.description ELSE products.description END,
          updated_at=CURRENT_TIMESTAMP`,
     )
       .bind(
@@ -67,17 +76,20 @@ export async function importLumeProduct(request, env) {
         'CJ',
         String(p.id),
         String(p.sku || ''),
-        String(p.name).slice(0, 240),
+        name,
         image,
         cost,
         retail,
-        String(p.category || ''),
+        compare,
+        category,
         Number(p.stock || 0) || 0,
         String(p.deliveryDays || ''),
         'draft',
+        slug,
+        description,
       )
       .run();
-    return json({ ok: true, lumeSku: sku, status: 'draft' });
+    return json({ ok: true, lumeSku: sku, status: 'draft', name, category, slug });
   } catch (e) {
     return json({ ok: false, error: e.message || 'Import failed' }, 500);
   }
