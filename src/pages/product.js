@@ -41,6 +41,7 @@ export async function productPage(url, env) {
       ? `<section class="related"><h2>You may also like</h2><div class="grid">${related.map(productCard).join('')}</div></section>`
       : '';
 
+    const canBuy = stock > 0 && Number(p.retail_price_eur) > 0;
     const body = `<div class="product">
       <img src="${esc(p.image_url || '')}" alt="${esc(p.name || '')}">
       <div>
@@ -50,10 +51,36 @@ export async function productPage(url, env) {
         ${compare}
         ${stockHint}
         <div class="desc"><p>${esc(p.description || 'Thoughtfully selected for Maison Marnier.')}</p></div>
-        <button class="btn is-disabled" type="button" disabled>Add to cart — coming soon</button>
-        <p class="muted" style="margin-top:10px">Checkout will arrive in a later release. Save pieces to your wishlist from the homepage in the meantime.</p>
+        ${
+          canBuy
+            ? `<button class="btn" type="button" id="addCart"
+                data-id="${p.id}"
+                data-slug="${esc(p.slug || '')}"
+                data-name="${esc(p.name || '')}"
+                data-price="${Number(p.retail_price_eur || 0)}"
+                data-image="${esc(p.image_url || '')}">Add to cart</button>
+               <p class="muted" style="margin-top:10px" id="addMsg"></p>`
+            : `<button class="btn is-disabled" type="button" disabled>Unavailable</button>`
+        }
       </div>
-    </div>${relatedHtml}`;
+    </div>${relatedHtml}
+<script>
+(function(){
+  const btn=document.getElementById('addCart'); if(!btn)return;
+  const KEY='mm_cart';
+  function load(){try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){return []}}
+  btn.onclick=()=>{
+    const item={id:Number(btn.dataset.id),slug:btn.dataset.slug,name:btn.dataset.name,price:Number(btn.dataset.price),image:btn.dataset.image,qty:1};
+    const cart=load();
+    const ex=cart.find(x=>x.id===item.id);
+    if(ex)ex.qty=Math.min(20,(ex.qty||1)+1); else cart.push(item);
+    localStorage.setItem(KEY,JSON.stringify(cart));
+    window.dispatchEvent(new Event('mm-cart'));
+    const m=document.getElementById('addMsg'); if(m)m.textContent='Added — <a href="/cart">view cart</a>'.replace('<a href="/cart">view cart</a>','');
+    if(m){m.innerHTML='Added to cart. <a href="/cart">View cart →</a>';}
+  };
+})();
+</script>`;
 
     return htmlPage(p.name, body, {
       description: String(p.description || p.name || '').slice(0, 160),

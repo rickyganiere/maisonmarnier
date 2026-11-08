@@ -87,7 +87,6 @@ function toast(m){if(!t)return;t.textContent=m;t.classList.add('show');setTimeou
 const WISH_KEY='mm_wishlist';
 function loadWish(){try{return JSON.parse(localStorage.getItem(WISH_KEY)||'[]')}catch(e){return []}}
 function saveWish(ids){localStorage.setItem(WISH_KEY,JSON.stringify(ids))}
-document.getElementById('cartBtn')?.addEventListener('click',()=>toast('Checkout arrives in a later release.'));
 </script>`;
 }
 
@@ -114,11 +113,18 @@ ${description ? `<meta name="description" content="${esc(description)}">` : ''}
     <form action="/collections/new" method="get" role="search">
       <input class="search" type="search" name="q" placeholder="Search…" aria-label="Search products">
     </form>
-    <button type="button" id="cartBtn" class="btn" style="padding:8px 12px;margin:0;background:transparent;color:inherit;border:1px solid var(--line)">Cart</button>
+    <a href="/cart" id="cartBtn" class="btn" style="padding:8px 12px;margin:0;background:transparent;color:inherit;border:1px solid var(--line);text-decoration:none">Cart <span id="cartCount"></span></a>
   </div>
 </header>
 <main class="wrap">${body}</main>
 ${footerHtml()}
+<script>
+(function(){
+  function count(){try{return (JSON.parse(localStorage.getItem('mm_cart')||'[]')||[]).reduce((s,i)=>s+Number(i.qty||1),0)}catch(e){return 0}}
+  function paint(){const el=document.getElementById('cartCount'); if(!el)return; const n=count(); el.textContent=n?('('+n+')'):'';}
+  paint(); window.addEventListener('mm-cart',paint); window.addEventListener('storage',paint);
+})();
+</script>
 </body>
 </html>`;
   return new Response(html, {
