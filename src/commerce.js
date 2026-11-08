@@ -9,10 +9,12 @@ import {
   getOrderItems,
   listOrdersAdmin,
   makeOrderNumber,
+  markOrderExpired,
   markOrderFulfillFailed,
   markOrderFulfilled,
   markOrderFulfilling,
   markOrderPaid,
+  markOrderRefunded,
   updateCjMeta,
   updateItemVid,
 } from './db/orders.js';
@@ -141,6 +143,7 @@ export async function fulfillOrder(env, order) {
     shippingAddress: order.shipping_address,
     shippingAddress2: order.shipping_address2,
     email: order.email,
+    shopAmount: order.subtotal_eur,
     products,
   });
   await markOrderFulfilled(env, order.id, { cjOrderId, cjStatus: 'created' });
@@ -181,6 +184,23 @@ export async function handleStripeWebhook(request, env, ctx) {
     if (!order && session?.id) order = await getOrderByStripeSession(env, session.id);
     if (!order) return json({ ok: false, error: 'Order not found' }, 404);
 
+    // Idempotent: already past payment
+    if (['paid', 'fulfilling', 'fulfilled', 'fulfill_failed'].includes(order.status) && order.stripe_payment_intent) {
+      if (!order.cj_order_id && order.status !== 'fulfilled') {
+        const fresh = await getOrderByNumber(env, order.order_number);
+        const run = async () => {
+          try {
+            await fulfillOrder(env, fresh);
+          } catch (e) {
+            await markOrderFulfillFailed(env, fresh.id, e.message || String(e));
+          }
+        };
+        if (ctx && typeof ctx.waitUntil === 'function') ctx.waitUntil(run());
+        else await run();
+      }
+      return json({ ok: true, received: true, duplicate: true });
+    }
+
     const ship = shippingFromStripe(session);
     await markOrderPaid(env, order.id, {
       email: ship.email,
@@ -199,6 +219,27 @@ export async function handleStripeWebhook(request, env, ctx) {
     };
     if (ctx && typeof ctx.waitUntil === 'function') ctx.waitUntil(run());
     else await run();
+  }
+
+  if (event.type === 'checkout.session.expired') {
+    const session = event.data?.object;
+    const order =
+      (await getOrderByStripeSession(env, session?.id)) ||
+      (session?.metadata?.order_number ? await getOrderByNumber(env, session.metadata.order_number) : null);
+    if (order) await markOrderExpired(env, order.id);
+  }
+
+  if (event.type === 'charge.refunded') {
+    const charge = event.data?.object;
+    const pi = typeof charge?.payment_intent === 'string' ? charge.payment_intent : charge?.payment_intent?.id;
+    if (pi) {
+      const row = await env.LUME_DB.prepare(
+        `SELECT id FROM orders WHERE stripe_payment_intent=? LIMIT 1`,
+      )
+        .bind(pi)
+        .first();
+      if (row) await markOrderRefunded(env, row.id);
+    }
   }
 
   return json({ ok: true, received: true });
