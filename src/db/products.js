@@ -34,9 +34,9 @@ export async function listLumeProducts(env) {
   }
 }
 
-export async function listPublishedProducts(env, { q = '', limit = 24 } = {}) {
+export async function listPublishedProducts(env, { q = '', limit = 48 } = {}) {
   try {
-    const lim = Math.max(1, Math.min(100, Number(limit) || 24));
+    const lim = Math.max(1, Math.min(200, Number(limit) || 48));
     const query = String(q || '').trim().slice(0, 80).toLowerCase();
     let r;
     if (query) {
