@@ -1,5 +1,6 @@
 import { esc } from '../lib/escape.js';
 import { htmlPage, productCard } from '../lib/html.js';
+import { productJsonLd } from '../lib/seo.js';
 import { getLiveProductBySlug, getLiveProducts } from '../db/products.js';
 
 export async function productPage(url, env) {
@@ -126,8 +127,14 @@ export async function productPage(url, env) {
 })();
 </script>`;
 
+    const productPath = `/products/${encodeURIComponent(p.slug || '')}`;
     return htmlPage(p.name, body, {
       description: String(p.description || p.name || '').slice(0, 160),
+      canonical: productPath,
+      ogImage: p.image_url || '',
+      ogType: 'product',
+      jsonLd: productJsonLd(p, { url: productPath, collectionPath: collectionHref }),
+      cache: 'public, max-age=300',
     });
   } catch {
     return htmlPage('Product', '<p class="empty">Product error.</p>', { status: 500 });

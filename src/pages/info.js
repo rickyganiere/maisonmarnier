@@ -27,8 +27,14 @@ const PAGES = {
 export function infoPage(path) {
   const key = path.replace(/^\//, '');
   const [title, body] = PAGES[key] || PAGES.about;
+  const description = String(body).split('\n\n')[0].slice(0, 160);
   return htmlPage(
     title,
     `<div class="head"><h1>${esc(title)}</h1></div><div class="desc">${esc(body)}</div>`,
+    {
+      description,
+      canonical: `/${key}`,
+      cache: 'public, max-age=3600',
+    },
   );
 }

@@ -12,6 +12,11 @@ export async function journalPage(url, env) {
           'Maison Journal',
           `<div class="head"><h1>Maison Journal</h1><p class="lead">Stories and notes from the maison.</p></div>
            <p class="empty">No journal pieces published yet.</p>`,
+          {
+            description: 'Stories and notes from Maison Marnier.',
+            canonical: '/journal',
+            cache: 'public, max-age=300',
+          },
         );
       }
       const list = articles
@@ -28,6 +33,11 @@ export async function journalPage(url, env) {
       return htmlPage(
         'Maison Journal',
         `<div class="head"><h1>Maison Journal</h1><p class="lead">Stories and notes from the maison.</p></div>${list}`,
+        {
+          description: 'Stories and notes from Maison Marnier.',
+          canonical: '/journal',
+          cache: 'public, max-age=300',
+        },
       );
     }
 
@@ -37,10 +47,11 @@ export async function journalPage(url, env) {
         'Article not found',
         `<div class="head"><h1>Article not found</h1></div>
          <p class="empty"><a href="/journal">Back to journal →</a></p>`,
-        { status: 404 },
+        { status: 404, noindex: true },
       );
     }
 
+    const articlePath = `/journal/${encodeURIComponent(a.slug)}`;
     return htmlPage(
       a.title,
       `${a.image_url ? `<img src="${esc(a.image_url)}" alt="" style="width:100%;max-height:420px;object-fit:cover;margin-bottom:28px;background:#E9E0D3">` : ''}
@@ -48,7 +59,13 @@ export async function journalPage(url, env) {
        ${a.excerpt ? `<p class="lead">${esc(a.excerpt)}</p>` : ''}
        <div class="desc">${esc(a.body || '')}</div>
        <p style="margin-top:28px"><a class="btn" href="/collections/decor">Shop the edit</a></p>`,
-      { description: String(a.excerpt || a.title).slice(0, 160) },
+      {
+        description: String(a.excerpt || a.title).slice(0, 160),
+        canonical: articlePath,
+        ogImage: a.image_url || '',
+        ogType: 'article',
+        cache: 'public, max-age=300',
+      },
     );
   } catch {
     return htmlPage('Maison Journal', '<p class="empty">Could not load the journal.</p>', { status: 500 });

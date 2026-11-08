@@ -1,5 +1,6 @@
 import { esc } from '../lib/escape.js';
 import { htmlPage, productCard } from '../lib/html.js';
+import { breadcrumbJsonLd } from '../lib/seo.js';
 import { getLiveProducts } from '../db/products.js';
 
 /** Exact Maison category labels preferred; keyword fallbacks for older rows. */
@@ -113,6 +114,16 @@ export async function collectionPage(url, env) {
       ps.map(productCard).join('') ||
       `<p class="empty">${q ? 'No products match this search.' : 'No published products in this collection yet.'}</p>`;
 
+    const collectionPath = `/collections/${slug}`;
+    const description = q
+      ? `Search results for “${q}” at Maison Marnier.`
+      : `${rule.blurb || 'An edited selection for calm, considered rooms.'} Shop ${title} at Maison Marnier.`;
+    const jsonLd = breadcrumbJsonLd([
+      { name: 'Home', path: '/' },
+      { name: 'Shop', path: '/collections/new' },
+      { name: title, path: collectionPath },
+    ]);
+
     return htmlPage(
       title,
       `<nav class="crumbs" aria-label="Breadcrumb">
@@ -133,6 +144,13 @@ export async function collectionPage(url, env) {
          <div class="chips" role="navigation" aria-label="Collections">${chips}</div>
        </div>
        <div class="grid">${cards}</div>`,
+      {
+        description: description.slice(0, 160),
+        canonical: collectionPath,
+        noindex: Boolean(q),
+        jsonLd,
+        cache: 'public, max-age=300',
+      },
     );
   } catch {
     return htmlPage('Collection', '<h1>Collection</h1><p class="empty">Could not load this collection.</p>', {

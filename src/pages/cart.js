@@ -84,6 +84,8 @@ ${cancelled ? '<p class="muted" style="margin-bottom:18px">Checkout was cancelle
 
   return htmlPage('Cart', body, {
     description: 'Your Maison Marnier cart.',
+    canonical: '/cart',
+    noindex: true,
   });
 }
 
@@ -105,5 +107,7 @@ ${id ? `<p class="muted">Order reference: <strong>${id.replace(/</g, '&lt;')}</s
 <script>try{localStorage.removeItem('mm_cart');window.dispatchEvent(new Event('mm-cart'))}catch(e){}</script>`;
   return htmlPage('Order confirmed', body, {
     description: 'Your Maison Marnier order is confirmed.',
+    canonical: '/checkout/success',
+    noindex: true,
   });
 }
