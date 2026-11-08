@@ -10,5 +10,15 @@ routes = [
 [[d1_databases]]
 binding = "LUME_DB"
 database_id = "e5e5c9e8-f953-468e-9edc-69172ffd7f80"
+migrations_dir = "migrations"
 
-# Secrets (set in Cloudflare, never in git): CJ_API_KEY, LUME_ADMIN_TOKEN, LUME_IMPORT_CODE
+[observability]
+enabled = true
+
+[observability.traces]
+enabled = true
+
+# Secrets (set in Cloudflare dashboard or `wrangler secret put`, never in git):
+#   CJ_API_KEY
+#   LUME_ADMIN_TOKEN
+#   LUME_IMPORT_CODE
