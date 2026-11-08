@@ -32,7 +32,13 @@ import { collectionPage } from './pages/collection.js';
 import { productPage } from './pages/product.js';
 import { journalPage } from './pages/journal.js';
 import { infoPage } from './pages/info.js';
-import { robotsTxt, sitemapXml } from './pages/seo.js';
+import {
+  robotsTxt,
+  sitemapJournalXml,
+  sitemapPagesXml,
+  sitemapProductsXml,
+  sitemapXml,
+} from './pages/seo.js';
 
 function methodNotAllowed() {
   return json({ ok: false, error: 'Method not allowed' }, 405);
@@ -59,7 +65,10 @@ export async function handleRequest(request, env, ctx) {
 
   // --- Technical SEO ---
   if (pathname === '/robots.txt') return robotsTxt();
-  if (pathname === '/sitemap.xml') return sitemapXml(env);
+  if (pathname === '/sitemap.xml' || pathname === '/sitemap_index.xml') return sitemapXml();
+  if (pathname === '/sitemap-pages.xml') return sitemapPagesXml();
+  if (pathname === '/sitemap-products.xml') return sitemapProductsXml(env);
+  if (pathname === '/sitemap-journal.xml') return sitemapJournalXml(env);
 
   // --- Public store APIs ---
   if (pathname === '/api/store/products') {
