@@ -132,14 +132,37 @@ async function upsertLive(env, p) {
     .run();
 }
 
-/** Replace SEED catalog with ~100 live CJ home-decor products. Gated by LUME_JOB_TOKEN. */
+async function authorizeJob(request, env) {
+  const expected = env.LUME_JOB_TOKEN || '';
+  const admin = env.LUME_ADMIN_TOKEN || '';
+  const h = request.headers.get('authorization') || '';
+  const bearer = h.toLowerCase().startsWith('bearer ') ? h.slice(7).trim() : '';
+  if (expected && bearer && bearer === expected) return { ok: true };
+  if (admin && bearer && bearer === admin) return { ok: true };
+  const syncHeader = (request.headers.get('x-mm-sync-token') || '').trim();
+  if (!syncHeader) return { ok: false };
+  await env.LUME_DB.prepare(
+    `CREATE TABLE IF NOT EXISTS sync_tokens (
+       token TEXT PRIMARY KEY,
+       purpose TEXT,
+       used INTEGER DEFAULT 0,
+       created_at TEXT DEFAULT CURRENT_TIMESTAMP
+     )`,
+  ).run();
+  const row = await env.LUME_DB.prepare(
+    `SELECT token FROM sync_tokens WHERE token=? AND used=0 LIMIT 1`,
+  )
+    .bind(syncHeader)
+    .first();
+  if (!row) return { ok: false };
+  return { ok: true, syncToken: syncHeader };
+}
+
+/** Replace SEED catalog with ~100 live CJ home-decor products. Gated by job/admin/sync token. */
 export async function replaceSeedWithCj(request, env) {
   try {
-    const expected = env.LUME_JOB_TOKEN;
-    if (!expected) return json({ ok: false, error: 'LUME_JOB_TOKEN not configured' }, 503);
-    const h = request.headers.get('authorization') || '';
-    const token = h.toLowerCase().startsWith('bearer ') ? h.slice(7).trim() : '';
-    if (!token || token !== expected) return json({ ok: false, error: 'Unauthorized' }, 401);
+    const authz = await authorizeJob(request, env);
+    if (!authz.ok) return json({ ok: false, error: 'Unauthorized' }, 401);
 
     const body = await request.json().catch(() => ({}));
     const target = Math.max(40, Math.min(120, Number(body.target || 100) || 100));
@@ -189,6 +212,12 @@ export async function replaceSeedWithCj(request, env) {
     const cjLive = await env.LUME_DB.prepare(
       `SELECT COUNT(*) AS c FROM products WHERE supplier='CJ' AND status='live'`,
     ).first();
+
+    if (authz.syncToken) {
+      await env.LUME_DB.prepare(`UPDATE sync_tokens SET used=1 WHERE token=?`)
+        .bind(authz.syncToken)
+        .run();
+    }
 
     return json({
       ok: true,

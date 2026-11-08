@@ -16,8 +16,8 @@ export function extractCjImages(x, { max = 8 } = {}) {
     out.push(u);
   };
   if (!x || typeof x !== 'object') return out;
-  push(x.bigImage || x.productImage);
-  const sets = [x.productImageSet, x.productImages, x.imageSet, x.images];
+  push(x.bigImage || x.productImage || x.bigimg || x.image);
+  const sets = [x.productImageSet, x.productImages, x.imageSet, x.images, x.productImageList];
   for (const set of sets) {
     if (Array.isArray(set)) set.forEach(push);
     else if (typeof set === 'string' && set.trim()) {
@@ -29,12 +29,32 @@ export function extractCjImages(x, { max = 8 } = {}) {
       }
     }
   }
-  // Variant thumbnails often include alternate angles / colorways
-  const variants = Array.isArray(x.variants) ? x.variants : [];
+  // Variant / stanProducts thumbnails = alternate angles & colorways
+  const variants = [
+    ...(Array.isArray(x.variants) ? x.variants : []),
+    ...(Array.isArray(x.stanProducts) ? x.stanProducts : []),
+    ...(Array.isArray(x.variantList) ? x.variantList : []),
+  ];
   for (const v of variants) {
-    push(v?.variantImage || v?.image || v?.bigImage);
+    push(v?.variantImage || v?.image || v?.img || v?.bigImage || v?.bigimg);
   }
   return out.slice(0, max);
+}
+
+function mergeCjPayloads(...parts) {
+  const base = {};
+  const imageBag = [];
+  const variants = [];
+  for (const part of parts) {
+    if (!part || typeof part !== 'object') continue;
+    Object.assign(base, part);
+    imageBag.push(...extractCjImages(part, { max: 24 }));
+    if (Array.isArray(part.variants)) variants.push(...part.variants);
+    if (Array.isArray(part.stanProducts)) variants.push(...part.stanProducts);
+  }
+  if (variants.length) base.variants = variants;
+  if (imageBag.length) base.productImageSet = [...new Set(imageBag)];
+  return base;
 }
 
 export async function getCJToken(env) {
@@ -130,32 +150,74 @@ export async function cjSearch(url, env) {
   }
 }
 
-/** Fetch full CJ product payload (listV2, then product/query fallback). */
+/** Fetch full CJ product payload (list + detail + variants) for rich galleries. */
 export async function fetchCjProduct(env, supplierProductId) {
   const token = await getCJToken(env);
   const pid = String(supplierProductId);
+  const headers = { 'CJ-Access-Token': token, accept: 'application/json' };
+  const parts = [];
+
   const p = new URLSearchParams({ page: '1', size: '20', productIds: pid });
   const r = await fetch(
     'https://developers.cjdropshipping.com/api2.0/v1/product/listV2?' + p.toString(),
-    { headers: { 'CJ-Access-Token': token, accept: 'application/json' } },
+    { headers },
   );
   const d = await r.json();
   if (r.ok && d.code === 200) {
     const groups = Array.isArray(d.data && d.data.content) ? d.data.content : [];
     const items = groups.flatMap((g) => (Array.isArray(g.productList) ? g.productList : []));
     const match = items.find((x) => String(x.id) === pid || String(x.pid) === pid) || items[0];
-    if (match) return match;
+    if (match) parts.push(match);
   }
-  const q = new URLSearchParams({ pid });
-  const r2 = await fetch(
-    'https://developers.cjdropshipping.com/api2.0/v1/product/query?' + q.toString(),
-    { headers: { 'CJ-Access-Token': token, accept: 'application/json' } },
-  );
-  const d2 = await r2.json();
-  if (!r2.ok || d2.code !== 200 || !d2.data) {
-    throw new Error(d2.message || d.message || 'CJ product fetch failed');
+
+  try {
+    const rDetail = await fetch(
+      'https://developers.cjdropshipping.com/api2.0/v1/product/productDetail/query',
+      {
+        method: 'POST',
+        headers: { ...headers, 'content-type': 'application/json' },
+        body: JSON.stringify({ id: pid }),
+      },
+    );
+    const dDetail = await rDetail.json();
+    if (rDetail.ok && dDetail.code === 200 && dDetail.data) parts.push(dDetail.data);
+  } catch {
+    /* optional enrichment */
   }
-  return d2.data;
+
+  try {
+    const q = new URLSearchParams({ pid });
+    const r2 = await fetch(
+      'https://developers.cjdropshipping.com/api2.0/v1/product/query?' + q.toString(),
+      { headers },
+    );
+    const d2 = await r2.json();
+    if (r2.ok && d2.code === 200 && d2.data) parts.push(d2.data);
+  } catch {
+    /* optional enrichment */
+  }
+
+  try {
+    const qv = new URLSearchParams({ pid });
+    const rv = await fetch(
+      'https://developers.cjdropshipping.com/api2.0/v1/product/variant/query?' + qv.toString(),
+      { headers },
+    );
+    const dv = await rv.json();
+    if (rv.ok && dv.code === 200 && dv.data) {
+      const list = Array.isArray(dv.data)
+        ? dv.data
+        : Array.isArray(dv.data.variants)
+          ? dv.data.variants
+          : [dv.data];
+      parts.push({ variants: list });
+    }
+  } catch {
+    /* optional enrichment */
+  }
+
+  if (!parts.length) throw new Error(d.message || 'CJ product fetch failed');
+  return mergeCjPayloads(...parts);
 }
 
 /** Refresh stock/cost/images for a draft from CJ by supplier product id. */
