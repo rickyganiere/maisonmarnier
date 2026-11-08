@@ -1,6 +1,12 @@
-/** Maison Marnier storefront homepage */
+/** Maison Marnier — premium cozy homepage (CarLux-inspired structure). */
 import { esc } from '../lib/escape.js';
-import { gtmHeadHtml, gtmNoscriptHtml } from '../lib/html.js';
+import {
+  fontLinksHtml,
+  gtmHeadHtml,
+  gtmNoscriptHtml,
+  LAYOUT_CSS,
+  productCard,
+} from '../lib/html.js';
 import { getLiveProducts } from '../db/products.js';
 import {
   DEFAULT_OG_IMAGE,
@@ -9,48 +15,215 @@ import {
   seoHeadHtml,
 } from '../lib/seo.js';
 
-function homeFeaturedCard(p) {
-  const href = '/products/' + encodeURIComponent(p.slug || '');
-  const retail = Number(p.retail_price_eur || 0).toFixed(2);
-  const cmp = Number(p.compare_at_price_eur || 0);
-  const compare = cmp > Number(retail) ? `<span class="compare">€${cmp.toFixed(2)}</span>` : '';
-  return `<a class="product" href="${href}" data-wish-id="${href}"><button class="heart" type="button">♡</button><img src="${esc(p.image_url || '')}" alt="${esc(p.name || '')}" loading="lazy"><div class="meta"><div class="product-kicker">${esc(p.category || 'Maison Marnier')}</div><div class="name">${esc(p.name || '')}</div><div class="sub"><span class="price">€${retail}${compare}</span><span class="rating">View piece →</span></div></div></a>`;
+const HOME_CSS = `
+${LAYOUT_CSS}
+.home-main{overflow:hidden}
+.mm-hero{position:relative;min-height:min(88vh,720px);isolation:isolate;display:flex;align-items:center}
+.mm-hero::before{content:"";position:absolute;inset:0;z-index:-2;background:
+  linear-gradient(105deg,rgba(12,10,8,.92) 0%,rgba(12,10,8,.72) 38%,rgba(12,10,8,.28) 68%,rgba(12,10,8,.55) 100%),
+  url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=2000&q=82') center/cover no-repeat}
+.mm-hero::after{content:"";position:absolute;inset:auto 0 0;height:140px;z-index:-1;background:linear-gradient(180deg,transparent,var(--bg))}
+.mm-hero-inner{width:min(1420px,calc(100% - 2 * var(--pad)));margin:0 auto;padding:72px 0 88px}
+.mm-kicker{display:block;margin-bottom:18px;color:var(--accent);font:900 12px/1 var(--font);letter-spacing:.16em;text-transform:uppercase}
+.mm-hero h1{margin:0;max-width:11ch;font:900 clamp(3.2rem,7vw,5.6rem)/.92 var(--font);letter-spacing:-.055em;color:#fff}
+.mm-hero h1 em{font-style:normal;color:var(--accent2)}
+.mm-hero .lead{margin:18px 0 0;max-width:38ch;color:#d2cbc1;font:500 1.05rem/1.55 var(--font)}
+.mm-actions{display:flex;flex-wrap:wrap;gap:12px;margin-top:30px}
+.mm-section{padding:64px var(--pad)}
+.mm-section-inner{width:min(1420px,100%);margin:0 auto}
+.mm-section-head{display:flex;justify-content:space-between;align-items:end;gap:16px;margin-bottom:28px}
+.mm-section-head h2{margin:0;font:900 clamp(1.6rem,3vw,2.2rem)/1.05 var(--font);letter-spacing:-.035em;color:#fff}
+.mm-section-head a{font:800 12px/1 var(--font);letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.mm-cats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px}
+.mm-cat{position:relative;min-height:260px;overflow:hidden;border-radius:10px;border:1px solid var(--line);display:block}
+.mm-cat img{width:100%;height:100%;object-fit:cover;position:absolute;inset:0;transition:transform .7s ease}
+.mm-cat:hover img{transform:scale(1.05)}
+.mm-cat::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 30%,rgba(8,7,6,.78))}
+.mm-cat span{position:absolute;left:20px;right:20px;bottom:18px;z-index:1;font:900 1.05rem/1.1 var(--font);letter-spacing:-.02em;color:#fff}
+.mm-products{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:22px}
+.mm-band{margin:8px var(--pad) 0;border-radius:14px;overflow:hidden;border:1px solid var(--line);display:grid;grid-template-columns:1fr 1.15fr;min-height:360px;background:var(--panel)}
+.mm-band-copy{padding:48px clamp(24px,4vw,52px);display:flex;flex-direction:column;justify-content:center}
+.mm-band-copy h2{margin:10px 0 12px;font:900 clamp(1.8rem,3.2vw,2.6rem)/1.05 var(--font);letter-spacing:-.04em;color:#fff;max-width:12ch}
+.mm-band-copy p{margin:0;color:var(--muted);max-width:36ch;font-weight:500;line-height:1.55}
+.mm-band-img{background:url('https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=1400&q=82') center/cover no-repeat;min-height:280px}
+.mm-benefits{display:grid;grid-template-columns:repeat(4,1fr);gap:18px;padding:36px var(--pad);border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:#0c0b0a;margin-top:56px}
+.mm-benefit strong{display:block;font:800 13px/1.2 var(--font);margin-bottom:6px;color:#fff}
+.mm-benefit span{display:block;font:500 12px/1.45 var(--font);color:var(--muted)}
+.mm-stories{display:grid;grid-template-columns:1fr 1fr;gap:16px;padding:64px var(--pad)}
+.mm-story{min-height:340px;border-radius:12px;overflow:hidden;position:relative;border:1px solid var(--line);display:flex;align-items:flex-end;padding:32px;color:#fff;background-size:cover;background-position:center}
+.mm-story::after{content:"";position:absolute;inset:0;background:linear-gradient(transparent 25%,rgba(8,7,6,.78))}
+.mm-story > div{position:relative;z-index:1}
+.mm-story h3{margin:8px 0;font:900 1.8rem/1.05 var(--font);letter-spacing:-.03em}
+.mm-story p{margin:0;max-width:34ch;color:#ddd5cb;font:500 14px/1.5 var(--font)}
+.mm-news{margin:0 var(--pad) 64px;padding:40px clamp(24px,4vw,48px);border-radius:14px;border:1px solid var(--line);background:linear-gradient(135deg,#1f1a15,#151210 55%,#1a1612);display:grid;grid-template-columns:1.2fr .8fr;gap:24px;align-items:center}
+.mm-news h2{margin:0 0 10px;font:900 clamp(1.6rem,3vw,2.2rem)/1.05 var(--font);letter-spacing:-.035em;color:#fff}
+.mm-news p{margin:0;color:var(--muted);font-weight:500}
+.mm-form{display:flex;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--line)}
+.mm-form input{flex:1;border:0;padding:16px 18px;background:var(--bg);color:var(--ink);font:600 14px var(--font)}
+.mm-form button{border:0;background:linear-gradient(90deg,var(--accent2),var(--accent));color:#12100e;padding:0 22px;font:900 12px/1 var(--font);letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
+@media(max-width:980px){
+  .mm-cats,.mm-products{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .mm-band,.mm-stories,.mm-news{grid-template-columns:1fr}
+  .mm-benefits{grid-template-columns:1fr 1fr}
+  .mm-hero{min-height:560px}
 }
+@media(max-width:560px){
+  .mm-benefits{grid-template-columns:1fr}
+}
+`;
 
 export async function homePage(env) {
-  let html = "<!doctype html><html lang=\"en\"><head><meta charset=\"utf-8\"><meta name=\"viewport\" content=\"width=device-width,initial-scale=1\"><title>Maison Marnier — Curated Home Decor</title><meta name=\"description\" content=\"Maison Marnier — thoughtfully curated home decor for calm, beautiful spaces.\"><style>\n*{box-sizing:border-box}body{margin:0;background:#F6F0E6;color:#2F3428;font-family:Inter,ui-sans-serif,system-ui,-apple-system,BlinkMacSystemFont,\"Segoe UI\",sans-serif}.serif,h1,h2,h3,.logo{font-family:Georgia,\"Times New Roman\",serif}a{text-decoration:none;color:inherit}button{font:inherit}.announce{height:28px;background:#D9B895;color:#30362A;font-size:11px;letter-spacing:.09em;text-transform:uppercase;display:flex;align-items:center;justify-content:center}.nav{height:78px;background:rgba(59,67,50,.98);display:grid;grid-template-columns:260px 1fr 270px;align-items:center;padding:0 5.5vw;border-bottom:1px solid #59604B;position:sticky;top:0;z-index:20;backdrop-filter:blur(14px)}.logo{font-size:22px;letter-spacing:.12em}.brand-lockup{display:flex;align-items:center;gap:11px;color:#F4E3CF}.brand-lockup img{width:48px;height:56px;object-fit:cover;object-position:center;border-radius:22px}.brand-lockup span{font-family:Georgia,serif;font-size:18px;letter-spacing:.15em;white-space:nowrap}.links a{color:#F4E3CF}.footer-brand{color:#F1DFC9}.links{display:flex;gap:26px;justify-content:center;font-size:13px}.search-form{margin:0}.search-form .search{width:100%}.tools{display:flex;justify-content:flex-end;gap:15px;align-items:center}.search{border:1px solid #B9A68F;background:#F6F0E6;color:#30362A;border-radius:22px;padding:9px 14px;width:180px;font-size:12px}.icon{width:31px;height:31px;border:1px solid #B9A68F;border-radius:50%;display:grid;place-items:center;background:#F6F0E6;color:#30362A;cursor:pointer}.hero{min-height:510px;display:grid;grid-template-columns:42% 58%;background:#E9DDCF}.hero-copy{padding:88px 5.5vw;display:flex;flex-direction:column;justify-content:center}.eyebrow{font-size:11px;letter-spacing:.19em;text-transform:uppercase;margin-bottom:18px}.hero h1{font-size:55px;line-height:1.02;font-weight:400;margin:0 0 20px;max-width:520px}.hero p{font-size:15px;line-height:1.7;color:#5D6252;max-width:440px}.btn{display:inline-flex;align-items:center;justify-content:center;background:#3B4332;color:#F6F0E6;border:0;padding:14px 20px;font-size:11px;letter-spacing:.1em;text-transform:uppercase;margin-top:15px;width:max-content;cursor:pointer}.hero-img{background:url('https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1600&q=85') center/cover no-repeat}.section{padding:64px 5.5vw}.section-head{display:flex;justify-content:space-between;align-items:end;margin-bottom:24px}.section-head h2{font-size:34px;font-weight:400;margin:0}.section-head p{margin:5px 0 0;color:#746B5F;font-size:13px}.view{font-size:12px;border-bottom:1px solid #A58F77;padding-bottom:3px}.categories{display:grid;grid-template-columns:repeat(5,1fr);gap:18px}.cat img,.product img{width:100%;display:block;object-fit:cover;background:#e5ddd1}.cat img{aspect-ratio:3/4}.cat .label{display:flex;justify-content:space-between;margin-top:11px;font-family:Georgia,serif;font-size:17px}.products{display:grid;grid-template-columns:repeat(4,1fr);gap:24px}.product{position:relative;display:block;color:#30362A;text-decoration:none;background:transparent;overflow:hidden}.product img{width:100%;aspect-ratio:3/4;object-fit:cover;background:#E9E0D3;transition:transform .65s cubic-bezier(.2,.65,.3,1),filter .35s ease}.product:hover img{transform:scale(1.025);filter:saturate(.92)}.heart{position:absolute;right:12px;top:12px;background:rgba(246,240,230,.92);color:#3B4332;border:1px solid rgba(59,67,50,.14);border-radius:50%;width:34px;height:34px;font-size:17px;cursor:pointer;z-index:2}.meta{padding-top:13px}.product-kicker{font-size:9px;letter-spacing:.16em;text-transform:uppercase;color:#7A715F;margin-bottom:6px}.name{font-family:Georgia,serif;font-size:18px;line-height:1.22;font-weight:400;display:-webkit-box;-webkit-line-clamp:2;-webkit-box-orient:vertical;overflow:hidden}.sub{display:flex;justify-content:space-between;align-items:baseline;gap:10px;margin-top:8px}.price{font-weight:500;font-size:13px;letter-spacing:.02em}.compare{font-size:11px;color:#9A8F7D;text-decoration:line-through;margin-left:6px}.rating{font-size:9px;letter-spacing:.12em;text-transform:uppercase;color:#7A715F}.product:hover .name{text-decoration:underline;text-decoration-thickness:1px;text-underline-offset:3px}.season{margin:0 5.5vw 65px;min-height:310px;display:grid;grid-template-columns:38% 62%;background:#D9B895}.season-copy{padding:50px}.season h2{font-size:40px;font-weight:400;margin:8px 0 10px}.season p{color:#5e554d;line-height:1.6}.season-img{background:url('https://images.unsplash.com/photo-1600210492486-724fe5c67fb0?auto=format&fit=crop&w=1600&q=85') center/cover no-repeat}.benefits{display:grid;grid-template-columns:repeat(4,1fr);border-top:1px solid #D8CCBC;border-bottom:1px solid #D8CCBC;background:#EFE7DA;padding:26px 5.5vw;gap:20px}.benefit strong{display:block;font-size:12px;margin-bottom:4px}.benefit span{font-size:11px;color:#6a6259}.story{padding:70px 5.5vw;display:grid;grid-template-columns:1fr 1fr;gap:28px}.story-card{min-height:360px;padding:45px;display:flex;align-items:flex-end;color:white;background-size:cover;background-position:center;position:relative}.story-card:after{content:\"\";position:absolute;inset:0;background:linear-gradient(transparent,rgba(0,0,0,.52))}.story-card>div{position:relative;z-index:2}.story-card h3{font-size:34px;font-weight:400;margin:8px 0}.story-card p{font-size:13px;max-width:380px;line-height:1.6}.newsletter{margin:0 5.5vw 60px;background:#DCC4A8;padding:44px;display:grid;grid-template-columns:1fr 1fr;gap:30px;align-items:center}.newsletter h2{font-size:32px;font-weight:400;margin:0 0 8px}.newsletter p{margin:0;color:#635b52;font-size:13px}.form{display:flex}.form input{flex:1;border:0;padding:15px 17px}.form button{border:0;background:#3B4332;color:#fff;padding:0 23px;font-size:11px;letter-spacing:.09em}.footer{background:#3B4332;color:#F4E3CF;padding:48px 5.5vw 28px}.footer-grid{display:grid;grid-template-columns:2fr repeat(3,1fr);gap:40px}.footer h4{font-family:Georgia,serif;font-size:16px;margin:0 0 14px}.footer a,.footer p{display:block;color:#DCCBB7;font-size:12px;margin:8px 0}.bottom{border-top:1px solid #56604A;margin-top:35px;padding-top:20px;color:#BFB29F;font-size:11px;display:flex;justify-content:space-between}.toast{position:fixed;right:22px;bottom:22px;background:#32382C;color:white;padding:13px 18px;border-radius:3px;font-size:12px;opacity:0;transform:translateY(10px);transition:.25s;z-index:50}.toast.show{opacity:1;transform:none}@media(max-width:900px){.nav{grid-template-columns:1fr auto;padding:0 18px}.links,.search{display:none}.hero{grid-template-columns:1fr}.hero-copy{padding:55px 24px}.hero h1{font-size:43px}.hero-img{min-height:380px}.section{padding:50px 20px}.categories{grid-template-columns:repeat(2,1fr)}.products{grid-template-columns:repeat(2,1fr)}.season{margin:0 20px 50px;grid-template-columns:1fr}.season-img{min-height:280px}.benefits{grid-template-columns:repeat(2,1fr);padding:25px 20px}.story{grid-template-columns:1fr;padding:50px 20px}.newsletter{margin:0 20px 45px;grid-template-columns:1fr}.footer{padding:40px 20px}.footer-grid{grid-template-columns:1fr 1fr}.announce{font-size:9px}}\n/* MAISON MARNIER CARD TYPOGRAPHY */\n.product .meta,.product .product-kicker,.product .name,.product .price,.product .compare,.product .rating{font-family:Georgia,serif}.product .price{font-weight:400}.product .rating,.product .product-kicker{letter-spacing:.09em}\n/* MAISON MARNIER MOCKUP V3 */\nbody{background:#F8F4EC;color:#2E332A}\n.announce{height:34px;background:#424B37;color:#F8F4EC;letter-spacing:.18em;font-size:10px}\n.nav{height:126px;background:#FBF8F2;grid-template-columns:330px 1fr 150px;padding:0 4.2vw;border-bottom:1px solid #E5DED2;box-shadow:none}\n.brand-lockup{color:#3E4736;gap:14px}\n.brand-lockup img{width:82px;height:82px;object-fit:cover;object-position:center;border-radius:42px}\n.brand-lockup span{font-size:22px;letter-spacing:.19em;color:#3E4736}\n.links{gap:21px;font-size:10px;letter-spacing:.075em;text-transform:uppercase;white-space:nowrap}\n.links a{color:#34392F}\n.tools{gap:8px}.search{display:none}.icon{border:0;background:transparent;color:#34392F;font-size:18px;width:34px;height:34px}\n.hero{min-height:570px;display:block;position:relative;overflow:hidden;background:#85705B}\n.hero:after{content:\"\";position:absolute;inset:0;z-index:1;background:linear-gradient(90deg,rgba(47,41,34,.60) 0%,rgba(47,41,34,.24) 52%,rgba(47,41,34,.03) 78%)}\n.hero-img{position:absolute;inset:0;z-index:0;min-height:570px;background-position:center;background-size:cover}\n.hero-copy{position:relative;z-index:2;min-height:570px;width:52%;padding:72px 5.3vw;justify-content:center;color:#fff}\n.hero .eyebrow{color:#fff;letter-spacing:.35em;margin-bottom:22px}\n.hero h1{font-size:72px;line-height:.98;max-width:620px;color:#fff;letter-spacing:-.025em}\n.hero p{font-size:17px;color:rgba(255,255,255,.9);max-width:520px;line-height:1.55}\n.btn{background:#4E5842;color:#fff;padding:15px 24px}\n#categories{padding:12px 1.2vw 42px}\n#categories .section-head{display:none}\n.categories{gap:10px}\n.cat{position:relative;overflow:hidden;min-height:245px}\n.cat:after{content:\"\";position:absolute;inset:0;background:linear-gradient(180deg,transparent 35%,rgba(35,31,27,.58));pointer-events:none}\n.cat img{aspect-ratio:1.42/1;height:100%;min-height:245px}\n.cat .label{position:absolute;z-index:2;left:24px;right:24px;bottom:20px;margin:0;color:#fff;align-items:flex-end;font-size:19px;letter-spacing:.035em;text-transform:uppercase}\n#featured{padding-top:10px}\n#featured .section-head h2{font-size:32px;letter-spacing:.16em;text-transform:uppercase}\n#featured .section-head p{display:none}\n.products{grid-template-columns:repeat(5,1fr);gap:18px}\n.product img{aspect-ratio:3/4}.product .name{font-size:17px}.view{letter-spacing:.12em;text-transform:uppercase}\n.season{background:#D9C2A7}.benefits{background:#F0E8DC}.newsletter{background:#E2CCB2}.footer{background:#424B37}\n@media(max-width:1180px){.nav{grid-template-columns:285px 1fr 110px;padding:0 2.5vw}.links{gap:13px;font-size:9px}.brand-lockup span{font-size:18px}.brand-lockup img{width:72px;height:72px}}\n@media(max-width:900px){.nav{height:92px;grid-template-columns:1fr auto;padding:0 18px}.brand-lockup img{width:62px;height:62px}.brand-lockup span{font-size:16px}.hero,.hero-img,.hero-copy{min-height:520px}.hero-copy{width:100%;padding:60px 24px}.hero h1{font-size:52px}.categories{grid-template-columns:repeat(2,1fr)}.cat,.cat img{min-height:205px}.products{grid-template-columns:repeat(2,1fr)}}\n</style></head><body>\n<div class=\"announce\">Free shipping on orders over €100</div>\n<header class=\"nav\"><a class=\"logo brand-lockup\" href=\"/\"><img src=\"data:image/webp;base64,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\" alt=\"Maison Marnier emblem\"><span>MAISON MARNIER</span></a><nav class=\"links\"><a href=\"/collections/new\">New</a><a href=\"/collections/decor\">Decor</a><a href=\"/collections/textiles\">Textiles</a><a href=\"/collections/objects\">Objects</a><a href=\"/collections/candles\">Candles</a><a href=\"/collections/wall-decor\">Wall Decor</a><a href=\"/collections/seasonal\">Seasonal</a><a href=\"/collections/lighting\">Lighting</a><a href=\"/collections/furniture\">Furniture</a><a href=\"/journal\">Journal</a></nav><div class=\"tools\"><form class=\"search-form\" action=\"/collections/new\" method=\"get\" role=\"search\"><input class=\"search\" name=\"q\" type=\"search\" placeholder=\"Search products…\" aria-label=\"Search products\"></form><button class=\"icon\" aria-label=\"Wishlist\">♡</button><button class=\"icon\" id=\"cart\" aria-label=\"Cart\">🛒</button></div></header>\n<section class=\"hero\"><div class=\"hero-copy\"><div class=\"eyebrow\">Curated for a more beautiful home</div><h1>Home Living<br>Stories</h1><p>Timeless pieces, modern living.<br>Inspired by places, people and everyday moments.</p><a class=\"btn\" href=\"/collections/new\">Shop new arrivals →</a></div><div class=\"hero-img\" role=\"img\" aria-label=\"Warm neutral living room\"></div></section>\n<section class=\"section\" id=\"categories\"><div class=\"section-head\"><div><h2>Shop by category</h2><p>Beautiful essentials, edited down to what matters.</p></div><a class=\"view\" href=\"#featured\">View all →</a></div><div class=\"categories\">\n<a class=\"cat\" href=\"/collections/textiles\"><img src=\"https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=700&q=82\" alt=\"Textiles\"><div class=\"label\"><span>Pillows & Textiles</span><span>→</span></div></a>\n<a class=\"cat\" href=\"/collections/objects\"><img src=\"https://images.unsplash.com/photo-1615529162924-f8605388461d?auto=format&fit=crop&w=700&q=82\" alt=\"Vases\"><div class=\"label\"><span>Vases & Objects</span><span>→</span></div></a>\n<a class=\"cat\" href=\"/collections/candles\"><img src=\"https://images.unsplash.com/photo-1603006905003-be475563bc59?auto=format&fit=crop&w=700&q=82\" alt=\"Candles\"><div class=\"label\"><span>Candles & Fragrance</span><span>→</span></div></a>\n<a class=\"cat\" href=\"/collections/wall-decor\"><img src=\"https://images.unsplash.com/photo-1600566753190-17f0baa2a6c3?auto=format&fit=crop&w=700&q=82\" alt=\"Wall decor\"><div class=\"label\"><span>Wall Decor</span><span>→</span></div></a>\n<a class=\"cat\" href=\"/collections/seasonal\"><img src=\"https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=700&q=82\" alt=\"Seasonal decor\"><div class=\"label\"><span>Seasonal Decor</span><span>→</span></div></a></div></section>\n<section class=\"section\" id=\"featured\"><div class=\"section-head\"><div><h2>New Arrivals</h2><p>Our latest edit.</p></div><a class=\"view\" href=\"/collections/new\">View all →</a></div><div class=\"products\">\n<div class=\"product\"><button class=\"heart\">♡</button><img src=\"https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=700&q=82\" alt=\"Ceramic vase\"><div class=\"meta\"><div class=\"name\">Rhea Ceramic Vase</div><div class=\"sub\"><span class=\"price\">€58</span><span class=\"rating\">★★★★★ 4.8</span></div></div></div>\n<div class=\"product\"><button class=\"heart\">♡</button><img src=\"https://images.unsplash.com/photo-1600566753086-00f18fb6b3ea?auto=format&fit=crop&w=700&q=82\" alt=\"Linen cushion\"><div class=\"meta\"><div class=\"name\">Linen Blend Cushion</div><div class=\"sub\"><span class=\"price\">€36</span><span class=\"rating\">★★★★★ 4.9</span></div></div></div>\n<div class=\"product\"><button class=\"heart\">♡</button><img src=\"https://images.unsplash.com/photo-1603905179139-db12ab535ca4?auto=format&fit=crop&w=700&q=82\" alt=\"Table lamp\"><div class=\"meta\"><div class=\"name\">Marnier Table Lamp</div><div class=\"sub\"><span class=\"price\">€89</span><span class=\"rating\">★★★★★ 4.7</span></div></div></div>\n<div class=\"product\"><button class=\"heart\">♡</button><img src=\"https://images.unsplash.com/photo-1600573472592-401b489a3cdc?auto=format&fit=crop&w=700&q=82\" alt=\"Woven throw\"><div class=\"meta\"><div class=\"name\">Textured Woven Throw</div><div class=\"sub\"><span class=\"price\">€64</span><span class=\"rating\">★★★★★ 4.8</span></div></div></div>\n</div></section>\n<section class=\"season\" id=\"seasonal\"><div class=\"season-copy\"><div class=\"eyebrow\">The seasonal collection</div><h2>Warm layers for slower days.</h2><p>Earthy tones, tactile fabrics and small details that make the room feel instantly more inviting.</p><button class=\"btn shop\">Shop the collection →</button></div><div class=\"season-img\"></div></section>\n<div class=\"benefits\"><div class=\"benefit\"><strong>Fast EU delivery</strong><span>Selected suppliers and European fulfilment.</span></div><div class=\"benefit\"><strong>30-day returns</strong><span>Simple, clear and hassle-free.</span></div><div class=\"benefit\"><strong>Curated quality</strong><span>Fewer pieces, chosen more carefully.</span></div><div class=\"benefit\"><strong>Secure checkout</strong><span>Payment integration coming in the next build.</span></div></div>\n<section class=\"story\" id=\"journal\"><div class=\"story-card\" style=\"background-image:url('https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=1200&q=85')\"><div><div class=\"eyebrow\">Room inspiration</div><h3>The quiet living room</h3><p>Layer light, natural materials and warm neutrals without making the space feel over-styled.</p></div></div><div class=\"story-card\" style=\"background-image:url('https://images.unsplash.com/photo-1600566752355-35792bedcfea?auto=format&fit=crop&w=1200&q=85')\"><div><div class=\"eyebrow\">Maison Journal</div><h3>Objects worth keeping</h3><p>Our approach to choosing pieces that feel relevant beyond a single season.</p></div></div></section>\n<section class=\"newsletter\"><div><h2>Stay close to Maison Marnier.</h2><p>New edits, seasonal collections and styling inspiration — occasionally, not constantly.</p></div><form class=\"form\" id=\"form\"><input required type=\"email\" placeholder=\"Your email address\"><button>Subscribe</button></form></section>\n<footer class=\"footer\"><div class=\"footer-grid\"><div><div class=\"logo footer-brand\">MAISON MARNIER</div><p>Curated home decor for considered everyday living.</p></div><div><h4>Shop</h4><a href=\"/collections/new\">New Arrivals</a><a href=\"/collections/decor\">Decor</a><a href=\"/collections/seasonal\">Seasonal</a></div><div><h4>About</h4><a href=\"/about\">Our Story</a><a href=\"/journal\">Journal</a><a href=\"/sourcing\">Sourcing</a></div><div><h4>Help</h4><a href=\"/shipping\">Shipping</a><a href=\"/returns\">Returns</a><a href=\"/contact\">Contact</a></div></div><div class=\"bottom\"><span>© 2026 Maison Marnier. Development preview.</span><span>Europe · EUR €</span></div></footer><div class=\"toast\" id=\"toast\">Saved to your Maison Marnier wishlist.</div>\n<script>\nconst t=document.getElementById('toast');\nfunction toast(m){t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1800)}\nconst WISH_KEY='mm_wishlist';\nfunction loadWish(){try{return JSON.parse(localStorage.getItem(WISH_KEY)||'[]')}catch(e){return []}}\nfunction saveWish(ids){localStorage.setItem(WISH_KEY,JSON.stringify(ids))}\nfunction wishIdFromCard(card){const a=card.closest('a')||card;const img=card.querySelector('img');return (a&&a.getAttribute('href'))||(img&&img.src)||Math.random().toString(36)}\n(function initWishlist(){\n  let wish=loadWish();\n  document.querySelectorAll('.heart').forEach(b=>{\n    const card=b.closest('.product');\n    if(!card)return;\n    const id=wishIdFromCard(card);\n    card.dataset.wishId=id;\n    if(wish.includes(id))b.textContent='♥';\n    b.onclick=()=>{\n      wish=loadWish();\n      const i=wish.indexOf(id);\n      if(i>=0){wish.splice(i,1);b.textContent='♡';toast('Removed from wishlist.')}\n      else{wish.push(id);b.textContent='♥';toast('Saved to your Maison Marnier wishlist.')}\n      saveWish(wish);\n    };\n  });\n})();\ndocument.querySelectorAll('.shop').forEach(b=>b.onclick=()=>document.getElementById('featured').scrollIntoView({behavior:'smooth'}));\ndocument.getElementById('cart').onclick=()=>location.href='/cart';(function(){function c(){try{return(JSON.parse(localStorage.getItem('mm_cart')||'[]')||[]).reduce((s,i)=>s+Number(i.qty||1),0)}catch(e){return 0}}function p(){const el=document.getElementById('cart');if(!el)return;const n=c();el.textContent=n?('Cart ('+n+')'):'Cart'}p();window.addEventListener('mm-cart',p);})();\ndocument.getElementById('form').onsubmit=e=>{e.preventDefault();toast('Thanks — welcome to Maison Marnier.');e.target.reset()};\nfetch('/api/store/products').then(r=>r.json()).then(d=>{\n  if(!d.ok||!d.products||!d.products.length)return;\n  const box=document.querySelector('#featured .products');\n  if(!box)return;\n  box.innerHTML=d.products.slice(0,10).map(p=>{\n    const href='/products/'+encodeURIComponent(p.slug||'');\n    const img=String(p.image_url||'').replace(/\"/g,'&quot;');\n    const name=String(p.name||'').replace(/</g,'&lt;');\n    const cat=String(p.category||'Maison Marnier').replace(/</g,'&lt;');\n    const price=Number(p.retail_price_eur||0).toFixed(2);\n    const cmp=Number(p.compare_at_price_eur||0);\n    const compare=cmp>Number(price)?('<span class=\"compare\">€'+cmp.toFixed(2)+'</span>'):'';\n    const wish=loadWish();\n    const heart=wish.includes(href)?'♥':'♡';\n    return '<a class=\"product\" href=\"'+href+'\" data-wish-id=\"'+href+'\"><button class=\"heart\" type=\"button\">'+heart+'</button><img src=\"'+img+'\" alt=\"'+name+'\" loading=\"lazy\"><div class=\"meta\"><div class=\"product-kicker\">'+cat+'</div><div class=\"name\">'+name+'</div><div class=\"sub\"><span class=\"price\">€'+price+compare+'</span><span class=\"rating\">View piece →</span></div></div></a>';\n  }).join('');\n  box.querySelectorAll('.heart').forEach(b=>{\n    b.onclick=e=>{\n      e.preventDefault();e.stopPropagation();\n      const card=b.closest('.product');\n      const id=card.dataset.wishId||card.getAttribute('href');\n      let wish=loadWish();\n      const i=wish.indexOf(id);\n      if(i>=0){wish.splice(i,1);b.textContent='♡';toast('Removed from wishlist.')}\n      else{wish.push(id);b.textContent='♥';toast('Saved to your Maison Marnier wishlist.')}\n      saveWish(wish);\n    };\n  });\n}).catch(()=>{});\nfetch('/api/store/home').then(r=>r.json()).then(d=>{\n  if(!d.ok)return;\n  const c=d.content||{},cats=document.querySelectorAll('.cat');\n  const hero=document.querySelector('.hero-img');\n  if(hero&&c.hero_image)hero.style.backgroundImage='url('+JSON.stringify(c.hero_image)+')';\n  const heroBtn=document.querySelector('.hero .btn');\n  if(heroBtn&&c.hero_link)heroBtn.href=c.hero_link;\n  const ci=['cat_textiles','cat_objects','cat_candles','cat_wall','cat_seasonal'];\n  const defaults=['/collections/textiles','/collections/objects','/collections/candles','/collections/wall-decor','/collections/seasonal'];\n  cats.forEach((a,i)=>{\n    const k=ci[i];\n    a.href=c[k+'_link']||defaults[i]||a.href;\n    const im=a.querySelector('img');\n    if(im&&c[k+'_image'])im.src=c[k+'_image'];\n  });\n  const season=document.querySelector('.season-img');\n  if(season&&c.season_image)season.style.backgroundImage='url('+JSON.stringify(c.season_image)+')';\n  const sb=document.querySelector('.season .shop');\n  if(sb&&c.season_link)sb.onclick=()=>location.href=c.season_link;\n  const stories=document.querySelectorAll('.story-card');\n  [['story_quiet',0],['story_objects',1]].forEach(([k,i])=>{\n    const s=stories[i];if(!s)return;\n    if(c[k+'_image'])s.style.backgroundImage='url('+JSON.stringify(c[k+'_image'])+')';\n    s.style.cursor='pointer';\n    if(c[k+'_link'])s.onclick=()=>location.href=c[k+'_link'];\n  });\n  const viewAll=document.querySelector('#categories .view');\n  if(viewAll)viewAll.href='/collections/decor';\n  const featView=document.querySelector('#featured .view');\n  if(featView)featView.href='/collections/new';\n}).catch(()=>{});\n</script></body></html>";
+  let featuredHtml = '';
+  try {
+    const products = await getLiveProducts(env, 8);
+    featuredHtml = products.map(productCard).join('');
+  } catch {
+    featuredHtml = '';
+  }
+  if (!featuredHtml) {
+    featuredHtml = `<p class="empty">New pieces are on the way.</p>`;
+  }
+
   const homeTitle = 'Maison Marnier — Curated Home Decor';
   const homeDescription =
-    'Maison Marnier — thoughtfully curated home decor for calm, beautiful spaces.';
-  const seoTags =
-    seoHeadHtml({
-      title: homeTitle,
-      description: homeDescription,
-      canonical: '/',
-      ogImage: DEFAULT_OG_IMAGE,
-      ogType: 'website',
-    }) + jsonLdScript(organizationWebsiteJsonLd());
+    'Premium curated home decor for calm European interiors. Shop lighting, objects, textiles and seasonal edits.';
 
-  html = html.replace('<head>', '<head>' + gtmHeadHtml());
-  html = html.replace('</title>', '</title>\n' + seoTags);
-  html = html.replace('<body>', '<body>' + gtmNoscriptHtml());
+  const html = `<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="theme-color" content="#12100e">
+${gtmHeadHtml()}
+<title>${esc(homeTitle)}</title>
+<meta name="description" content="${esc(homeDescription)}">
+${seoHeadHtml({
+  title: homeTitle,
+  description: homeDescription,
+  canonical: '/',
+  ogImage: DEFAULT_OG_IMAGE,
+  ogType: 'website',
+})}
+${jsonLdScript(organizationWebsiteJsonLd())}
+${fontLinksHtml()}
+<style>${HOME_CSS}</style>
+</head>
+<body>
+${gtmNoscriptHtml()}
+<div class="announce">Free shipping on orders over €100 · Europe</div>
+<header class="site-nav">
+  <a class="brand" href="/">MAISON <span>MARNIER</span></a>
+  <nav class="links">
+    <a href="/collections/new">New</a>
+    <a href="/collections/decor">Decor</a>
+    <a href="/collections/lighting">Lighting</a>
+    <a href="/collections/seasonal">Seasonal</a>
+    <a href="/collections/objects">Objects</a>
+    <a href="/journal">Journal</a>
+  </nav>
+  <div class="tools">
+    <a href="/cart" id="cartBtn" class="cart-link">Cart <span id="cartCount"></span></a>
+  </div>
+</header>
 
-  try {
-    const products = await getLiveProducts(env, 10);
-    if (products.length) {
-      const featured = products.map(homeFeaturedCard).join('');
-      const start = '<div class="products">';
-      const i = html.indexOf(start);
-      if (i >= 0) {
-        const close = html.indexOf('\n</div></section>', i);
-        if (close > i) {
-          html = html.slice(0, i + start.length) + '\n' + featured + html.slice(close);
-        }
-      }
-    }
-  } catch {
-    /* keep placeholder cards if D1 unavailable */
-  }
+<main class="home-main">
+  <section class="mm-hero">
+    <div class="mm-hero-inner">
+      <span class="mm-kicker">Curated for quieter rooms</span>
+      <h1>Live with <em>fewer</em>, better pieces</h1>
+      <p class="lead">Bold edits for cozy European homes — lighting, objects and seasonal texture without the noise.</p>
+      <div class="mm-actions">
+        <a class="btn" href="/collections/new">Shop new arrivals</a>
+        <a class="btn btn-ghost" href="/collections/decor">Browse decor</a>
+      </div>
+    </div>
+  </section>
+
+  <section class="mm-section" id="categories">
+    <div class="mm-section-inner">
+      <div class="mm-section-head">
+        <h2>Shop the house</h2>
+        <a href="/collections/decor">View all →</a>
+      </div>
+      <div class="mm-cats">
+        <a class="mm-cat" href="/collections/lighting"><img src="https://images.unsplash.com/photo-1603905179139-db12ab535ca4?auto=format&fit=crop&w=900&q=82" alt="Lighting" loading="lazy"><span>Lighting</span></a>
+        <a class="mm-cat" href="/collections/objects"><img src="https://images.unsplash.com/photo-1615529162924-f8605388461d?auto=format&fit=crop&w=900&q=82" alt="Objects" loading="lazy"><span>Objects</span></a>
+        <a class="mm-cat" href="/collections/textiles"><img src="https://images.unsplash.com/photo-1616486338812-3dadae4b4ace?auto=format&fit=crop&w=900&q=82" alt="Textiles" loading="lazy"><span>Textiles</span></a>
+        <a class="mm-cat" href="/collections/seasonal"><img src="https://images.unsplash.com/photo-1600607687920-4e2a09cf159d?auto=format&fit=crop&w=900&q=82" alt="Seasonal" loading="lazy"><span>Seasonal</span></a>
+      </div>
+    </div>
+  </section>
+
+  <section class="mm-section" id="featured">
+    <div class="mm-section-inner">
+      <div class="mm-section-head">
+        <h2>New arrivals</h2>
+        <a href="/collections/new">View all →</a>
+      </div>
+      <div class="mm-products grid">${featuredHtml}</div>
+    </div>
+  </section>
+
+  <section class="mm-band" id="seasonal">
+    <div class="mm-band-copy">
+      <span class="mm-kicker">Seasonal edit</span>
+      <h2>Warm layers for slower nights</h2>
+      <p>Soft light, tactile detail and pieces that make a room feel finished — not decorated.</p>
+      <div class="mm-actions"><a class="btn" href="/collections/seasonal">Shop seasonal</a></div>
+    </div>
+    <div class="mm-band-img" role="img" aria-label="Cozy seasonal interior"></div>
+  </section>
+
+  <div class="mm-benefits">
+    <div class="mm-benefit"><strong>EU shipping</strong><span>Partner fulfilment across Europe.</span></div>
+    <div class="mm-benefit"><strong>30-day returns</strong><span>Clear, simple and fair.</span></div>
+    <div class="mm-benefit"><strong>Edited catalog</strong><span>Fewer SKUs, chosen with care.</span></div>
+    <div class="mm-benefit"><strong>Secure checkout</strong><span>Stripe · VAT calculated at payment.</span></div>
+  </div>
+
+  <section class="mm-stories" id="journal">
+    <a class="mm-story" href="/journal/quiet-living-room" style="background-image:url('https://images.unsplash.com/photo-1600585154526-990dced4db0d?auto=format&fit=crop&w=1200&q=85')">
+      <div><span class="mm-kicker">Journal</span><h3>The quiet living room</h3><p>Layer light and natural materials without over-styling the space.</p></div>
+    </a>
+    <a class="mm-story" href="/journal/objects-worth-keeping" style="background-image:url('https://images.unsplash.com/photo-1600566752355-35792bedcfea?auto=format&fit=crop&w=1200&q=85')">
+      <div><span class="mm-kicker">Journal</span><h3>Objects worth keeping</h3><p>How we choose pieces that stay relevant past a single season.</p></div>
+    </a>
+  </section>
+
+  <section class="mm-news">
+    <div>
+      <h2>Stay close to the maison</h2>
+      <p>New edits and seasonal notes — occasionally, not constantly.</p>
+    </div>
+    <form class="mm-form" id="form">
+      <input required type="email" placeholder="Your email" aria-label="Email">
+      <button type="submit">Subscribe</button>
+    </form>
+  </section>
+</main>
+
+<footer class="site-footer">
+  <div class="footer-grid">
+    <div><div class="brand">MAISON <span>MARNIER</span></div><p class="muted" style="margin-top:12px;max-width:34ch">Curated home objects for quieter rooms and slower evenings.</p></div>
+    <div><h4>Shop</h4><a href="/collections/new">New Arrivals</a><a href="/collections/decor">Decor</a><a href="/collections/seasonal">Seasonal</a></div>
+    <div><h4>About</h4><a href="/about">Our Story</a><a href="/journal">Journal</a><a href="/sourcing">Sourcing</a></div>
+    <div><h4>Help</h4><a href="/shipping">Shipping</a><a href="/returns">Returns</a><a href="/contact">Contact</a></div>
+  </div>
+  <div class="bottom"><span>© 2026 Maison Marnier.</span><span>Europe · EUR €</span></div>
+</footer>
+<div class="toast" id="toast"></div>
+<script>
+const t=document.getElementById('toast');
+function toast(m){if(!t)return;t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1800)}
+document.getElementById('form').onsubmit=e=>{e.preventDefault();toast('Thanks — welcome to Maison Marnier.');e.target.reset()};
+(function(){
+  function count(){try{return (JSON.parse(localStorage.getItem('mm_cart')||'[]')||[]).reduce((s,i)=>s+Number(i.qty||1),0)}catch(e){return 0}}
+  function paint(){const el=document.getElementById('cartCount'); if(!el)return; const n=count(); el.textContent=n?('('+n+')'):'';}
+  paint(); window.addEventListener('mm-cart',paint);
+})();
+</script>
+</body>
+</html>`;
 
   return new Response(html, {
     headers: {
