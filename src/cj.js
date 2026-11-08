@@ -1,4 +1,5 @@
 import { json } from './lib/json.js';
+import { suggestedRetailEur } from './lib/merch.js';
 
 let cjAccessToken = null;
 let cjAccessExpiry = 0;
@@ -75,7 +76,7 @@ export async function cjSearch(url, env) {
         categoryId: x.categoryId || null,
         freeShipping: x.addMarkStatus === 1,
         supplier: x.supplierName || 'CJ',
-        suggestedRetailEUR: Math.max(19.95, Math.ceil(Number(x.nowPrice || x.sellPrice || 0) * 2.5) - 0.05),
+        suggestedRetailEUR: suggestedRetailEur(x.nowPrice || x.sellPrice),
       }));
     return json({
       ok: true,

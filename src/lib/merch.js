@@ -1,4 +1,4 @@
-/** Light merchandising helpers for CJ → Maison titles/categories. */
+/** Light merchandising helpers for CJ → Maison titles/categories/pricing. */
 
 export function cleanProductName(name) {
   let n = String(name || '').replace(/\s+/g, ' ').trim();
@@ -24,6 +24,19 @@ export function mapMaisonCategory(name, category) {
   return 'Decor';
 }
 
+/**
+ * Market retail EUR from supplier USD cost.
+ * Maison home decor target: ~3.0× cost with .95 endings (band ~2.5–3.5×).
+ * Soft floor keeps tiny SKUs shoppable without the old flat €19.95 floor.
+ */
+export function suggestedRetailEur(costUSD) {
+  const c = Number(costUSD) || 0;
+  if (!(c > 0)) return 0;
+  const raw = Math.max(c * 3, 9.95);
+  return Math.max(9.95, Math.ceil(raw) - 0.05);
+}
+
+/** Compare-at ~1.28× retail, rounded to .05 for clean merchandising. */
 export function suggestedCompareEur(retail) {
   const r = Number(retail) || 0;
   if (!(r > 0)) return null;

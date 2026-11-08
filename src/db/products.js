@@ -1,16 +1,32 @@
 import { json } from '../lib/json.js';
 import { slugify } from '../lib/slugify.js';
 import { safeUrl } from '../lib/escape.js';
-import { cleanProductName, mapMaisonCategory, suggestedCompareEur } from '../lib/merch.js';
+import {
+  cleanProductName,
+  mapMaisonCategory,
+  suggestedCompareEur,
+  suggestedRetailEur,
+} from '../lib/merch.js';
 import { refreshProductFromCJ } from '../cj.js';
 
 const PRODUCT_COLS =
   'id,lume_sku,supplier,supplier_product_id,supplier_sku,name,image_url,supplier_cost_usd,retail_price_eur,compare_at_price_eur,category,stock,delivery_days,status,slug,description,published_at,created_at';
 
+function publishValidationError(row) {
+  if (!row) return 'Product not found';
+  if (!row.name || !row.image_url) return 'Title and image are required before publishing';
+  if (!(Number(row.retail_price_eur) > 0)) return 'Set a retail price before publishing';
+  if (!(Number(row.supplier_cost_usd) > 0)) {
+    return 'CJ cost is missing/zero. Review the real variant cost before publishing.';
+  }
+  if (Number(row.stock) <= 0) return 'Product is out of stock';
+  return null;
+}
+
 export async function listLumeProducts(env) {
   try {
     const r = await env.LUME_DB.prepare(
-      `SELECT ${PRODUCT_COLS} FROM products ORDER BY id DESC LIMIT 100`,
+      `SELECT ${PRODUCT_COLS} FROM products ORDER BY id DESC LIMIT 500`,
     ).all();
     return json({ ok: true, products: r.results || [] });
   } catch (e) {
@@ -51,7 +67,9 @@ export async function importLumeProduct(request, env) {
     const p = await request.json();
     if (!p || !p.id || !p.name) return json({ ok: false, error: 'Missing product id/name' }, 400);
     const cost = Number(p.costUSD || 0) || 0;
-    const retail = Number(p.retailPriceEUR || 0) || 0;
+    let retail = Number(p.retailPriceEUR || 0) || 0;
+    // Prefer provided retail; otherwise derive from cost (~3× with .95 endings).
+    if (!(retail > 0) && cost > 0) retail = suggestedRetailEur(cost);
     const rawName = String(p.name).slice(0, 240);
     const name = cleanProductName(rawName) || rawName;
     const category = mapMaisonCategory(name, p.category);
@@ -107,8 +125,9 @@ export async function updateLumeProduct(request, env) {
     const image = safeUrl(p.image_url, '');
     if (p.image_url && !image) return json({ ok: false, error: 'Image URL must be http(s) or a site path' }, 400);
     const category = String(p.category || '').trim().slice(0, 160);
-    const retail = Number(p.retail_price_eur || 0) || 0;
-    const compare = Number(p.compare_at_price_eur || 0) || null;
+    let retail = Number(p.retail_price_eur || 0) || 0;
+    let compare = Number(p.compare_at_price_eur || 0) || null;
+    if (!(compare > 0) && retail > 0) compare = suggestedCompareEur(retail);
     await env.LUME_DB.prepare(
       `UPDATE products SET name=?,slug=?,description=?,image_url=?,category=?,retail_price_eur=?,compare_at_price_eur=?,updated_at=CURRENT_TIMESTAMP WHERE id=?`,
     )
@@ -130,20 +149,9 @@ export async function publishLumeProduct(request, env) {
     )
       .bind(id)
       .first();
-    if (!row) return json({ ok: false, error: 'Product not found' }, 404);
-    if (!row.name || !row.image_url) {
-      return json({ ok: false, error: 'Title and image are required before publishing' }, 400);
-    }
-    if (!(Number(row.retail_price_eur) > 0)) {
-      return json({ ok: false, error: 'Set a retail price before publishing' }, 400);
-    }
-    if (!(Number(row.supplier_cost_usd) > 0)) {
-      return json(
-        { ok: false, error: 'CJ cost is missing/zero. Review the real variant cost before publishing.' },
-        400,
-      );
-    }
-    if (Number(row.stock) <= 0) return json({ ok: false, error: 'Product is out of stock' }, 400);
+    const err = publishValidationError(row);
+    if (err === 'Product not found') return json({ ok: false, error: err }, 404);
+    if (err) return json({ ok: false, error: err }, 400);
     const slug = slugify(row.slug || row.name);
     await env.LUME_DB.prepare(
       "UPDATE products SET status='live',slug=?,published_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=?",
@@ -153,6 +161,43 @@ export async function publishLumeProduct(request, env) {
     return json({ ok: true, id, slug, status: 'live' });
   } catch (e) {
     return json({ ok: false, error: e.message || 'Publish failed' }, 500);
+  }
+}
+
+/** Publish every draft that passes the same checks as publishLumeProduct; skip invalid. */
+export async function publishAllLumeProducts(request, env) {
+  try {
+    const drafts = await env.LUME_DB.prepare(
+      `SELECT id,name,image_url,supplier_cost_usd,retail_price_eur,stock,slug
+       FROM products WHERE status!='live' ORDER BY id ASC`,
+    ).all();
+    const rows = drafts.results || [];
+    let published = 0;
+    let skipped = 0;
+    const errors = [];
+    for (const row of rows) {
+      const err = publishValidationError(row);
+      if (err) {
+        skipped += 1;
+        errors.push({ id: row.id, error: err });
+        continue;
+      }
+      try {
+        const slug = slugify(row.slug || row.name);
+        await env.LUME_DB.prepare(
+          "UPDATE products SET status='live',slug=?,published_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=?",
+        )
+          .bind(slug, row.id)
+          .run();
+        published += 1;
+      } catch (e) {
+        skipped += 1;
+        errors.push({ id: row.id, error: e.message || 'Publish failed' });
+      }
+    }
+    return json({ ok: true, published, skipped, errors, total: rows.length });
+  } catch (e) {
+    return json({ ok: false, error: e.message || 'Publish all failed' }, 500);
   }
 }
 
