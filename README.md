@@ -58,6 +58,8 @@ Optional vars (non-secret ok as plain vars):
 |-----|-----|
 | `CJ_ORDER_SANDBOX` | `1` = CJ sandbox orders (no real charge/ship) |
 | `CJ_LOGISTIC_NAME` | CJ logistics method (default `CJPacket Ordinary`) |
+| `CJ_IOSS_TYPE` | `1` none / `2` own IOSS / `3` CJ IOSS (default for EU destinations) |
+| `CJ_IOSS_NUMBER` | Required when `CJ_IOSS_TYPE=2` (own IOSS). For type `3` uses `CJ-IOSS`. |
 
 ### Stripe webhook
 

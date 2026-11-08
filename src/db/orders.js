@@ -126,6 +126,22 @@ export async function updateCjMeta(env, orderId, { cjOrderId, cjStatus, cjError 
     .run();
 }
 
+export async function markOrderExpired(env, orderId) {
+  await env.LUME_DB.prepare(
+    `UPDATE orders SET status='expired',updated_at=CURRENT_TIMESTAMP WHERE id=? AND status='pending_payment'`,
+  )
+    .bind(orderId)
+    .run();
+}
+
+export async function markOrderRefunded(env, orderId) {
+  await env.LUME_DB.prepare(
+    `UPDATE orders SET status='refunded',updated_at=CURRENT_TIMESTAMP WHERE id=?`,
+  )
+    .bind(orderId)
+    .run();
+}
+
 export async function updateItemVid(env, itemId, vid) {
   await env.LUME_DB.prepare(`UPDATE order_items SET cj_vid=? WHERE id=?`).bind(vid, itemId).run();
 }

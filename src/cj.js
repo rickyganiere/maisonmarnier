@@ -159,6 +159,21 @@ export async function resolveCJVariantId(env, supplierProductId, supplierSku) {
 export async function createCJOrder(env, payload) {
   const token = await getCJToken(env);
   const sandbox = env.CJ_ORDER_SANDBOX === '1' || env.CJ_ORDER_SANDBOX === 'true';
+  // IOSS: 1=none, 2=merchant IOSS (needs CJ_IOSS_NUMBER), 3=CJ IOSS (default for EU)
+  const eu = new Set([
+    'AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GR', 'HU', 'IE', 'IT', 'LV',
+    'LT', 'LU', 'MT', 'NL', 'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE',
+  ]);
+  const dest = String(payload.shippingCountryCode || '').toUpperCase();
+  let iossType = Number(env.CJ_IOSS_TYPE || 0) || 0;
+  let iossNumber = String(env.CJ_IOSS_NUMBER || '').trim();
+  if (!iossType && eu.has(dest)) {
+    iossType = 3; // CJ IOSS for EU destinations by default
+    iossNumber = 'CJ-IOSS';
+  } else if (iossType === 3) {
+    iossNumber = iossNumber || 'CJ-IOSS';
+  }
+
   const body = {
     orderNumber: payload.orderNumber,
     shippingZip: payload.shippingZip || '',
@@ -178,8 +193,13 @@ export async function createCJOrder(env, payload) {
     shopLogisticsType: 2,
     payType: 2,
     isSandbox: sandbox ? 1 : 0,
+    shopAmount: payload.shopAmount != null ? String(payload.shopAmount) : undefined,
     products: payload.products,
   };
+  if (iossType) {
+    body.iossType = iossType;
+    if (iossNumber) body.iossNumber = iossNumber;
+  }
 
   const r = await fetch(
     'https://developers.cjdropshipping.com/api2.0/v1/shopping/order/createOrderV3',
