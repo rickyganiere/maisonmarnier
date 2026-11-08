@@ -1,4 +1,5 @@
 import { esc } from './escape.js';
+import { BRAND_EMBLEM_SRC, BRAND_WORDMARK } from './brand.js';
 import { DEFAULT_OG_IMAGE, jsonLdScript, seoHeadHtml } from './seo.js';
 
 /** Google Tag Manager — public storefront only (not admin). */
@@ -30,31 +31,76 @@ const NAV = [
   ['Journal', '/journal'],
 ];
 
-function navHtml() {
+function navLinksHtml() {
   return NAV.map(([label, href]) => `<a href="${href}">${esc(label)}</a>`).join('');
+}
+
+/** Announcement bar — MOCKUP V3. */
+export function announceBarHtml(text = 'Free shipping on orders over €100 · Europe') {
+  return `<div class="announce">${esc(text)}</div>`;
+}
+
+/** Primary storefront nav with emblem lockup — MOCKUP V3. */
+export function siteNavHtml() {
+  return `<header class="site-nav">
+  <a class="brand-lockup" href="/" aria-label="Maison Marnier home">
+    <img src="${BRAND_EMBLEM_SRC}" alt="Maison Marnier emblem" width="82" height="82">
+    <span>${BRAND_WORDMARK}</span>
+  </a>
+  <nav class="links">${navLinksHtml()}</nav>
+  <div class="tools">
+    <form class="search-form" action="/collections/new" method="get" role="search">
+      <input class="search" type="search" name="q" placeholder="Search…" aria-label="Search products">
+    </form>
+    <button type="button" class="icon" aria-label="Wishlist" id="wishBtn">♡</button>
+    <a href="/cart" id="cartBtn" class="icon cart-link" aria-label="Cart">🛒<span id="cartCount"></span></a>
+  </div>
+</header>`;
+}
+
+export function cartPaintScript() {
+  return `<script>
+(function(){
+  function count(){try{return (JSON.parse(localStorage.getItem('mm_cart')||'[]')||[]).reduce((s,i)=>s+Number(i.qty||1),0)}catch(e){return 0}}
+  function paint(){
+    const el=document.getElementById('cartCount');
+    const btn=document.getElementById('cartBtn');
+    const n=count();
+    if(el) el.textContent=n?('('+n+')'):'';
+    if(btn && !document.getElementById('cartCount')) btn.textContent=n?('Cart ('+n+')'):'Cart';
+  }
+  paint(); window.addEventListener('mm-cart',paint); window.addEventListener('storage',paint);
+})();
+</script>`;
 }
 
 const LAYOUT_CSS = `
 :root{
   --bg:#F8F4EC;--ink:#2E332A;--muted:#6e665d;--olive:#3E4736;--line:#E5DED2;
   --card:#E9E0D3;--accent:#4E5842;--sand:#EBE3D6;--paper:#FBF8F2;
-  --pad:4.2vw;--max:1360px;--nav-h:92px;
+  --pad:4.2vw;--max:1360px;--nav-h:126px;
 }
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
 body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.55 Inter,system-ui,-apple-system,sans-serif}
 a{color:inherit;text-decoration:none}
 img{max-width:100%;display:block}
-.announce{background:#424B37;color:#F8F4EC;text-align:center;font:10px/1 Georgia,serif;letter-spacing:.18em;text-transform:uppercase;padding:11px 16px}
-.site-nav{display:grid;grid-template-columns:220px 1fr auto;align-items:center;gap:20px;min-height:var(--nav-h);padding:14px var(--pad);border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(251,248,242,.96);backdrop-filter:blur(12px);z-index:30}
+.announce{display:flex;align-items:center;justify-content:center;min-height:34px;background:#424B37;color:#F8F4EC;text-align:center;font:10px/1 Georgia,serif;letter-spacing:.18em;text-transform:uppercase;padding:11px 16px}
+.site-nav{display:grid;grid-template-columns:330px 1fr 150px;align-items:center;gap:12px;min-height:var(--nav-h);height:var(--nav-h);padding:0 var(--pad);border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(251,248,242,.96);backdrop-filter:blur(12px);z-index:30}
+.brand-lockup{display:flex;align-items:center;gap:14px;color:var(--olive)}
+.brand-lockup img{width:82px;height:82px;object-fit:cover;object-position:center;border-radius:42px;flex:0 0 auto}
+.brand-lockup span{font:400 22px/1 Georgia,serif;letter-spacing:.19em;color:var(--olive);white-space:nowrap}
 .brand{font:400 20px/1 Georgia,serif;letter-spacing:.18em;color:var(--olive)}
-.site-nav .links{display:flex;flex-wrap:wrap;justify-content:center;gap:18px;font:10px/1 Georgia,serif;letter-spacing:.09em;text-transform:uppercase}
+.site-nav .links{display:flex;flex-wrap:nowrap;justify-content:center;gap:21px;font:10px/1 Georgia,serif;letter-spacing:.075em;text-transform:uppercase;white-space:nowrap}
 .site-nav .links a{color:#34392F;opacity:.88;transition:opacity .2s}
 .site-nav .links a:hover{opacity:1;text-decoration:underline;text-underline-offset:4px}
-.tools{display:flex;gap:10px;align-items:center;justify-content:flex-end}
-.tools .search{width:150px;padding:10px 12px;border:1px solid var(--line);background:#fff;font:12px/1.2 inherit}
+.tools{display:flex;gap:8px;align-items:center;justify-content:flex-end}
+.tools .search-form{margin:0}
+.tools .search{display:none;width:150px;padding:10px 12px;border:1px solid var(--line);background:#fff;font:12px/1.2 inherit}
+.icon{width:34px;height:34px;border:0;background:transparent;color:#34392F;font-size:18px;display:grid;place-items:center;cursor:pointer;text-decoration:none}
 .cart-link{display:inline-flex;align-items:center;gap:6px;padding:9px 12px;border:1px solid var(--line);font:10px/1 Georgia,serif;letter-spacing:.1em;text-transform:uppercase;color:var(--ink);background:transparent}
 .cart-link:hover{border-color:var(--olive)}
+.site-nav .cart-link.icon{border:0;padding:0;letter-spacing:0;text-transform:none;font-size:18px;width:auto;min-width:34px;height:34px}
 .wrap{max-width:var(--max);margin:auto;padding:0 var(--pad) 72px}
 .crumbs{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:22px 0 0;font:10px/1 Georgia,serif;letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 .crumbs a:hover{color:var(--ink);text-decoration:underline;text-underline-offset:3px}
@@ -151,19 +197,29 @@ h1{font:400 clamp(34px,4.2vw,52px)/1.05 Georgia,serif;margin:0;letter-spacing:-.
 .related-head{display:flex;justify-content:space-between;align-items:end;gap:16px;margin-bottom:8px}
 .related h2{font:400 28px/1.15 Georgia,serif;margin:0;letter-spacing:.02em;color:var(--olive)}
 .related .view-all{font:10px/1 Georgia,serif;letter-spacing:.12em;text-transform:uppercase;border-bottom:1px solid #A58F77;padding-bottom:3px}
-.site-footer{margin-top:80px;border-top:1px solid var(--line);padding:42px var(--pad) 28px;background:#efe7da}
-.footer-grid{max-width:var(--max);margin:auto;display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:28px}
-.site-footer h4{font:400 12px Georgia,serif;letter-spacing:.1em;text-transform:uppercase;margin:0 0 14px}
-.site-footer a{display:block;color:var(--muted);margin:7px 0;font-size:14px}
-.site-footer a:hover{color:var(--ink)}
-.bottom{max-width:var(--max);margin:28px auto 0;display:flex;justify-content:space-between;gap:12px;color:var(--muted);font-size:12px;border-top:1px solid var(--line);padding-top:16px}
+.site-footer{margin-top:80px;border-top:0;padding:48px var(--pad) 28px;background:#424B37;color:#F4E3CF}
+.footer-grid{max-width:var(--max);margin:auto;display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:40px}
+.site-footer .brand,.site-footer .footer-brand{color:#F1DFC9}
+.site-footer h4{font:400 16px Georgia,serif;letter-spacing:.04em;text-transform:none;margin:0 0 14px;color:#F4E3CF}
+.site-footer a,.site-footer p{display:block;color:#DCCBB7;margin:8px 0;font-size:12px}
+.site-footer a:hover{color:#F8F4EC}
+.site-footer .muted{color:#DCCBB7}
+.bottom{max-width:var(--max);margin:35px auto 0;display:flex;justify-content:space-between;gap:12px;color:#BFB29F;font-size:11px;border-top:1px solid #56604A;padding-top:20px}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:#32382C;color:#fff;padding:12px 18px;opacity:0;transition:.25s;pointer-events:none;z-index:50;font:12px/1.3 Georgia,serif;letter-spacing:.04em}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 @keyframes fadeRise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 @media(max-width:1200px){.grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:1180px){
+  .site-nav{grid-template-columns:285px 1fr 110px;padding:0 2.5vw}
+  .site-nav .links{gap:13px;font-size:9px}
+  .brand-lockup span{font-size:18px}
+  .brand-lockup img{width:72px;height:72px}
+}
 @media(max-width:980px){
-  .site-nav{grid-template-columns:1fr auto;min-height:72px}
+  .site-nav{grid-template-columns:1fr auto;min-height:92px;height:92px;padding:0 18px}
   .site-nav .links{display:none}
+  .brand-lockup img{width:62px;height:62px}
+  .brand-lockup span{font-size:16px}
   .grid{grid-template-columns:repeat(2,minmax(0,1fr));gap:22px 14px}
   .product{grid-template-columns:1fr;gap:24px}
   .product-gallery{position:static}
@@ -183,15 +239,16 @@ h1{font:400 clamp(34px,4.2vw,52px)/1.05 Georgia,serif;margin:0;letter-spacing:-.
 }
 `;
 
-function footerHtml() {
+export function siteFooterHtml({ preview = false } = {}) {
+  const copy = preview ? '© 2026 Maison Marnier. Development preview.' : '© 2026 Maison Marnier.';
   return `<footer class="site-footer">
   <div class="footer-grid">
-    <div><div class="brand">MAISON MARNIER</div><p class="muted">Curated home decor for considered everyday living.</p></div>
+    <div><div class="brand footer-brand">${BRAND_WORDMARK}</div><p class="muted">Curated home decor for considered everyday living.</p></div>
     <div><h4>Shop</h4><a href="/collections/new">New Arrivals</a><a href="/collections/decor">Decor</a><a href="/collections/seasonal">Seasonal</a></div>
     <div><h4>About</h4><a href="/about">Our Story</a><a href="/journal">Journal</a><a href="/sourcing">Sourcing</a></div>
     <div><h4>Help</h4><a href="/shipping">Shipping</a><a href="/returns">Returns</a><a href="/contact">Contact</a></div>
   </div>
-  <div class="bottom"><span>© 2026 Maison Marnier.</span><span>Europe · EUR €</span></div>
+  <div class="bottom"><span>${copy}</span><span>Europe · EUR €</span></div>
 </footer>
 <div class="toast" id="toast"></div>
 <script>
@@ -201,6 +258,15 @@ const WISH_KEY='mm_wishlist';
 function loadWish(){try{return JSON.parse(localStorage.getItem(WISH_KEY)||'[]')}catch(e){return []}}
 function saveWish(ids){localStorage.setItem(WISH_KEY,JSON.stringify(ids))}
 </script>`;
+}
+
+function footerHtml() {
+  return siteFooterHtml();
+}
+
+/** Shared MOCKUP V3 tokens + chrome CSS used by htmlPage and homepage. */
+export function storefrontChromeCss() {
+  return LAYOUT_CSS;
 }
 
 /** Shared storefront chrome matching homepage brand language. */
@@ -244,26 +310,11 @@ ${jsonLdScript(jsonLd)}
 </head>
 <body>
 ${gtmNoscriptHtml()}
-<div class="announce">Free shipping on orders over €100 · Europe</div>
-<header class="site-nav">
-  <a class="brand" href="/">MAISON MARNIER</a>
-  <nav class="links">${navHtml()}</nav>
-  <div class="tools">
-    <form action="/collections/new" method="get" role="search">
-      <input class="search" type="search" name="q" placeholder="Search…" aria-label="Search products">
-    </form>
-    <a href="/cart" id="cartBtn" class="cart-link">Cart <span id="cartCount"></span></a>
-  </div>
-</header>
+${announceBarHtml()}
+${siteNavHtml()}
 <main class="wrap">${body}</main>
 ${footerHtml()}
-<script>
-(function(){
-  function count(){try{return (JSON.parse(localStorage.getItem('mm_cart')||'[]')||[]).reduce((s,i)=>s+Number(i.qty||1),0)}catch(e){return 0}}
-  function paint(){const el=document.getElementById('cartCount'); if(!el)return; const n=count(); el.textContent=n?('('+n+')'):'';}
-  paint(); window.addEventListener('mm-cart',paint); window.addEventListener('storage',paint);
-})();
-</script>
+${cartPaintScript()}
 </body>
 </html>`;
   return new Response(html, {
