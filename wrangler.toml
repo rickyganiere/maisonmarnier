@@ -1,0 +1,14 @@
+name = "lume-living-dev"
+main = "src/worker.js"
+compatibility_date = "2026-10-29"
+
+routes = [
+  { pattern = "maisonmarnier.com", custom_domain = true },
+  { pattern = "www.maisonmarnier.com", custom_domain = true }
+]
+
+[[d1_databases]]
+binding = "LUME_DB"
+database_id = "e5e5c9e8-f953-468e-9edc-69172ffd7f80"
+
+# Secrets (set in Cloudflare, never in git): CJ_API_KEY, LUME_ADMIN_TOKEN, LUME_IMPORT_CODE
