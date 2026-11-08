@@ -1,4 +1,5 @@
 import { esc } from './escape.js';
+import { DEFAULT_OG_IMAGE, jsonLdScript, seoHeadHtml } from './seo.js';
 
 /** Google Tag Manager — public storefront only (not admin). */
 export const GTM_ID = 'GTM-WL3RFMH4';
@@ -203,15 +204,39 @@ function saveWish(ids){localStorage.setItem(WISH_KEY,JSON.stringify(ids))}
 }
 
 /** Shared storefront chrome matching homepage brand language. */
-export function htmlPage(title, body, { description = '', status = 200, cache = 'private, no-store' } = {}) {
+export function htmlPage(
+  title,
+  body,
+  {
+    description = '',
+    status = 200,
+    cache = 'private, no-store',
+    canonical = '',
+    ogImage = '',
+    noindex = false,
+    ogType = 'website',
+    jsonLd = null,
+  } = {},
+) {
+  const pageTitle = `${title} — Maison Marnier`;
+  const canonPath = canonical || '/';
   const html = `<!doctype html>
 <html lang="en">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 ${gtmHeadHtml()}
-<title>${esc(title)} — Maison Marnier</title>
+<title>${esc(pageTitle)}</title>
 ${description ? `<meta name="description" content="${esc(description)}">` : ''}
+${seoHeadHtml({
+  title: pageTitle,
+  description,
+  canonical: canonPath,
+  ogImage: ogImage || DEFAULT_OG_IMAGE,
+  ogType,
+  noindex,
+})}
+${jsonLdScript(jsonLd)}
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500&display=swap" rel="stylesheet">

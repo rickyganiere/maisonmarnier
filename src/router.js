@@ -32,15 +32,34 @@ import { collectionPage } from './pages/collection.js';
 import { productPage } from './pages/product.js';
 import { journalPage } from './pages/journal.js';
 import { infoPage } from './pages/info.js';
+import { robotsTxt, sitemapXml } from './pages/seo.js';
 
 function methodNotAllowed() {
   return json({ ok: false, error: 'Method not allowed' }, 405);
+}
+
+/** 301 www → apex; skip localhost / workers.dev / other hosts. */
+function apexRedirect(request, url) {
+  const host = (request.headers.get('Host') || url.host || '').split(':')[0].toLowerCase();
+  if (host !== 'www.maisonmarnier.com') return null;
+  const target = new URL(request.url);
+  target.protocol = 'https:';
+  target.hostname = 'maisonmarnier.com';
+  target.port = '';
+  return Response.redirect(target.toString(), 301);
 }
 
 export async function handleRequest(request, env, ctx) {
   const url = new URL(request.url);
   const { pathname } = url;
   const method = request.method.toUpperCase();
+
+  const redirected = apexRedirect(request, url);
+  if (redirected) return redirected;
+
+  // --- Technical SEO ---
+  if (pathname === '/robots.txt') return robotsTxt();
+  if (pathname === '/sitemap.xml') return sitemapXml(env);
 
   // --- Public store APIs ---
   if (pathname === '/api/store/products') {
@@ -176,7 +195,7 @@ export async function handleRequest(request, env, ctx) {
   }
   if (pathname === '/admin') return adminPage();
 
-  if (pathname === '/' || pathname === '') return homePage();
+  if (pathname === '/' || pathname === '') return homePage(env);
 
   return htmlNotFound();
 }
