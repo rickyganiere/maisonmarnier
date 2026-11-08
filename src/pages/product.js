@@ -27,10 +27,10 @@ export async function productPage(url, env) {
     const stock = Number(p.stock || 0);
     const stockHint =
       stock <= 0
-        ? '<p class="muted">Currently unavailable.</p>'
+        ? '<p class="stock-line">Currently unavailable.</p>'
         : stock <= 5
-          ? `<p class="muted">Limited stock · only ${stock} remaining with our partner warehouse.</p>`
-          : `<p class="muted">In stock · ships from partner warehouse.</p>`;
+          ? `<p class="stock-line">Limited stock · only ${stock} remaining with our partner warehouse.</p>`
+          : `<p class="stock-line">In stock · ships from partner warehouse.</p>`;
 
     const relatedAll = await getLiveProducts(env, 48);
     const related = relatedAll
@@ -41,50 +41,69 @@ export async function productPage(url, env) {
         const b = (p.category || '').toLowerCase();
         return a && b && a === b;
       })
-      .slice(0, 4);
+      .slice(0, 5);
     const relatedFallback =
-      related.length >= 4
+      related.length >= 5
         ? related
         : [
             ...related,
             ...relatedAll.filter((r) => r.slug !== p.slug && !related.some((x) => x.slug === r.slug)),
-          ].slice(0, 4);
-    const relatedHtml = relatedFallback.length
-      ? `<section class="related"><h2>You may also like</h2><div class="grid">${relatedFallback.map(productCard).join('')}</div></section>`
-      : '';
-
-    const canBuy = stock > 0 && retail > 0;
+          ].slice(0, 5);
     const collectionHref = p.category
       ? `/collections/${encodeURIComponent(String(p.category).toLowerCase().replace(/\s+/g, '-'))}`
       : '/collections/new';
-    const body = `<div class="product">
+    const relatedHtml = relatedFallback.length
+      ? `<section class="related">
+           <div class="related-head">
+             <h2>You may also like</h2>
+             <a class="view-all" href="${collectionHref}">View collection →</a>
+           </div>
+           <div class="grid">${relatedFallback.map(productCard).join('')}</div>
+         </section>`
+      : '';
+
+    const canBuy = stock > 0 && retail > 0;
+    const body = `<nav class="crumbs" aria-label="Breadcrumb">
+        <a href="/">Home</a><span class="sep">/</span>
+        <a href="${collectionHref}">${esc(p.category || 'Shop')}</a><span class="sep">/</span>
+        <span>${esc(p.name || '')}</span>
+      </nav>
+      <div class="product">
       <div class="product-gallery">
         <div class="frame"><img src="${esc(p.image_url || '')}" alt="${esc(p.name || '')}"></div>
       </div>
       <div class="product-buy">
-        <div class="eyebrow"><a href="${collectionHref}">${esc(p.category || 'Maison Marnier')}</a></div>
-        <h1>${esc(p.name || '')}</h1>
-        ${priceBlock}
-        ${stockHint}
-        <div class="desc">${esc(p.description || 'Thoughtfully selected for Maison Marnier.')}</div>
-        <div class="buy-actions">
-        ${
-          canBuy
-            ? `<button class="btn" type="button" id="addCart"
-                data-id="${p.id}"
-                data-slug="${esc(p.slug || '')}"
-                data-name="${esc(p.name || '')}"
-                data-price="${retail}"
-                data-image="${esc(p.image_url || '')}">Add to cart</button>
-               <a class="btn btn-ghost" href="/cart">View cart</a>`
-            : `<button class="btn is-disabled" type="button" disabled>Unavailable</button>`
-        }
-        </div>
-        <p class="muted" style="margin-top:12px" id="addMsg"></p>
-        <div class="trust">
-          <span>✓ Free shipping on orders over €100</span>
-          <span>✓ Secure Stripe checkout · VAT calculated at payment</span>
-          <span>✓ Partner fulfilment across Europe</span>
+        <div class="buy-panel">
+          <div class="eyebrow"><a href="${collectionHref}">${esc(p.category || 'Maison Marnier')}</a></div>
+          <h1>${esc(p.name || '')}</h1>
+          ${priceBlock}
+          ${stockHint}
+          <div class="desc">${esc(p.description || 'Thoughtfully selected for Maison Marnier.')}</div>
+          <div class="buy-actions">
+          ${
+            canBuy
+              ? `<button class="btn" type="button" id="addCart"
+                  data-id="${p.id}"
+                  data-slug="${esc(p.slug || '')}"
+                  data-name="${esc(p.name || '')}"
+                  data-price="${retail}"
+                  data-image="${esc(p.image_url || '')}">Add to cart</button>
+                 <a class="btn btn-ghost" href="/cart">View cart</a>`
+              : `<button class="btn is-disabled" type="button" disabled>Unavailable</button>`
+          }
+          </div>
+          <p class="muted" style="margin-top:12px" id="addMsg"></p>
+          <div class="specs">
+            <div><strong>Category</strong>${esc(p.category || 'Decor')}</div>
+            <div><strong>Shipping</strong>Europe · partner warehouse</div>
+            <div><strong>Returns</strong>30-day returns</div>
+            <div><strong>Checkout</strong>Stripe · VAT at payment</div>
+          </div>
+          <div class="trust">
+            <span><i>✓</i> Free shipping on orders over €100</span>
+            <span><i>✓</i> Secure Stripe checkout</span>
+            <span><i>✓</i> Partner fulfilment across Europe</span>
+          </div>
         </div>
       </div>
     </div>${relatedHtml}

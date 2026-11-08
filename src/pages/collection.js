@@ -4,18 +4,47 @@ import { getLiveProducts } from '../db/products.js';
 
 /** Exact Maison category labels preferred; keyword fallbacks for older rows. */
 export const COLLECTION_RULES = {
-  new: { categories: [], keywords: [] },
+  new: { categories: [], keywords: [], blurb: 'Fresh arrivals for calm, considered rooms.' },
   decor: {
     categories: ['Decor', 'Objects', 'Wall Decor', 'Candles', 'Lighting', 'Textiles', 'Seasonal'],
     keywords: ['decor', 'ornament', 'home'],
+    blurb: 'The broader edit — objects, light, and quiet detail.',
   },
-  textiles: { categories: ['Textiles'], keywords: ['pillow', 'cushion', 'textile', 'throw', 'blanket', 'linen'] },
-  objects: { categories: ['Objects'], keywords: ['vase', 'ornament', 'sculpture', 'tray', 'object', 'statue'] },
-  candles: { categories: ['Candles'], keywords: ['candle', 'diffuser', 'fragrance', 'incense', 'candlestick'] },
-  'wall-decor': { categories: ['Wall Decor'], keywords: ['wall', 'tapestry', 'poster', 'mirror', 'frame', 'decal'] },
-  seasonal: { categories: ['Seasonal'], keywords: ['christmas', 'seasonal', 'holiday', 'xmas', 'santa'] },
-  lighting: { categories: ['Lighting'], keywords: ['lamp', 'light', 'lantern', 'led', 'projector'] },
-  furniture: { categories: ['Furniture'], keywords: ['table', 'chair', 'shelf', 'stool', 'cabinet', 'furniture'] },
+  textiles: {
+    categories: ['Textiles'],
+    keywords: ['pillow', 'cushion', 'textile', 'throw', 'blanket', 'linen'],
+    blurb: 'Soft layers for sofas, beds, and reading corners.',
+  },
+  objects: {
+    categories: ['Objects'],
+    keywords: ['vase', 'ornament', 'sculpture', 'tray', 'object', 'statue'],
+    blurb: 'Small sculptural pieces that settle a shelf.',
+  },
+  candles: {
+    categories: ['Candles'],
+    keywords: ['candle', 'diffuser', 'fragrance', 'incense', 'candlestick'],
+    blurb: 'Warm light and quiet fragrance for evening rooms.',
+  },
+  'wall-decor': {
+    categories: ['Wall Decor'],
+    keywords: ['wall', 'tapestry', 'poster', 'mirror', 'frame', 'decal'],
+    blurb: 'Wall stories — tapestries, decals, and hangings.',
+  },
+  seasonal: {
+    categories: ['Seasonal'],
+    keywords: ['christmas', 'seasonal', 'holiday', 'xmas', 'santa'],
+    blurb: 'Seasonal accents without the visual noise.',
+  },
+  lighting: {
+    categories: ['Lighting'],
+    keywords: ['lamp', 'light', 'lantern', 'led', 'projector'],
+    blurb: 'Soft glow for desks, windows, and night tables.',
+  },
+  furniture: {
+    categories: ['Furniture'],
+    keywords: ['table', 'chair', 'shelf', 'stool', 'cabinet', 'furniture'],
+    blurb: 'Useful forms for slower living.',
+  },
 };
 
 const CHIP_LINKS = [
@@ -63,16 +92,17 @@ export async function collectionPage(url, env) {
     }
 
     const rule = COLLECTION_RULES[slug];
-    const ps = slug === 'new' || (!rule.categories.length && !rule.keywords.length)
-      ? all
-      : all.filter((p) => matchesCollection(p, rule));
+    const ps =
+      slug === 'new' || (!rule.categories.length && !rule.keywords.length)
+        ? all
+        : all.filter((p) => matchesCollection(p, rule));
 
     const title = q
       ? `Search: ${q}`
       : slug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
     const lead = q
       ? `${ps.length} result${ps.length === 1 ? '' : 's'} for “${esc(q)}”`
-      : 'An edited selection for calm, considered rooms.';
+      : rule.blurb || 'An edited selection for calm, considered rooms.';
 
     const chips = CHIP_LINKS.map(
       ([label, href]) =>
@@ -85,11 +115,23 @@ export async function collectionPage(url, env) {
 
     return htmlPage(
       title,
-      `<div class="head">
-         <div><h1>${esc(title)}</h1><p class="lead">${lead}</p></div>
-         <div class="head-meta">${ps.length} piece${ps.length === 1 ? '' : 's'}</div>
+      `<nav class="crumbs" aria-label="Breadcrumb">
+         <a href="/">Home</a><span class="sep">/</span>
+         <a href="/collections/new">Shop</a><span class="sep">/</span>
+         <span>${esc(title)}</span>
+       </nav>
+       <section class="collection-top">
+         <div class="head">
+           <div>
+             <h1>${esc(title)}</h1>
+             <p class="lead">${lead}</p>
+           </div>
+           <div class="head-meta">${ps.length} piece${ps.length === 1 ? '' : 's'}</div>
+         </div>
+       </section>
+       <div class="toolbar">
+         <div class="chips" role="navigation" aria-label="Collections">${chips}</div>
        </div>
-       <div class="chips">${chips}</div>
        <div class="grid">${cards}</div>`,
     );
   } catch {
