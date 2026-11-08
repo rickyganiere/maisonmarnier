@@ -13,6 +13,7 @@ import {
   importLumeProduct,
   listLumeProducts,
   listPublishedProducts,
+  publishAllLumeProducts,
   publishLumeProduct,
   refreshLumeProduct,
   updateLumeProduct,
@@ -88,6 +89,12 @@ export async function handleRequest(request, env, ctx) {
     const denied = await requireAdmin(request, env);
     if (denied) return denied;
     return publishLumeProduct(request, env);
+  }
+  if (pathname === '/api/lume/publish-all') {
+    if (method !== 'POST') return methodNotAllowed();
+    const denied = await requireAdmin(request, env);
+    if (denied) return denied;
+    return publishAllLumeProducts(request, env);
   }
   if (pathname === '/api/lume/refresh') {
     if (method !== 'POST') return methodNotAllowed();
