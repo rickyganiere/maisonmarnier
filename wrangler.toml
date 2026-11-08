@@ -19,6 +19,6 @@ enabled = true
 enabled = true
 
 # Secrets (set in Cloudflare dashboard or `wrangler secret put`, never in git):
-#   CJ_API_KEY
-#   LUME_ADMIN_TOKEN
-#   LUME_IMPORT_CODE
+#   CJ_API_KEY, LUME_ADMIN_TOKEN, LUME_IMPORT_CODE
+#   STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET
+# Optional plain vars: CJ_ORDER_SANDBOX=1, CJ_LOGISTIC_NAME

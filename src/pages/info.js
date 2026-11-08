@@ -4,15 +4,15 @@ import { htmlPage } from '../lib/html.js';
 const PAGES = {
   shipping: [
     'Shipping',
-    'Maison Marnier ships across the European Union from partner warehouses. Delivery windows vary by piece and destination; typical partner lead times are shown on product pages when available.\n\nOrders over €100 qualify for free standard shipping once checkout is enabled. Tracking details will be emailed when an order ships.',
+    'Maison Marnier ships across the European Union from partner warehouses. Delivery windows vary by piece and destination.\n\nStandard shipping is €6.90. Orders over €100 ship free within the EU. Tracking details are emailed when your parcel leaves the warehouse.',
   ],
   returns: [
     'Returns',
-    'We want every piece to feel right at home. Unused items in original condition may be returned within 30 days of delivery.\n\nReturn instructions and a prepaid label (where available) will be provided with each order confirmation once checkout launches. Custom or final-sale seasonal pieces may be excluded.',
+    'We want every piece to feel right at home. Unused items in original condition may be returned within 30 days of delivery.\n\nContact hello@maisonmarnier.com with your order number to start a return. Custom or final-sale seasonal pieces may be excluded.',
   ],
   contact: [
     'Contact',
-    'Questions about a piece, an order, or collaboration?\n\nEmail hello@maisonmarnier.com and we will reply within two business days. A contact form will appear here alongside checkout.',
+    'Questions about a piece, an order, or collaboration?\n\nEmail hello@maisonmarnier.com and we will reply within two business days.',
   ],
   sourcing: [
     'Sourcing',
@@ -20,7 +20,7 @@ const PAGES = {
   ],
   about: [
     'About Maison Marnier',
-    'Maison Marnier is a curated home edit for calm, considered everyday spaces — natural materials, soft light, and objects worth keeping.\n\nThe maison is based in Europe and publishes in EUR.',
+    'Maison Marnier is a curated home edit for calm, considered everyday spaces — natural materials, soft light, and objects worth keeping.\n\nThe maison is based in Europe and publishes in EUR. Payments are processed securely by Stripe.',
   ],
 };
 

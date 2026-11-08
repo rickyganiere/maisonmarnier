@@ -123,3 +123,97 @@ export async function refreshProductFromCJ(env, supplierProductId) {
     sku: match.sku || '',
   };
 }
+
+export async function resolveCJVariantId(env, supplierProductId, supplierSku) {
+  const token = await getCJToken(env);
+  const pid = String(supplierProductId || '');
+  if (!pid) throw new Error('Missing supplier product id');
+
+  // Try variant query by PID
+  const q = new URLSearchParams({ pid });
+  const r = await fetch(
+    'https://developers.cjdropshipping.com/api2.0/v1/product/variant/query?' + q.toString(),
+    { headers: { 'CJ-Access-Token': token, accept: 'application/json' } },
+  );
+  const d = await r.json();
+  if (r.ok && d.code === 200) {
+    const list = Array.isArray(d.data) ? d.data : Array.isArray(d.data?.variants) ? d.data.variants : d.data ? [d.data] : [];
+    if (list.length) {
+      const bySku = supplierSku
+        ? list.find((v) => String(v.variantSku || v.sku || '') === String(supplierSku))
+        : null;
+      const pick = bySku || list[0];
+      const vid = pick.vid || pick.variantId || pick.id;
+      if (vid) return String(vid);
+    }
+  }
+
+  // Fallback: treat stored id as vid (common when listV2 returns variant-level rows)
+  return pid;
+}
+
+/**
+ * Create a CJ logistics order after Stripe payment.
+ * payType=2 uses CJ balance; set env.CJ_ORDER_SANDBOX=1 for sandbox orders.
+ */
+export async function createCJOrder(env, payload) {
+  const token = await getCJToken(env);
+  const sandbox = env.CJ_ORDER_SANDBOX === '1' || env.CJ_ORDER_SANDBOX === 'true';
+  const body = {
+    orderNumber: payload.orderNumber,
+    shippingZip: payload.shippingZip || '',
+    shippingCountry: payload.shippingCountry || payload.shippingCountryCode || '',
+    shippingCountryCode: payload.shippingCountryCode || '',
+    shippingProvince: payload.shippingProvince || payload.shippingCity || '',
+    shippingCity: payload.shippingCity || '',
+    shippingCounty: '',
+    shippingPhone: payload.shippingPhone || '0000000000',
+    shippingCustomerName: payload.shippingCustomerName || 'Customer',
+    shippingAddress: payload.shippingAddress || '',
+    shippingAddress2: payload.shippingAddress2 || '',
+    email: payload.email || '',
+    remark: payload.remark || 'Maison Marnier',
+    logisticName: payload.logisticName || env.CJ_LOGISTIC_NAME || 'CJPacket Ordinary',
+    fromCountryCode: payload.fromCountryCode || 'CN',
+    shopLogisticsType: 2,
+    payType: 2,
+    isSandbox: sandbox ? 1 : 0,
+    products: payload.products,
+  };
+
+  const r = await fetch(
+    'https://developers.cjdropshipping.com/api2.0/v1/shopping/order/createOrderV3',
+    {
+      method: 'POST',
+      headers: {
+        'CJ-Access-Token': token,
+        'content-type': 'application/json',
+        accept: 'application/json',
+      },
+      body: JSON.stringify(body),
+    },
+  );
+  const d = await r.json();
+  if (!r.ok || d.code !== 200) {
+    throw new Error(d.message || d.errorCode || 'CJ createOrder failed');
+  }
+  const cjOrderId =
+    typeof d.data === 'string' || typeof d.data === 'number'
+      ? String(d.data)
+      : d.data?.orderId || d.data?.id || JSON.stringify(d.data);
+  return { cjOrderId, raw: d };
+}
+
+export async function getCJOrderDetail(env, cjOrderId) {
+  const token = await getCJToken(env);
+  const r = await fetch(
+    'https://developers.cjdropshipping.com/api2.0/v1/shopping/order/getOrderDetail?orderId=' +
+      encodeURIComponent(cjOrderId),
+    { headers: { 'CJ-Access-Token': token, accept: 'application/json' } },
+  );
+  const d = await r.json();
+  if (!r.ok || d.code !== 200) {
+    throw new Error(d.message || 'CJ getOrderDetail failed');
+  }
+  return d.data;
+}
