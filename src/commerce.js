@@ -98,17 +98,11 @@ export async function checkout(request, env) {
       unitAmountCents: Math.round(l.unit_price_eur * 100),
       image: l.image_url && String(l.image_url).startsWith('http') ? l.image_url : undefined,
     }));
-    if (shipping > 0) {
-      stripeLines.push({
-        name: 'Shipping',
-        quantity: 1,
-        unitAmountCents: Math.round(shipping * 100),
-      });
-    }
 
     const session = await createCheckoutSession(env, {
       orderNumber,
       lineItems: stripeLines,
+      shippingCents: Math.round(shipping * 100),
       successUrl: origin + '/checkout/success?session_id={CHECKOUT_SESSION_ID}',
       cancelUrl: origin + '/cart?cancelled=1',
       customerEmail: body.email || undefined,

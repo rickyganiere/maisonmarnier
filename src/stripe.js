@@ -1,21 +1,29 @@
 /** Minimal Stripe REST helpers for Workers (no SDK). */
 
+const EU_SHIPPING = [
+  'AT', 'BE', 'BG', 'HR', 'CY', 'CZ', 'DK', 'EE', 'FI', 'FR', 'DE', 'GR', 'HU', 'IE', 'IT', 'LV',
+  'LT', 'LU', 'MT', 'NL', 'PL', 'PT', 'RO', 'SK', 'SI', 'ES', 'SE',
+];
+
 export function stripeConfigured(env) {
   return !!env.STRIPE_SECRET_KEY;
 }
 
-async function stripeForm(env, path, params, method = 'POST') {
+async function stripeForm(env, path, params, { method = 'POST', idempotencyKey } = {}) {
   const body = new URLSearchParams();
   for (const [k, v] of Object.entries(params)) {
     if (v === undefined || v === null) continue;
     body.set(k, String(v));
   }
+  const headers = {
+    authorization: 'Bearer ' + env.STRIPE_SECRET_KEY,
+    'content-type': 'application/x-www-form-urlencoded',
+  };
+  if (idempotencyKey) headers['Idempotency-Key'] = idempotencyKey;
+
   const r = await fetch('https://api.stripe.com/v1' + path, {
     method,
-    headers: {
-      authorization: 'Bearer ' + env.STRIPE_SECRET_KEY,
-      'content-type': 'application/x-www-form-urlencoded',
-    },
+    headers,
     body: method === 'GET' ? undefined : body,
   });
   const data = await r.json();
@@ -29,61 +37,74 @@ async function stripeForm(env, path, params, method = 'POST') {
   return data;
 }
 
-/** Nested form encoding for Stripe Checkout line_items etc. */
-export async function createCheckoutSession(env, { orderNumber, lineItems, successUrl, cancelUrl, customerEmail }) {
+/**
+ * Hosted Checkout Session for Maison Marnier physical goods.
+ * Enables Stripe Tax (automatic_tax) — requires Tax registrations in Dashboard.
+ */
+export async function createCheckoutSession(
+  env,
+  { orderNumber, lineItems, shippingCents, successUrl, cancelUrl, customerEmail },
+) {
   const params = {
     mode: 'payment',
     success_url: successUrl,
     cancel_url: cancelUrl,
     client_reference_id: orderNumber,
     'metadata[order_number]': orderNumber,
-    'shipping_address_collection[allowed_countries][0]': 'AT',
-    'shipping_address_collection[allowed_countries][1]': 'BE',
-    'shipping_address_collection[allowed_countries][2]': 'BG',
-    'shipping_address_collection[allowed_countries][3]': 'HR',
-    'shipping_address_collection[allowed_countries][4]': 'CY',
-    'shipping_address_collection[allowed_countries][5]': 'CZ',
-    'shipping_address_collection[allowed_countries][6]': 'DK',
-    'shipping_address_collection[allowed_countries][7]': 'EE',
-    'shipping_address_collection[allowed_countries][8]': 'FI',
-    'shipping_address_collection[allowed_countries][9]': 'FR',
-    'shipping_address_collection[allowed_countries][10]': 'DE',
-    'shipping_address_collection[allowed_countries][11]': 'GR',
-    'shipping_address_collection[allowed_countries][12]': 'HU',
-    'shipping_address_collection[allowed_countries][13]': 'IE',
-    'shipping_address_collection[allowed_countries][14]': 'IT',
-    'shipping_address_collection[allowed_countries][15]': 'LV',
-    'shipping_address_collection[allowed_countries][16]': 'LT',
-    'shipping_address_collection[allowed_countries][17]': 'LU',
-    'shipping_address_collection[allowed_countries][18]': 'MT',
-    'shipping_address_collection[allowed_countries][19]': 'NL',
-    'shipping_address_collection[allowed_countries][20]': 'PL',
-    'shipping_address_collection[allowed_countries][21]': 'PT',
-    'shipping_address_collection[allowed_countries][22]': 'RO',
-    'shipping_address_collection[allowed_countries][23]': 'SK',
-    'shipping_address_collection[allowed_countries][24]': 'SI',
-    'shipping_address_collection[allowed_countries][25]': 'ES',
-    'shipping_address_collection[allowed_countries][26]': 'SE',
+    'automatic_tax[enabled]': 'true',
+    customer_creation: 'always',
+    billing_address_collection: 'auto',
     'phone_number_collection[enabled]': 'true',
     'payment_intent_data[metadata][order_number]': orderNumber,
+    // Physical goods PTC — General Tangible Goods
+    // tax_behavior exclusive: VAT added on top of listed EUR retail prices
   };
+
+  EU_SHIPPING.forEach((cc, i) => {
+    params[`shipping_address_collection[allowed_countries][${i}]`] = cc;
+  });
+
+  // Prefer shipping_options so Stripe Tax can tax shipping correctly
+  if (shippingCents > 0) {
+    params['shipping_options[0][shipping_rate_data][type]'] = 'fixed_amount';
+    params['shipping_options[0][shipping_rate_data][fixed_amount][amount]'] = String(shippingCents);
+    params['shipping_options[0][shipping_rate_data][fixed_amount][currency]'] = 'eur';
+    params['shipping_options[0][shipping_rate_data][display_name]'] = 'Standard shipping';
+    params['shipping_options[0][shipping_rate_data][tax_behavior]'] = 'exclusive';
+    params['shipping_options[0][shipping_rate_data][tax_code]'] = 'txcd_92010001'; // Shipping
+  } else {
+    params['shipping_options[0][shipping_rate_data][type]'] = 'fixed_amount';
+    params['shipping_options[0][shipping_rate_data][fixed_amount][amount]'] = '0';
+    params['shipping_options[0][shipping_rate_data][fixed_amount][currency]'] = 'eur';
+    params['shipping_options[0][shipping_rate_data][display_name]'] = 'Free shipping (orders over €100)';
+    params['shipping_options[0][shipping_rate_data][tax_behavior]'] = 'exclusive';
+    params['shipping_options[0][shipping_rate_data][tax_code]'] = 'txcd_92010001';
+  }
+
   if (customerEmail) params.customer_email = customerEmail;
 
   lineItems.forEach((li, i) => {
     params[`line_items[${i}][quantity]`] = String(li.quantity);
     params[`line_items[${i}][price_data][currency]`] = 'eur';
     params[`line_items[${i}][price_data][unit_amount]`] = String(li.unitAmountCents);
+    params[`line_items[${i}][price_data][tax_behavior]`] = 'exclusive';
     params[`line_items[${i}][price_data][product_data][name]`] = li.name;
+    params[`line_items[${i}][price_data][product_data][tax_code]`] = 'txcd_99999999'; // General - Tangible Goods
     if (li.image) params[`line_items[${i}][price_data][product_data][images][0]`] = li.image;
   });
 
-  return stripeForm(env, '/checkout/sessions', params);
+  return stripeForm(env, '/checkout/sessions', params, {
+    idempotencyKey: `checkout-${orderNumber}`,
+  });
 }
 
 export async function retrieveCheckoutSession(env, sessionId) {
-  const r = await fetch('https://api.stripe.com/v1/checkout/sessions/' + encodeURIComponent(sessionId) + '?expand[]=line_items', {
-    headers: { authorization: 'Bearer ' + env.STRIPE_SECRET_KEY },
-  });
+  const r = await fetch(
+    'https://api.stripe.com/v1/checkout/sessions/' +
+      encodeURIComponent(sessionId) +
+      '?expand[]=line_items&expand[]=total_details',
+    { headers: { authorization: 'Bearer ' + env.STRIPE_SECRET_KEY } },
+  );
   const data = await r.json();
   if (!r.ok) throw new Error((data.error && data.error.message) || 'Session retrieve failed');
   return data;

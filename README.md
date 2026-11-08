@@ -61,11 +61,24 @@ Optional vars (non-secret ok as plain vars):
 
 ### Stripe webhook
 
-In Stripe Dashboard → Developers → Webhooks, add endpoint:
+Endpoint (test mode already created for this account):
 
 `https://maisonmarnier.com/api/stripe/webhook`
 
-Event: `checkout.session.completed`. Paste the signing secret into `STRIPE_WEBHOOK_SECRET`.
+Events: `checkout.session.completed`, `checkout.session.expired`, `charge.refunded`.  
+Copy the endpoint signing secret (`whsec_…`) into Cloudflare secret `STRIPE_WEBHOOK_SECRET`. Create a separate live-mode endpoint before going live.
+
+### Stripe Tax
+
+Checkout Sessions enable `automatic_tax`. Before live traffic:
+
+1. Dashboard → **Tax** → add registrations (EU domestic / OSS / IOSS as applicable).
+2. Confirm prices are **exclusive** of tax (storefront EUR retail + VAT on top).
+3. Product tax code used: General Tangible Goods; shipping uses shipping tax code.
+
+### Invoicing (B2B)
+
+Use Stripe Dashboard to create/send invoices (branding + Hosted Invoice Page). No Worker API for invoices yet — Checkout remains the DTC path.
 
 ## Auth
 
