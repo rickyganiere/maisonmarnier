@@ -1,8 +1,41 @@
 import { json } from './lib/json.js';
 import { suggestedRetailEur } from './lib/merch.js';
+import { safeUrl } from './lib/escape.js';
 
 let cjAccessToken = null;
 let cjAccessExpiry = 0;
+
+/** Collect unique product photos from a CJ list/detail payload. */
+export function extractCjImages(x, { max = 8 } = {}) {
+  const out = [];
+  const seen = new Set();
+  const push = (raw) => {
+    const u = safeUrl(raw, '');
+    if (!u || seen.has(u)) return;
+    seen.add(u);
+    out.push(u);
+  };
+  if (!x || typeof x !== 'object') return out;
+  push(x.bigImage || x.productImage);
+  const sets = [x.productImageSet, x.productImages, x.imageSet, x.images];
+  for (const set of sets) {
+    if (Array.isArray(set)) set.forEach(push);
+    else if (typeof set === 'string' && set.trim()) {
+      try {
+        const parsed = JSON.parse(set);
+        if (Array.isArray(parsed)) parsed.forEach(push);
+      } catch {
+        set.split(/[\n,]+/).forEach(push);
+      }
+    }
+  }
+  // Variant thumbnails often include alternate angles / colorways
+  const variants = Array.isArray(x.variants) ? x.variants : [];
+  for (const v of variants) {
+    push(v?.variantImage || v?.image || v?.bigImage);
+  }
+  return out.slice(0, max);
+}
 
 export async function getCJToken(env) {
   if (cjAccessToken && Date.now() < cjAccessExpiry - 300000) return cjAccessToken;
@@ -63,21 +96,25 @@ export async function cjSearch(url, env) {
     const products = groups
       .flatMap((g) => (Array.isArray(g.productList) ? g.productList : []))
       .slice(0, size)
-      .map((x) => ({
-        id: x.id,
-        name: x.nameEn,
-        sku: x.sku,
-        image: x.bigImage,
-        costUSD: x.nowPrice || x.sellPrice,
-        stock: x.warehouseInventoryNum,
-        verifiedStock: x.totalVerifiedInventory,
-        deliveryDays: x.deliveryCycle,
-        category: x.threeCategoryName || x.twoCategoryName || x.oneCategoryName || null,
-        categoryId: x.categoryId || null,
-        freeShipping: x.addMarkStatus === 1,
-        supplier: x.supplierName || 'CJ',
-        suggestedRetailEUR: suggestedRetailEur(x.nowPrice || x.sellPrice),
-      }));
+      .map((x) => {
+        const images = extractCjImages(x);
+        return {
+          id: x.id,
+          name: x.nameEn,
+          sku: x.sku,
+          image: images[0] || x.bigImage,
+          images,
+          costUSD: x.nowPrice || x.sellPrice,
+          stock: x.warehouseInventoryNum,
+          verifiedStock: x.totalVerifiedInventory,
+          deliveryDays: x.deliveryCycle,
+          category: x.threeCategoryName || x.twoCategoryName || x.oneCategoryName || null,
+          categoryId: x.categoryId || null,
+          freeShipping: x.addMarkStatus === 1,
+          supplier: x.supplierName || 'CJ',
+          suggestedRetailEUR: suggestedRetailEur(x.nowPrice || x.sellPrice),
+        };
+      });
     return json({
       ok: true,
       query: q,
@@ -93,35 +130,46 @@ export async function cjSearch(url, env) {
   }
 }
 
-/** Refresh stock/cost for a draft from CJ list search by supplier product id. */
-export async function refreshProductFromCJ(env, supplierProductId) {
+/** Fetch full CJ product payload (listV2, then product/query fallback). */
+export async function fetchCjProduct(env, supplierProductId) {
   const token = await getCJToken(env);
-  const p = new URLSearchParams({
-    page: '1',
-    size: '20',
-    productIds: String(supplierProductId),
-  });
+  const pid = String(supplierProductId);
+  const p = new URLSearchParams({ page: '1', size: '20', productIds: pid });
   const r = await fetch(
     'https://developers.cjdropshipping.com/api2.0/v1/product/listV2?' + p.toString(),
     { headers: { 'CJ-Access-Token': token, accept: 'application/json' } },
   );
   const d = await r.json();
-  if (!r.ok || d.code !== 200) {
-    throw new Error(d.message || 'CJ refresh failed');
+  if (r.ok && d.code === 200) {
+    const groups = Array.isArray(d.data && d.data.content) ? d.data.content : [];
+    const items = groups.flatMap((g) => (Array.isArray(g.productList) ? g.productList : []));
+    const match = items.find((x) => String(x.id) === pid || String(x.pid) === pid) || items[0];
+    if (match) return match;
   }
-  const groups = Array.isArray(d.data && d.data.content) ? d.data.content : [];
-  const items = groups.flatMap((g) => (Array.isArray(g.productList) ? g.productList : []));
-  const match =
-    items.find((x) => String(x.id) === String(supplierProductId)) ||
-    items[0];
-  if (!match) throw new Error('CJ product not found for refresh');
+  const q = new URLSearchParams({ pid });
+  const r2 = await fetch(
+    'https://developers.cjdropshipping.com/api2.0/v1/product/query?' + q.toString(),
+    { headers: { 'CJ-Access-Token': token, accept: 'application/json' } },
+  );
+  const d2 = await r2.json();
+  if (!r2.ok || d2.code !== 200 || !d2.data) {
+    throw new Error(d2.message || d.message || 'CJ product fetch failed');
+  }
+  return d2.data;
+}
+
+/** Refresh stock/cost/images for a draft from CJ by supplier product id. */
+export async function refreshProductFromCJ(env, supplierProductId) {
+  const match = await fetchCjProduct(env, supplierProductId);
+  const images = extractCjImages(match);
   return {
     costUSD: Number(match.nowPrice || match.sellPrice || 0) || 0,
     stock: Number(match.warehouseInventoryNum || match.totalVerifiedInventory || 0) || 0,
     deliveryDays: String(match.deliveryCycle || ''),
-    image: match.bigImage || '',
-    name: match.nameEn || '',
-    sku: match.sku || '',
+    image: images[0] || match.bigImage || match.productImage || '',
+    images,
+    name: match.nameEn || match.productNameEn || '',
+    sku: match.sku || match.productSku || '',
   };
 }
 

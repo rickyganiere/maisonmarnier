@@ -1,6 +1,7 @@
 import { json } from '../lib/json.js';
-import { getCJToken } from '../cj.js';
+import { extractCjImages, getCJToken } from '../cj.js';
 import { cleanProductName, mapMaisonCategory, suggestedCompareEur, suggestedRetailEur } from '../lib/merch.js';
+import { serializeImageUrls } from '../lib/images.js';
 import { slugify } from '../lib/slugify.js';
 import { safeUrl } from '../lib/escape.js';
 
@@ -51,8 +52,11 @@ function normalizeCj(x) {
   if (!(cost > 0)) return null;
   const stock = Number(x.warehouseInventoryNum || x.totalVerifiedInventory || 0) || 0;
   if (stock <= 0) return null;
-  const image = safeUrl(x.bigImage || x.productImage || '', '');
+  const images = extractCjImages(x);
+  const image = safeUrl(images[0] || x.bigImage || x.productImage || '', '');
   if (!image) return null;
+  // Prefer SKUs that ship with real multi-angle product photos
+  if (images.length < 2) return null;
   const name = cleanProductName(rawName) || rawName;
   const category = mapMaisonCategory(name, x.threeCategoryName || x.twoCategoryName || x.oneCategoryName || '');
   // Skip apparel-ish categories after mapping if still junk
@@ -74,6 +78,7 @@ function normalizeCj(x) {
     retail,
     compare,
     image,
+    images,
     stock,
     deliveryDays: String(x.deliveryCycle || '7-15'),
     description: `A considered piece for calm interiors — curated for Maison Marnier.\n\n${name}`,
@@ -81,17 +86,19 @@ function normalizeCj(x) {
 }
 
 async function upsertLive(env, p) {
+  const gallery = serializeImageUrls(p.images || [p.image].filter(Boolean));
   await env.LUME_DB.prepare(
     `INSERT INTO products (
-       lume_sku,supplier,supplier_product_id,supplier_sku,name,image_url,
+       lume_sku,supplier,supplier_product_id,supplier_sku,name,image_url,image_urls,
        supplier_cost_usd,retail_price_eur,compare_at_price_eur,category,stock,delivery_days,
        status,slug,description,published_at,updated_at
-     ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
+     ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP,CURRENT_TIMESTAMP)
      ON CONFLICT(supplier_product_id) DO UPDATE SET
        supplier='CJ',
        supplier_sku=excluded.supplier_sku,
        name=excluded.name,
        image_url=excluded.image_url,
+       image_urls=excluded.image_urls,
        supplier_cost_usd=excluded.supplier_cost_usd,
        retail_price_eur=excluded.retail_price_eur,
        compare_at_price_eur=excluded.compare_at_price_eur,
@@ -111,6 +118,7 @@ async function upsertLive(env, p) {
       p.supplierSku,
       p.name,
       p.image,
+      gallery,
       p.cost,
       p.retail,
       p.compare,

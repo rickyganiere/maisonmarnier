@@ -1,6 +1,7 @@
 import { json } from '../lib/json.js';
 import { slugify } from '../lib/slugify.js';
 import { safeUrl } from '../lib/escape.js';
+import { serializeImageUrls } from '../lib/images.js';
 import {
   cleanProductName,
   mapMaisonCategory,
@@ -10,7 +11,7 @@ import {
 import { refreshProductFromCJ } from '../cj.js';
 
 const PRODUCT_COLS =
-  'id,lume_sku,supplier,supplier_product_id,supplier_sku,name,image_url,supplier_cost_usd,retail_price_eur,compare_at_price_eur,category,stock,delivery_days,status,slug,description,published_at,created_at';
+  'id,lume_sku,supplier,supplier_product_id,supplier_sku,name,image_url,image_urls,supplier_cost_usd,retail_price_eur,compare_at_price_eur,category,stock,delivery_days,status,slug,description,published_at,created_at';
 
 function publishValidationError(row) {
   if (!row) return 'Product not found';
@@ -41,7 +42,7 @@ export async function listPublishedProducts(env, { q = '', limit = 48 } = {}) {
     let r;
     if (query) {
       r = await env.LUME_DB.prepare(
-        `SELECT id,lume_sku,name,slug,image_url,retail_price_eur,compare_at_price_eur,category,stock,description
+        `SELECT id,lume_sku,name,slug,image_url,image_urls,retail_price_eur,compare_at_price_eur,category,stock,description
          FROM products WHERE status='live'
          AND (lower(name) LIKE ? OR lower(category) LIKE ? OR lower(ifnull(description,'')) LIKE ?)
          ORDER BY published_at DESC,id DESC LIMIT ?`,
@@ -50,7 +51,7 @@ export async function listPublishedProducts(env, { q = '', limit = 48 } = {}) {
         .all();
     } else {
       r = await env.LUME_DB.prepare(
-        `SELECT id,lume_sku,name,slug,image_url,retail_price_eur,compare_at_price_eur,category,stock,description
+        `SELECT id,lume_sku,name,slug,image_url,image_urls,retail_price_eur,compare_at_price_eur,category,stock,description
          FROM products WHERE status='live' ORDER BY published_at DESC,id DESC LIMIT ?`,
       )
         .bind(lim)
@@ -78,11 +79,14 @@ export async function importLumeProduct(request, env) {
     const description = `A considered piece for calm interiors — curated for Maison Marnier.\n\n${name}`;
     const sku = ('LL-CJ-' + String(p.sku || p.id).replace(/[^A-Za-z0-9]/g, '').slice(-18)).toUpperCase();
     const image = safeUrl(p.image, '');
+    const gallery = serializeImageUrls(
+      Array.isArray(p.images) ? p.images : Array.isArray(p.image_urls) ? p.image_urls : [image].filter(Boolean),
+    );
     await env.LUME_DB.prepare(
-      `INSERT INTO products (lume_sku,supplier,supplier_product_id,supplier_sku,name,image_url,supplier_cost_usd,retail_price_eur,compare_at_price_eur,category,stock,delivery_days,status,slug,description,updated_at)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP)
+      `INSERT INTO products (lume_sku,supplier,supplier_product_id,supplier_sku,name,image_url,image_urls,supplier_cost_usd,retail_price_eur,compare_at_price_eur,category,stock,delivery_days,status,slug,description,updated_at)
+       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP)
        ON CONFLICT(supplier_product_id) DO UPDATE SET
-         supplier_sku=excluded.supplier_sku,name=excluded.name,image_url=excluded.image_url,
+         supplier_sku=excluded.supplier_sku,name=excluded.name,image_url=excluded.image_url,image_urls=excluded.image_urls,
          supplier_cost_usd=excluded.supplier_cost_usd,retail_price_eur=excluded.retail_price_eur,
          compare_at_price_eur=excluded.compare_at_price_eur,category=excluded.category,
          stock=excluded.stock,delivery_days=excluded.delivery_days,slug=excluded.slug,
@@ -96,6 +100,7 @@ export async function importLumeProduct(request, env) {
         String(p.sku || ''),
         name,
         image,
+        gallery,
         cost,
         retail,
         compare,
@@ -124,14 +129,24 @@ export async function updateLumeProduct(request, env) {
     const description = String(p.description || '').trim().slice(0, 5000);
     const image = safeUrl(p.image_url, '');
     if (p.image_url && !image) return json({ ok: false, error: 'Image URL must be http(s) or a site path' }, 400);
+    let gallery = null;
+    if (Array.isArray(p.image_urls)) {
+      gallery = serializeImageUrls(p.image_urls);
+    } else if (typeof p.image_urls === 'string' && p.image_urls.trim()) {
+      const parts = p.image_urls
+        .split(/[\n,]+/)
+        .map((s) => s.trim())
+        .filter(Boolean);
+      gallery = serializeImageUrls(parts);
+    }
     const category = String(p.category || '').trim().slice(0, 160);
     let retail = Number(p.retail_price_eur || 0) || 0;
     let compare = Number(p.compare_at_price_eur || 0) || null;
     if (!(compare > 0) && retail > 0) compare = suggestedCompareEur(retail);
     await env.LUME_DB.prepare(
-      `UPDATE products SET name=?,slug=?,description=?,image_url=?,category=?,retail_price_eur=?,compare_at_price_eur=?,updated_at=CURRENT_TIMESTAMP WHERE id=?`,
+      `UPDATE products SET name=?,slug=?,description=?,image_url=?,image_urls=?,category=?,retail_price_eur=?,compare_at_price_eur=?,updated_at=CURRENT_TIMESTAMP WHERE id=?`,
     )
-      .bind(name, slug, description, image, category, retail, compare, id)
+      .bind(name, slug, description, image, gallery, category, retail, compare, id)
       .run();
     return json({ ok: true, id, slug, status: 'saved' });
   } catch (e) {
@@ -216,9 +231,11 @@ export async function refreshLumeProduct(request, env) {
       return json({ ok: false, error: 'Only CJ products can be refreshed' }, 400);
     }
     const fresh = await refreshProductFromCJ(env, row.supplier_product_id);
+    const gallery = serializeImageUrls(fresh.images || []);
     await env.LUME_DB.prepare(
       `UPDATE products SET supplier_cost_usd=?,stock=?,delivery_days=?,
        image_url=CASE WHEN ?!='' THEN ? ELSE image_url END,
+       image_urls=CASE WHEN ? IS NOT NULL THEN ? ELSE image_urls END,
        supplier_sku=CASE WHEN ?!='' THEN ? ELSE supplier_sku END,
        updated_at=CURRENT_TIMESTAMP WHERE id=?`,
     )
@@ -228,6 +245,8 @@ export async function refreshLumeProduct(request, env) {
         fresh.deliveryDays,
         fresh.image,
         fresh.image,
+        gallery,
+        gallery,
         fresh.sku,
         fresh.sku,
         id,
@@ -239,6 +258,7 @@ export async function refreshLumeProduct(request, env) {
       supplier_cost_usd: fresh.costUSD,
       stock: fresh.stock,
       delivery_days: fresh.deliveryDays,
+      images: fresh.images || [],
     });
   } catch (e) {
     return json({ ok: false, error: e.message || 'Refresh failed' }, 502);
@@ -247,7 +267,7 @@ export async function refreshLumeProduct(request, env) {
 
 export async function getLiveProducts(env, limit = 100) {
   const r = await env.LUME_DB.prepare(
-    `SELECT id,name,slug,image_url,retail_price_eur,compare_at_price_eur,category,description,stock,published_at
+    `SELECT id,name,slug,image_url,image_urls,retail_price_eur,compare_at_price_eur,category,description,stock,published_at
      FROM products WHERE status='live' ORDER BY published_at DESC,id DESC LIMIT ?`,
   )
     .bind(limit)
@@ -257,7 +277,7 @@ export async function getLiveProducts(env, limit = 100) {
 
 export async function getLiveProductBySlug(env, slug) {
   return env.LUME_DB.prepare(
-    `SELECT id,name,slug,image_url,retail_price_eur,compare_at_price_eur,category,description,stock
+    `SELECT id,name,slug,image_url,image_urls,retail_price_eur,compare_at_price_eur,category,description,stock
      FROM products WHERE status='live' AND slug=? LIMIT 1`,
   )
     .bind(slug)
