@@ -1,5 +1,6 @@
 import { esc } from '../lib/escape.js';
 import { htmlPage, productCard } from '../lib/html.js';
+import { productImages } from '../lib/images.js';
 import { productJsonLd } from '../lib/seo.js';
 import { getLiveProductBySlug, getLiveProducts } from '../db/products.js';
 
@@ -64,6 +65,21 @@ export async function productPage(url, env) {
       : '';
 
     const canBuy = stock > 0 && retail > 0;
+    const images = productImages(p);
+    const mainImage = images[0] || '';
+    const thumbs =
+      images.length > 1
+        ? `<div class="product-thumbs" id="galleryThumbs" role="tablist" aria-label="Product images">
+            ${images
+              .map(
+                (src, i) =>
+                  `<button type="button" class="${i === 0 ? 'is-active' : ''}" data-src="${esc(src)}" aria-label="Image ${i + 1}">
+                    <img src="${esc(src)}" alt="" loading="lazy">
+                  </button>`,
+              )
+              .join('')}
+          </div>`
+        : '';
     const body = `<nav class="crumbs" aria-label="Breadcrumb">
         <a href="/">Home</a><span class="sep">/</span>
         <a href="${collectionHref}">${esc(p.category || 'Shop')}</a><span class="sep">/</span>
@@ -71,7 +87,8 @@ export async function productPage(url, env) {
       </nav>
       <div class="product">
       <div class="product-gallery">
-        <div class="frame"><img src="${esc(p.image_url || '')}" alt="${esc(p.name || '')}"></div>
+        <div class="frame"><img id="galleryMain" src="${esc(mainImage)}" alt="${esc(p.name || '')}"></div>
+        ${thumbs}
       </div>
       <div class="product-buy">
         <div class="buy-panel">
@@ -88,7 +105,7 @@ export async function productPage(url, env) {
                   data-slug="${esc(p.slug || '')}"
                   data-name="${esc(p.name || '')}"
                   data-price="${retail}"
-                  data-image="${esc(p.image_url || '')}">Add to cart</button>
+                  data-image="${esc(mainImage)}">Add to cart</button>
                  <a class="btn btn-ghost" href="/cart">View cart</a>`
               : `<button class="btn is-disabled" type="button" disabled>Unavailable</button>`
           }
@@ -110,6 +127,18 @@ export async function productPage(url, env) {
     </div>${relatedHtml}
 <script>
 (function(){
+  const main=document.getElementById('galleryMain');
+  const thumbs=document.getElementById('galleryThumbs');
+  if(main&&thumbs){
+    thumbs.addEventListener('click',(e)=>{
+      const btn=e.target.closest('button[data-src]');
+      if(!btn)return;
+      main.src=btn.dataset.src;
+      thumbs.querySelectorAll('button').forEach(b=>b.classList.toggle('is-active',b===btn));
+      const cartBtn=document.getElementById('addCart');
+      if(cartBtn)cartBtn.dataset.image=btn.dataset.src;
+    });
+  }
   const btn=document.getElementById('addCart'); if(!btn)return;
   const KEY='mm_cart';
   function load(){try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){return []}}
@@ -128,12 +157,13 @@ export async function productPage(url, env) {
 </script>`;
 
     const productPath = `/products/${encodeURIComponent(p.slug || '')}`;
+    const pForLd = { ...p, image_url: mainImage, image_urls: images };
     return htmlPage(p.name, body, {
       description: String(p.description || p.name || '').slice(0, 160),
       canonical: productPath,
-      ogImage: p.image_url || '',
+      ogImage: mainImage || '',
       ogType: 'product',
-      jsonLd: productJsonLd(p, { url: productPath, collectionPath: collectionHref }),
+      jsonLd: productJsonLd(pForLd, { url: productPath, collectionPath: collectionHref }),
       cache: 'public, max-age=300',
     });
   } catch {

@@ -99,7 +99,20 @@ export function productJsonLd(p, { url, collectionPath } = {}) {
       '@type': 'Product',
       name: p.name || '',
       description: String(p.description || p.name || '').slice(0, 5000),
-      image: p.image_url ? [p.image_url] : undefined,
+      image: (() => {
+        const list = [];
+        if (Array.isArray(p.image_urls)) list.push(...p.image_urls);
+        else if (typeof p.image_urls === 'string' && p.image_urls.startsWith('[')) {
+          try {
+            list.push(...JSON.parse(p.image_urls));
+          } catch {
+            /* ignore */
+          }
+        }
+        if (p.image_url) list.unshift(p.image_url);
+        const uniq = [...new Set(list.filter(Boolean))];
+        return uniq.length ? uniq : undefined;
+      })(),
       sku: p.slug || undefined,
       brand: { '@type': 'Brand', name: 'Maison Marnier' },
       offers: {

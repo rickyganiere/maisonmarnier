@@ -24,6 +24,8 @@ import {
   listJournalAdmin,
   saveJournalArticle,
 } from './db/journal.js';
+import { replaceSeedWithCj } from './jobs/replaceSeedWithCj.js';
+import { syncProductGalleries } from './jobs/syncGalleries.js';
 import { json } from './lib/json.js';
 import { homePage } from './pages/home.js';
 import { adminPage } from './pages/admin.js';
@@ -135,6 +137,14 @@ export async function handleRequest(request, env, ctx) {
     const denied = await requireImportAuth(request, env);
     if (denied) return denied;
     return importLumeProduct(request, env);
+  }
+  if (pathname === '/api/lume/replace-seed-cj') {
+    if (method !== 'POST') return methodNotAllowed();
+    return replaceSeedWithCj(request, env);
+  }
+  if (pathname === '/api/lume/sync-galleries') {
+    if (method !== 'POST') return methodNotAllowed();
+    return syncProductGalleries(request, env);
   }
   if (pathname === '/api/lume/home') {
     if (method === 'GET') {
