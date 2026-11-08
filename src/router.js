@@ -39,6 +39,7 @@ import {
   sitemapProductsXml,
   sitemapXml,
 } from './pages/seo.js';
+import { replaceSeedWithCj } from './jobs/replaceSeedWithCj.js';
 
 function methodNotAllowed() {
   return json({ ok: false, error: 'Method not allowed' }, 405);
@@ -135,6 +136,10 @@ export async function handleRequest(request, env, ctx) {
     const denied = await requireImportAuth(request, env);
     if (denied) return denied;
     return importLumeProduct(request, env);
+  }
+  if (pathname === '/api/lume/replace-seed-cj') {
+    if (method !== 'POST') return methodNotAllowed();
+    return replaceSeedWithCj(request, env);
   }
   if (pathname === '/api/lume/home') {
     if (method === 'GET') {
