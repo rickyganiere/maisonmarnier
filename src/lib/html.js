@@ -54,12 +54,12 @@ img{max-width:100%;display:block}
 .tools .search{width:150px;padding:11px 12px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:600 12px/1.2 var(--font);border-radius:6px}
 .cart-link{display:inline-flex;align-items:center;gap:6px;padding:11px 14px;border:1px solid var(--accent);border-radius:6px;font:800 11px/1 var(--font);letter-spacing:.08em;text-transform:uppercase;color:#fff;background:transparent}
 .cart-link:hover{background:rgba(196,165,116,.12)}
-.wrap{max-width:var(--max);margin:auto;padding:0 var(--pad) 80px}
+.wrap{max-width:var(--max);margin:auto;padding:0 var(--pad) 56px}
 .crumbs{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:22px 0 0;font:700 11px/1 var(--font);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 .crumbs a:hover{color:var(--accent2)}
 .crumbs .sep{opacity:.4}
 
-.collection-top{margin:0 calc(-1 * var(--pad));padding:56px var(--pad) 40px;background:
+.collection-top{margin:0 calc(-1 * var(--pad));padding:36px var(--pad) 28px;background:
   radial-gradient(900px 380px at 10% -20%, rgba(196,165,116,.18), transparent 55%),
   linear-gradient(180deg, #1a1714 0%, var(--bg) 100%);
   border-bottom:1px solid var(--line)}
@@ -74,7 +74,7 @@ h1{font:900 clamp(34px,4.6vw,56px)/.98 var(--font);margin:0;letter-spacing:-.045
 .chip:hover{color:#fff;border-color:#4a433c}
 .chip.is-active{background:var(--accent);color:#12100e;border-color:var(--accent)}
 
-.grid{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:28px 20px;padding-top:18px}
+.grid{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:22px 16px;padding-top:12px}
 .grid > .p{animation:fadeRise .5s ease both}
 .p{display:block;color:var(--ink);position:relative}
 .p .media{position:relative;overflow:hidden;background:var(--panel2);aspect-ratio:4/5;border-radius:8px;border:1px solid var(--line)}
@@ -139,7 +139,13 @@ h1{font:900 clamp(34px,4.6vw,56px)/.98 var(--font);margin:0;letter-spacing:-.045
 .related-head{display:flex;justify-content:space-between;align-items:end;gap:16px;margin-bottom:8px}
 .related h2{font:900 28px/1.1 var(--font);margin:0;letter-spacing:-.03em;color:#fff}
 .related .view-all{font:800 11px/1 var(--font);letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
-.site-footer{margin-top:80px;border-top:1px solid var(--line);padding:48px var(--pad) 28px;background:#0c0b0a}
+.journal-list{display:grid;gap:0}
+.journal-card{display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:22px;align-items:center;padding:22px 0;border-bottom:1px solid var(--line)}
+.journal-card img{width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:8px;border:1px solid var(--line);background:var(--panel2)}
+.journal-card h2{font:900 1.45rem/1.15 var(--font);margin:0 0 8px;letter-spacing:-.03em;color:#fff}
+.journal-card:hover h2{color:var(--accent2)}
+.article-hero{width:100%;max-height:420px;object-fit:cover;border-radius:10px;border:1px solid var(--line);margin:12px 0 24px;background:var(--panel2)}
+.site-footer{margin-top:56px;border-top:1px solid var(--line);padding:40px var(--pad) 24px;background:#0c0b0a}
 .footer-grid{max-width:var(--max);margin:auto;display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:28px}
 .site-footer h4{font:800 12px/1 var(--font);letter-spacing:.12em;text-transform:uppercase;margin:0 0 14px;color:#fff}
 .site-footer a{display:block;color:var(--muted);margin:8px 0;font-size:14px;font-weight:600}
@@ -148,7 +154,7 @@ h1{font:900 clamp(34px,4.6vw,56px)/.98 var(--font);margin:0;letter-spacing:-.045
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--panel2);color:#fff;border:1px solid var(--line);padding:12px 18px;border-radius:8px;opacity:0;transition:.25s;pointer-events:none;z-index:50;font:700 12px/1.3 var(--font)}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 @keyframes fadeRise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
-@media(max-width:1100px){.grid{grid-template-columns:repeat(3,minmax(0,1fr))}}
+@media(max-width:1200px){.grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(max-width:980px){
   .site-nav{grid-template-columns:1fr auto;min-height:68px}
   .site-nav .links{display:none}
@@ -158,6 +164,7 @@ h1{font:900 clamp(34px,4.6vw,56px)/.98 var(--font);margin:0;letter-spacing:-.045
   .cart-layout{grid-template-columns:1fr}
   .cart-summary{position:static}
   .footer-grid{grid-template-columns:1fr 1fr}
+  .journal-card{grid-template-columns:1fr}
 }
 @media(max-width:520px){
   .tools .search{display:none}

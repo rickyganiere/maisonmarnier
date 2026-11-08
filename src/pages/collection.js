@@ -83,7 +83,7 @@ export async function collectionPage(url, env) {
       );
     }
 
-    let all = await getLiveProducts(env, 100);
+    let all = await getLiveProducts(env, 200);
     if (q) {
       const qq = q.toLowerCase();
       all = all.filter((p) => {

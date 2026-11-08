@@ -30,7 +30,9 @@ export function infoPage(path) {
   const description = String(body).split('\n\n')[0].slice(0, 160);
   return htmlPage(
     title,
-    `<div class="head"><h1>${esc(title)}</h1></div><div class="desc">${esc(body)}</div>`,
+    `<nav class="crumbs" aria-label="Breadcrumb"><a href="/">Home</a><span class="sep">/</span><span>${esc(title)}</span></nav>
+     <div class="head"><h1>${esc(title)}</h1></div>
+     <div class="buy-panel" style="max-width:720px"><div class="desc" style="margin:0">${esc(body)}</div></div>`,
     {
       description,
       canonical: `/${key}`,

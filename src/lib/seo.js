@@ -3,7 +3,7 @@
 export const SITE_ORIGIN = 'https://maisonmarnier.com';
 
 export const DEFAULT_OG_IMAGE =
-  'https://images.unsplash.com/photo-1600585154340-be6161a56a0c?auto=format&fit=crop&w=1200&q=85';
+  'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1200&q=80';
 
 /** Resolve a path or absolute URL to a canonical absolute HTTPS URL. */
 export function absoluteUrl(pathOrUrl = '/') {

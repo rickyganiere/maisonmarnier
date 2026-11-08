@@ -21,18 +21,19 @@ export async function journalPage(url, env) {
       }
       const list = articles
         .map(
-          (a) => `<article style="margin:0 0 28px;padding-bottom:28px;border-bottom:1px solid #d4cec4">
-            <a href="/journal/${encodeURIComponent(a.slug)}">
-              ${a.image_url ? `<img src="${esc(a.image_url)}" alt="" style="width:100%;max-height:320px;object-fit:cover;margin-bottom:14px;background:#E9E0D3">` : ''}
-              <h2 style="font:400 28px Georgia,serif;margin:0 0 8px">${esc(a.title)}</h2>
+          (a) => `<a class="journal-card" href="/journal/${encodeURIComponent(a.slug)}">
+            ${a.image_url ? `<img src="${esc(a.image_url)}" alt="" loading="lazy">` : '<div></div>'}
+            <div>
+              <h2>${esc(a.title)}</h2>
               <p class="muted">${esc(a.excerpt || '')}</p>
-            </a>
-          </article>`,
+            </div>
+          </a>`,
         )
         .join('');
       return htmlPage(
         'Maison Journal',
-        `<div class="head"><h1>Maison Journal</h1><p class="lead">Stories and notes from the maison.</p></div>${list}`,
+        `<div class="head"><h1>Maison Journal</h1><p class="lead">Stories and notes from the maison.</p></div>
+         <div class="journal-list">${list}</div>`,
         {
           description: 'Stories and notes from Maison Marnier.',
           canonical: '/journal',
@@ -54,7 +55,7 @@ export async function journalPage(url, env) {
     const articlePath = `/journal/${encodeURIComponent(a.slug)}`;
     return htmlPage(
       a.title,
-      `${a.image_url ? `<img src="${esc(a.image_url)}" alt="" style="width:100%;max-height:420px;object-fit:cover;margin-bottom:28px;background:#E9E0D3">` : ''}
+      `${a.image_url ? `<img class="article-hero" src="${esc(a.image_url)}" alt="">` : ''}
        <div class="head"><h1>${esc(a.title)}</h1></div>
        ${a.excerpt ? `<p class="lead">${esc(a.excerpt)}</p>` : ''}
        <div class="desc">${esc(a.body || '')}</div>
