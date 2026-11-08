@@ -1,5 +1,21 @@
 import { esc } from './escape.js';
 
+/** Google Tag Manager — public storefront only (not admin). */
+export const GTM_ID = 'GTM-WL3RFMH4';
+
+export function gtmHeadHtml() {
+  return `<script async src="https://www.googletagmanager.com/gtm.js?id=${GTM_ID}"></script>
+<script>
+  window.dataLayer = window.dataLayer || [];
+  function gtag(){dataLayer.push(arguments);}
+  gtag('js', new Date());
+</script>`;
+}
+
+export function gtmNoscriptHtml() {
+  return `<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=${GTM_ID}" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>`;
+}
+
 const NAV = [
   ['New', '/collections/new'],
   ['Decor', '/collections/decor'],
@@ -121,6 +137,7 @@ export function htmlPage(title, body, { description = '', status = 200, cache = 
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
+${gtmHeadHtml()}
 <title>${esc(title)} — Maison Marnier</title>
 ${description ? `<meta name="description" content="${esc(description)}">` : ''}
 <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -129,6 +146,7 @@ ${description ? `<meta name="description" content="${esc(description)}">` : ''}
 <style>${LAYOUT_CSS}</style>
 </head>
 <body>
+${gtmNoscriptHtml()}
 <div class="announce">Free shipping on orders over €100 · Europe</div>
 <header class="site-nav">
   <a class="brand" href="/">MAISON MARNIER</a>
