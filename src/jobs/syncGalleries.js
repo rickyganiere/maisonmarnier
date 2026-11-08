@@ -37,17 +37,30 @@ export async function syncProductGalleries(request, env) {
     const body = await request.json().catch(() => ({}));
     const limit = Math.max(1, Math.min(200, Number(body.limit || 200) || 200));
     const demoteSeed = body.demoteSeed === true;
+    const demoteThin = body.demoteThin === true;
     const minImages = Math.max(1, Math.min(8, Number(body.minImages || 2) || 2));
+    const onlyThin = body.onlyThin === true;
 
-    const rows = (
-      await env.LUME_DB.prepare(
-        `SELECT id,supplier_product_id,name,image_url FROM products
+    let rows =
+      (
+        await env.LUME_DB.prepare(
+          `SELECT id,supplier_product_id,name,image_url,image_urls FROM products
          WHERE status='live' AND supplier='CJ' AND supplier_product_id IS NOT NULL
          ORDER BY id ASC LIMIT ?`,
-      )
-        .bind(limit)
-        .all()
-    ).results || [];
+        )
+          .bind(limit)
+          .all()
+      ).results || [];
+    if (onlyThin) {
+      rows = rows.filter((row) => {
+        try {
+          const arr = JSON.parse(row.image_urls || '[]');
+          return !Array.isArray(arr) || arr.length < minImages;
+        } catch {
+          return true;
+        }
+      });
+    }
 
     let updated = 0;
     let withMulti = 0;
@@ -67,11 +80,14 @@ export async function syncProductGalleries(request, env) {
           .run();
         updated += 1;
         if (images.length >= minImages) withMulti += 1;
-        if (samples.length < 5) {
+        if (samples.length < 8) {
           samples.push({ id: row.id, name: row.name, count: images.length, images: images.slice(0, 4) });
         }
+        // Soft throttle to stay under CJ QPS limits
+        await new Promise((resolve) => setTimeout(resolve, 180));
       } catch (e) {
         errors.push({ id: row.id, error: e.message || String(e) });
+        await new Promise((resolve) => setTimeout(resolve, 400));
       }
     }
 
@@ -82,6 +98,32 @@ export async function syncProductGalleries(request, env) {
          WHERE supplier='SEED' AND status='live'`,
       ).run();
       seedDemoted = r?.meta?.changes || 0;
+    }
+
+    let thinDemoted = 0;
+    if (demoteThin) {
+      const live = (
+        await env.LUME_DB.prepare(
+          `SELECT id,image_urls FROM products WHERE status='live' AND supplier='CJ'`,
+        ).all()
+      ).results || [];
+      for (const row of live) {
+        let count = 0;
+        try {
+          const arr = JSON.parse(row.image_urls || '[]');
+          count = Array.isArray(arr) ? arr.length : 0;
+        } catch {
+          count = 0;
+        }
+        if (count < minImages) {
+          await env.LUME_DB.prepare(
+            `UPDATE products SET status='draft', updated_at=CURRENT_TIMESTAMP WHERE id=?`,
+          )
+            .bind(row.id)
+            .run();
+          thinDemoted += 1;
+        }
+      }
     }
 
     if (syncToken) {
@@ -95,6 +137,7 @@ export async function syncProductGalleries(request, env) {
       withMulti,
       minImages,
       seedDemoted,
+      thinDemoted,
       samples,
       errors: errors.slice(0, 12),
     });
