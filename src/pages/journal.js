@@ -17,7 +17,7 @@ export async function journalPage(url, env, request) {
           {
             description: 'Historias y notas desde Maison Marnier.',
             canonical: '/journal',
-            cache: 'public, max-age=300',
+            cache: 'private, no-cache',
             request,
             path: '/journal',
             lang,
@@ -42,7 +42,7 @@ export async function journalPage(url, env, request) {
         {
           description: 'Historias y notas desde Maison Marnier.',
           canonical: '/journal',
-          cache: 'public, max-age=300',
+          cache: 'private, no-cache',
           request,
           path: '/journal',
           lang,
@@ -73,7 +73,7 @@ export async function journalPage(url, env, request) {
         canonical: articlePath,
         ogImage: a.image_url || '',
         ogType: 'article',
-        cache: 'public, max-age=300',
+        cache: 'private, no-cache',
         request,
         path: articlePath,
         lang,

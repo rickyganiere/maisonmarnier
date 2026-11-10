@@ -118,22 +118,43 @@ export function readLangCookie(request) {
   return match ? normalizeLang(decodeURIComponent(match[1])) : '';
 }
 
+export function readLangFromUrl(request) {
+  try {
+    const url = new URL(request.url);
+    const q = url.searchParams.get('hl') || url.searchParams.get('lang');
+    return q ? normalizeLang(q) : '';
+  } catch {
+    return '';
+  }
+}
+
 export function preferLangFromAccept(request) {
   const h = (request?.headers?.get?.('Accept-Language') || '').toLowerCase();
   if (!h) return DEFAULT_LANG;
-  if (/(^|,)\s*en\b/.test(h) && !/(^|,)\s*es\b/.test(h)) return 'en';
-  if (/(^|,)\s*es\b/.test(h)) return 'es';
+  // Prefer explicit quality order roughly: if es appears before en, keep es.
+  const esIdx = h.search(/(^|,)\s*es\b/);
+  const enIdx = h.search(/(^|,)\s*en\b/);
+  if (esIdx >= 0 && (enIdx < 0 || esIdx < enIdx)) return 'es';
+  if (enIdx >= 0 && (esIdx < 0 || enIdx < esIdx)) return 'en';
+  if (h.includes('es')) return 'es';
   if (h.includes('en')) return 'en';
   return DEFAULT_LANG;
 }
 
+/** URL ?hl= wins, then cookie, then Accept-Language, then default. */
 export function getLang(request) {
-  return readLangCookie(request) || preferLangFromAccept(request) || DEFAULT_LANG;
+  return (
+    readLangFromUrl(request) ||
+    readLangCookie(request) ||
+    preferLangFromAccept(request) ||
+    DEFAULT_LANG
+  );
 }
 
 export function langCookieHeader(lang, { secure = true } = {}) {
   const v = normalizeLang(lang);
   const securePart = secure ? '; Secure' : '';
+  // Host-only cookie on the apex site. Avoid caching mixups by keeping it simple.
   return `mm_lang=${v}; Path=/; SameSite=Lax; Max-Age=${60 * 60 * 24 * 365}${securePart}`;
 }
 
@@ -156,20 +177,40 @@ export function safeNextPath(next, fallback = '/') {
   return n.slice(0, 500);
 }
 
+/** Append/replace hl= on a relative path so browser cache keys differ per language. */
+export function withLangQuery(path, lang) {
+  const l = normalizeLang(lang);
+  let pathname = '/';
+  let search = '';
+  let hash = '';
+  try {
+    const u = new URL(path, 'https://maisonmarnier.com');
+    pathname = u.pathname || '/';
+    search = u.search || '';
+    hash = u.hash || '';
+  } catch {
+    pathname = path.split('?')[0].split('#')[0] || '/';
+  }
+  const params = new URLSearchParams(search.startsWith('?') ? search.slice(1) : search);
+  params.delete('lang');
+  params.set('hl', l);
+  const q = params.toString();
+  return `${pathname}${q ? `?${q}` : ''}${hash}`;
+}
+
 export function setLangResponse(request, url) {
-  const lang = normalizeLang(url.searchParams.get('set') || url.searchParams.get('lang'));
-  const next = safeNextPath(url.searchParams.get('next') || request.headers.get('Referer') || '/');
-  // Only allow relative next — if Referer was absolute, strip origin
+  const lang = normalizeLang(url.searchParams.get('set') || url.searchParams.get('lang') || url.searchParams.get('hl'));
+  const next = safeNextPath(url.searchParams.get('next') || '/');
   let dest = next;
   try {
     if (/^https?:\/\//i.test(next)) {
       const u = new URL(next);
-      dest = u.pathname + u.search + u.hash || '/';
+      dest = `${u.pathname}${u.search}${u.hash}` || '/';
     }
   } catch {
     dest = '/';
   }
-  dest = safeNextPath(dest, '/');
+  dest = withLangQuery(safeNextPath(dest, '/'), lang);
   const secure = (() => {
     try {
       return new URL(request.url).protocol === 'https:';
@@ -178,11 +219,40 @@ export function setLangResponse(request, url) {
     }
   })();
   return new Response(null, {
-    status: 302,
+    status: 303,
     headers: {
       Location: dest,
       'Set-Cookie': langCookieHeader(lang, { secure }),
       'Cache-Control': 'no-store',
+      'Content-Language': lang,
     },
   });
+}
+
+/** Cache policy for language-dependent HTML. Avoid public caches mixing EN/ES. */
+export function htmlCacheHeaders(lang, cache = 'private, no-cache') {
+  return {
+    'cache-control': cache,
+    'content-language': normalizeLang(lang),
+    vary: 'Cookie, Accept-Language',
+  };
+}
+
+/**
+ * If the request carries ?hl=/lang=, return a Set-Cookie so the preference
+ * sticks after the user navigates away from the query-param URL.
+ */
+export function syncLangCookieHeader(request) {
+  const fromUrl = readLangFromUrl(request);
+  if (!fromUrl) return null;
+  const fromCookie = readLangCookie(request);
+  if (fromCookie === fromUrl) return null;
+  const secure = (() => {
+    try {
+      return new URL(request.url).protocol === 'https:';
+    } catch {
+      return true;
+    }
+  })();
+  return langCookieHeader(fromUrl, { secure });
 }

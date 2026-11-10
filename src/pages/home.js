@@ -11,7 +11,7 @@ import {
   storefrontProductImage,
 } from '../lib/html.js';
 import { getLiveProducts, getLiveProductsBySlugs } from '../db/products.js';
-import { getLang, tr } from '../lib/i18n.js';
+import { getLang, htmlCacheHeaders, syncLangCookieHeader, tr } from '../lib/i18n.js';
 import { CHRISTMAS_SCENES } from '../lib/seasonalAssets.js';
 import {
   DEFAULT_OG_IMAGE,
@@ -386,12 +386,13 @@ document.getElementById('form').onsubmit=e=>{e.preventDefault();toast(${JSON.str
 </body>
 </html>`;
 
-  return new Response(html, {
-    headers: {
-      'content-type': 'text/html; charset=UTF-8',
-      'cache-control': 'public, max-age=60',
-      'x-frame-options': 'SAMEORIGIN',
-      'referrer-policy': 'strict-origin-when-cross-origin',
-    },
-  });
+  const headers = {
+    'content-type': 'text/html; charset=UTF-8',
+    'x-frame-options': 'SAMEORIGIN',
+    'referrer-policy': 'strict-origin-when-cross-origin',
+    ...htmlCacheHeaders(lang, 'private, no-cache'),
+  };
+  const setCookie = syncLangCookieHeader(request);
+  if (setCookie) headers['set-cookie'] = setCookie;
+  return new Response(html, { headers });
 }
