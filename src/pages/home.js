@@ -12,6 +12,7 @@ import {
 } from '../lib/html.js';
 import { getLiveProducts, getLiveProductsBySlugs } from '../db/products.js';
 import { getLang, htmlCacheHeaders, langHref, persistLangCookieHeader, tr } from '../lib/i18n.js';
+import { formatEurPublic } from '../lib/money.js';
 import { CHRISTMAS_SCENES } from '../lib/seasonalAssets.js';
 import {
   DEFAULT_OG_IMAGE,
@@ -206,7 +207,7 @@ function heroCarouselHtml(products, lang) {
     return `<a class="mm-carousel-slide" href="${esc(langHref(`/products/${encodeURIComponent(p.slug)}`, lang))}">
       ${storefrontProductImage(p, { featured: i === 0, decorative: true, lang })}
       <div class="mm-carousel-meta">
-        <span>${price > 0 ? `€${price.toFixed(2)}` : esc(shopNow)}</span>
+        <span>${price > 0 ? formatEurPublic(price) : esc(shopNow)}</span>
         <strong>${name}</strong>
       </div>
     </a>`;
@@ -339,7 +340,7 @@ ${storefrontHeaderHtml({ search: false, lang, path: '/' })}
     <div class="mm-benefit"><strong>${esc(tr(lang, { es: 'Envíos UE', en: 'EU shipping' }))}</strong><span>${esc(tr(lang, { es: 'Cumplimiento con socios en Europa.', en: 'Partner fulfilment across Europe.' }))}</span></div>
     <div class="mm-benefit"><strong>${esc(tr(lang, { es: 'Devoluciones 30 días', en: '30-day returns' }))}</strong><span>${esc(tr(lang, { es: 'Claras, sencillas y justas.', en: 'Clear, simple and fair.' }))}</span></div>
     <div class="mm-benefit"><strong>${esc(tr(lang, { es: 'Fotos reales', en: 'Real product photos' }))}</strong><span>${esc(tr(lang, { es: 'Galerías del proveedor, no relleno genérico.', en: 'Supplier galleries — not stock fillers.' }))}</span></div>
-    <div class="mm-benefit"><strong>${esc(tr(lang, { es: 'Pago seguro', en: 'Secure checkout' }))}</strong><span>${esc(tr(lang, { es: 'Stripe · IVA calculado en el pago.', en: 'Stripe · VAT calculated at payment.' }))}</span></div>
+    <div class="mm-benefit"><strong>${esc(tr(lang, { es: 'Pago seguro', en: 'Secure checkout' }))}</strong><span>${esc(tr(lang, { es: 'Stripe · precios con IVA incluido.', en: 'Stripe · prices include VAT.' }))}</span></div>
   </div>
 
   <section class="mm-stories" id="journal">

@@ -15,7 +15,8 @@ export function cartPage(url, request) {
     subtotal: tr(lang, { es: 'Subtotal', en: 'Subtotal' }),
     shipping: tr(lang, { es: 'Envío', en: 'Shipping' }),
     free: tr(lang, { es: 'Gratis', en: 'Free' }),
-    total: tr(lang, { es: 'Total', en: 'Total' }),
+    total: tr(lang, { es: 'Total (IVA incl.)', en: 'Total (VAT incl.)' }),
+    vatNote: tr(lang, { es: 'Precios con IVA incluido (21%).', en: 'Prices include VAT (21%).' }),
     registerTitle: tr(lang, { es: 'Regístrate para comprar con seguimiento', en: 'Register to buy with order tracking' }),
     registerBody: tr(lang, { es: 'Crea una cuenta gratuita para seguir pedidos, guardar favoritos y recuperar tu carrito con más facilidad.', en: 'Create a free account to track orders, save favourites and check out more easily.' }),
     createAccount: tr(lang, { es: 'Crear cuenta', en: 'Create account' }),
@@ -33,7 +34,7 @@ export function cartPage(url, request) {
 <div class="head">
   <div>
     <h1>${tr(lang, { es: 'Tu carrito', en: 'Your cart' })}</h1>
-    <p class="lead">${tr(lang, { es: 'Envío gratis en pedidos superiores a 100 €.', en: 'Free shipping on orders over €100.' })}</p>
+    <p class="lead">${tr(lang, { es: 'Envío gratis en pedidos superiores a 100 € (IVA incluido).', en: 'Free shipping on orders over €100 (VAT included).' })}</p>
   </div>
 </div>
 ${cancelled ? `<p class="muted" style="margin-bottom:18px">${tr(lang, { es: 'El pago se canceló — tu carrito sigue aquí.', en: 'Checkout was cancelled — your cart is still here.' })}</p>` : ''}
@@ -53,7 +54,15 @@ ${cancelled ? `<p class="muted" style="margin-bottom:18px">${tr(lang, { es: 'El 
   const root=document.getElementById('cartRoot');
   function load(){try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){return []}}
   function save(c){localStorage.setItem(KEY,JSON.stringify(c));window.dispatchEvent(new Event('mm-cart'));}
+  const VAT=0.21;
+  function withVat(n){return Math.round(Number(n||0)*(1+VAT)*100)/100}
   function money(n){return '€'+Number(n||0).toFixed(2)}
+  function linePrice(i){
+    const raw=Number(i.price||0);
+    // New adds store IVA-incl.; legacy cart lines may still be exclusive.
+    if(i.vatIncluded) return raw;
+    return withVat(raw);
+  }
   function render(loggedIn){
     const cart=load();
     if(!cart.length){
@@ -61,8 +70,9 @@ ${cancelled ? `<p class="muted" style="margin-bottom:18px">${tr(lang, { es: 'El 
       root.innerHTML=L.empty;
       return;
     }
-    const sub=cart.reduce((s,i)=>s+Number(i.price||0)*Number(i.qty||1),0);
-    const ship=sub>=100?0:6.9;
+    const sub=cart.reduce((s,i)=>s+linePrice(i)*Number(i.qty||1),0);
+    const shipEx=6.9;
+    const ship=sub>=100?0:withVat(shipEx);
     const registerPanel=loggedIn?'':\`
       <div class="register-buy">
         <strong>\${L.registerTitle}</strong>
@@ -78,17 +88,18 @@ ${cancelled ? `<p class="muted" style="margin-bottom:18px">${tr(lang, { es: 'El 
         <img src="\${String(i.image||'').replace(/"/g,'&quot;')}" alt="">
         <div>
           <a href="\${withHl('/products/'+encodeURIComponent(i.slug||''))}"><strong>\${String(i.name||'').replace(/</g,'&lt;')}</strong></a>
-          <div class="muted">\${money(i.price)}</div>
+          <div class="muted">\${money(linePrice(i))}</div>
           <label class="muted">\${L.qty} <input data-idx="\${idx}" class="qty" type="number" min="1" max="20" value="\${Number(i.qty||1)}"></label>
           <button type="button" data-rm="\${idx}" class="rm">\${L.remove}</button>
         </div>
-        <div>\${money(Number(i.price||0)*Number(i.qty||1))}</div>
+        <div>\${money(linePrice(i)*Number(i.qty||1))}</div>
       </div>\`).join('')+'</div>'+
       \`<aside class="cart-summary">
         <h2>\${L.summary}</h2>
         <div class="row"><span>\${L.subtotal}</span><span>\${money(sub)}</span></div>
         <div class="row muted"><span>\${L.shipping}</span><span>\${ship?money(ship):L.free}</span></div>
         <div class="row total"><span>\${L.total}</span><span>\${money(sub+ship)}</span></div>
+        <p class="muted" style="margin:10px 0 0">\${L.vatNote}</p>
         \${registerPanel}
         <div class="buy-actions" style="margin-top:18px;flex-direction:column;align-items:stretch">
           <button class="btn btn-block" type="button" id="checkoutBtn">\${L.checkout}</button>
