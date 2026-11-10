@@ -1,6 +1,6 @@
 import { esc } from '../lib/escape.js';
 import { htmlPage, productCard } from '../lib/html.js';
-import { getLang, t, tr } from '../lib/i18n.js';
+import { getLang, langHref, t, tr } from '../lib/i18n.js';
 import { breadcrumbJsonLd } from '../lib/seo.js';
 import { getLiveProducts } from '../db/products.js';
 
@@ -117,7 +117,7 @@ export async function collectionPage(url, env, request) {
       return htmlPage(
         tr(lang, { es: 'Colección no encontrada', en: 'Collection not found' }),
         `<div class="head"><h1>${tr(lang, { es: 'Colección no encontrada', en: 'Collection not found' })}</h1></div>
-         <p class="empty">${tr(lang, { es: 'Esta colección no existe.', en: 'This collection does not exist.' })} <a href="/collections/decor">${tr(lang, { es: 'Ver decoración →', en: 'Browse decor →' })}</a></p>`,
+         <p class="empty">${tr(lang, { es: 'Esta colección no existe.', en: 'This collection does not exist.' })} <a href="${esc(langHref('/collections/decor', lang))}">${tr(lang, { es: 'Ver decoración →', en: 'Browse decor →' })}</a></p>`,
         { status: 404, request, path: url.pathname },
       );
     }
@@ -150,7 +150,7 @@ export async function collectionPage(url, env, request) {
 
     const chips = CHIP_LINKS.map(([key, href]) => {
       const label = tr(lang, COLLECTION_TITLES[key] || { es: key, en: key });
-      return `<a class="chip${href.endsWith('/' + slug) ? ' is-active' : ''}" href="${href}">${esc(label)}</a>`;
+      return `<a class="chip${href.endsWith('/' + slug) ? ' is-active' : ''}" href="${esc(langHref(href, lang))}">${esc(label)}</a>`;
     }).join('');
 
     const cards =
@@ -173,8 +173,8 @@ export async function collectionPage(url, env, request) {
     return htmlPage(
       title,
       `<nav class="crumbs" aria-label="${t(lang, 'crumbs_aria')}">
-         <a href="/">${t(lang, 'home')}</a><span class="sep">/</span>
-         <a href="/collections/new">${t(lang, 'shop')}</a><span class="sep">/</span>
+         <a href="${esc(langHref('/', lang))}">${t(lang, 'home')}</a><span class="sep">/</span>
+         <a href="${esc(langHref('/collections/new', lang))}">${t(lang, 'shop')}</a><span class="sep">/</span>
          <span>${esc(title)}</span>
        </nav>
        <section class="collection-top">

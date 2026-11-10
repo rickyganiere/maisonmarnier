@@ -1,6 +1,6 @@
 import { esc } from '../lib/escape.js';
 import { htmlPage, productCard } from '../lib/html.js';
-import { getLang, t, tr } from '../lib/i18n.js';
+import { getLang, langHref, t, tr } from '../lib/i18n.js';
 import {
   getCustomerFromRequest,
   listOrdersForCustomer,
@@ -103,8 +103,8 @@ export function registerPageHtml({ next = '/cuenta', request = null } = {}) {
   const lang = request ? getLang(request) : 'es';
   const body = `<style>${ACCOUNT_CSS}</style>
 <nav class="crumbs" aria-label="${t(lang, 'crumbs_aria')}">
-  <a href="/">${t(lang, 'home')}</a><span class="sep">/</span>
-  <a href="/cuenta">${t(lang, 'account')}</a><span class="sep">/</span>
+  <a href="${langHref('/', lang)}">${t(lang, 'home')}</a><span class="sep">/</span>
+  <a href="${langHref('/cuenta', lang)}">${t(lang, 'account')}</a><span class="sep">/</span>
   <span>${tr(lang, { es: 'Crear cuenta', en: 'Create account' })}</span>
 </nav>
 <section class="account-shell">
@@ -127,7 +127,7 @@ export function registerPageHtml({ next = '/cuenta', request = null } = {}) {
         <p class="err" id="authErr" role="alert"></p>
         <button class="btn btn-block" type="submit" id="authSubmit">${tr(lang, { es: 'Crear cuenta', en: 'Create account' })}</button>
       </form>
-      <p class="auth-switch">${tr(lang, { es: '¿Ya tienes cuenta?', en: 'Already have an account?' })} <a href="/cuenta/entrar?next=${encodeURIComponent(next)}">${tr(lang, { es: 'Iniciar sesión', en: 'Sign in' })}</a></p>
+      <p class="auth-switch">${tr(lang, { es: '¿Ya tienes cuenta?', en: 'Already have an account?' })} <a href="${langHref('/cuenta/entrar?next=' + encodeURIComponent(next), lang)}">${tr(lang, { es: 'Iniciar sesión', en: 'Sign in' })}</a></p>
     </div>
     <aside class="account-panel">
       <h2>${tr(lang, { es: 'Por qué registrarte', en: 'Why register' })}</h2>
@@ -137,7 +137,7 @@ export function registerPageHtml({ next = '/cuenta', request = null } = {}) {
         <li><i>✓</i><span>${tr(lang, { es: 'Checkout más rápido con tu correo guardado.', en: 'Faster checkout with your email saved.' })}</span></li>
         <li><i>✓</i><span>${tr(lang, { es: 'Avisos de piezas que vuelven a stock o a la edición.', en: 'Alerts when pieces return to stock or the edit.' })}</span></li>
       </ul>
-      <a class="btn btn-ghost btn-block" href="/cart">${tr(lang, { es: 'Seguir como invitado', en: 'Continue as guest' })}</a>
+      <a class="btn btn-ghost btn-block" href="${langHref('/cart', lang)}">${tr(lang, { es: 'Seguir como invitado', en: 'Continue as guest' })}</a>
     </aside>
   </div>
 </section>
@@ -160,8 +160,8 @@ export function loginPageHtml({ next = '/cuenta', request = null } = {}) {
   const lang = request ? getLang(request) : 'es';
   const body = `<style>${ACCOUNT_CSS}</style>
 <nav class="crumbs" aria-label="${t(lang, 'crumbs_aria')}">
-  <a href="/">${t(lang, 'home')}</a><span class="sep">/</span>
-  <a href="/cuenta">${t(lang, 'account')}</a><span class="sep">/</span>
+  <a href="${langHref('/', lang)}">${t(lang, 'home')}</a><span class="sep">/</span>
+  <a href="${langHref('/cuenta', lang)}">${t(lang, 'account')}</a><span class="sep">/</span>
   <span>${tr(lang, { es: 'Entrar', en: 'Sign in' })}</span>
 </nav>
 <section class="account-shell">
@@ -179,7 +179,7 @@ export function loginPageHtml({ next = '/cuenta', request = null } = {}) {
         <p class="err" id="authErr" role="alert"></p>
         <button class="btn btn-block" type="submit" id="authSubmit">${tr(lang, { es: 'Entrar', en: 'Sign in' })}</button>
       </form>
-      <p class="auth-switch">${tr(lang, { es: '¿Nueva en la maison?', en: 'New to the maison?' })} <a href="/cuenta/registro?next=${encodeURIComponent(next)}">${tr(lang, { es: 'Crear cuenta', en: 'Create account' })}</a></p>
+      <p class="auth-switch">${tr(lang, { es: '¿Nueva en la maison?', en: 'New to the maison?' })} <a href="${langHref('/cuenta/registro?next=' + encodeURIComponent(next), lang)}">${tr(lang, { es: 'Crear cuenta', en: 'Create account' })}</a></p>
     </div>
     <aside class="account-panel">
       <h2>${tr(lang, { es: 'Tu espacio', en: 'Your space' })}</h2>
@@ -231,7 +231,7 @@ export async function accountDashboardPage(request, env) {
       </article>`,
         )
         .join('')}</div>`
-    : `<p class="orders-empty">${tr(lang, { es: 'Aún no hay pedidos.', en: 'No orders yet.' })} <a href="/collections/seasonal">${tr(lang, { es: 'Explorar la edición →', en: 'Explore the edit →' })}</a></p>`;
+    : `<p class="orders-empty">${tr(lang, { es: 'Aún no hay pedidos.', en: 'No orders yet.' })} <a href="${langHref('/collections/seasonal', lang)}">${tr(lang, { es: 'Explorar la edición →', en: 'Explore the edit →' })}</a></p>`;
 
   const wishHtml = wishlist.length
     ? `<div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr));padding-top:8px">${wishlist
@@ -241,7 +241,7 @@ export async function accountDashboardPage(request, env) {
 
   const body = `<style>${ACCOUNT_CSS}</style>
 <nav class="crumbs" aria-label="${t(lang, 'crumbs_aria')}">
-  <a href="/">${t(lang, 'home')}</a><span class="sep">/</span>
+  <a href="${langHref('/', lang)}">${t(lang, 'home')}</a><span class="sep">/</span>
   <span>${t(lang, 'account')}</span>
 </nav>
 <section class="account-shell">
@@ -252,7 +252,7 @@ export async function accountDashboardPage(request, env) {
   <div class="account-tabs" role="navigation" aria-label="${esc(tr(lang, { es: 'Secciones de cuenta', en: 'Account sections' }))}">
     <a class="is-active" href="#pedidos">${tr(lang, { es: 'Pedidos', en: 'Orders' })}</a>
     <a href="#deseos">${tr(lang, { es: 'Lista de deseos', en: 'Wishlist' })}</a>
-    <a href="/cart">${t(lang, 'cart')}</a>
+    <a href="${langHref('/cart', lang)}">${t(lang, 'cart')}</a>
   </div>
   <section class="account-panel" id="pedidos" style="margin-bottom:22px">
     <h2>${tr(lang, { es: 'Tus pedidos', en: 'Your orders' })}</h2>
@@ -264,7 +264,7 @@ export async function accountDashboardPage(request, env) {
     <p class="panel-lead">${tr(lang, { es: 'Piezas guardadas para más tarde.', en: 'Pieces saved for later.' })}</p>
     ${wishHtml}
     <div class="account-actions">
-      <a class="btn" href="/collections/new">${tr(lang, { es: 'Seguir comprando', en: 'Keep shopping' })}</a>
+      <a class="btn" href="${langHref('/collections/new', lang)}">${tr(lang, { es: 'Seguir comprando', en: 'Keep shopping' })}</a>
       <button class="btn btn-ghost" type="button" id="logoutBtn">${tr(lang, { es: 'Cerrar sesión', en: 'Sign out' })}</button>
     </div>
   </section>

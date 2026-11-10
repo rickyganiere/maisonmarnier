@@ -1,6 +1,6 @@
 import { esc } from '../lib/escape.js';
 import { htmlPage, productCard } from '../lib/html.js';
-import { getLang, t, tr } from '../lib/i18n.js';
+import { getLang, langHref, t, tr } from '../lib/i18n.js';
 import { productImages } from '../lib/images.js';
 import { productJsonLd } from '../lib/seo.js';
 import { getLiveProductBySlug, getLiveProducts } from '../db/products.js';
@@ -14,7 +14,7 @@ export async function productPage(url, env, request) {
       return htmlPage(
         tr(lang, { es: 'Producto no encontrado', en: 'Product not found' }),
         `<div class="head"><h1>${tr(lang, { es: 'Producto no encontrado', en: 'Product not found' })}</h1></div>
-         <p class="empty">${tr(lang, { es: 'Esta pieza ya no está disponible.', en: 'This piece is no longer available.' })} <a href="/collections/new">${tr(lang, { es: 'Ver novedades →', en: 'See new arrivals →' })}</a></p>`,
+         <p class="empty">${tr(lang, { es: 'Esta pieza ya no está disponible.', en: 'This piece is no longer available.' })} <a href="${esc(langHref('/collections/new', lang))}">${tr(lang, { es: 'Ver novedades →', en: 'See new arrivals →' })}</a></p>`,
         { status: 404, request, path: url.pathname, lang },
       );
     }
@@ -53,9 +53,10 @@ export async function productPage(url, env, request) {
             ...related,
             ...relatedAll.filter((r) => r.slug !== p.slug && !related.some((x) => x.slug === r.slug)),
           ].slice(0, 5);
-    const collectionHref = p.category
+    const collectionPath = p.category
       ? `/collections/${encodeURIComponent(String(p.category).toLowerCase().replace(/\s+/g, '-'))}`
       : '/collections/new';
+    const collectionHref = esc(langHref(collectionPath, lang));
     const relatedHtml = relatedFallback.length
       ? `<section class="related">
            <div class="related-head">
@@ -85,7 +86,7 @@ export async function productPage(url, env, request) {
     const wishLabel = tr(lang, { es: 'Lista de deseos', en: 'Wishlist' });
     const wishOnLabel = tr(lang, { es: 'En tu lista', en: 'Saved' });
     const body = `<nav class="crumbs" aria-label="${t(lang, 'crumbs_aria')}">
-        <a href="/">${t(lang, 'home')}</a><span class="sep">/</span>
+        <a href="${esc(langHref('/', lang))}">${t(lang, 'home')}</a><span class="sep">/</span>
         <a href="${collectionHref}">${esc(p.category || t(lang, 'shop'))}</a><span class="sep">/</span>
         <span>${esc(p.name || '')}</span>
       </nav>
@@ -110,7 +111,7 @@ export async function productPage(url, env, request) {
                   data-price="${retail}"
                   data-image="${esc(mainImage)}">${tr(lang, { es: 'Añadir al carrito', en: 'Add to cart' })}</button>
                  <button class="wish-btn" type="button" id="wishBtn" data-id="${p.id}">♡ ${tr(lang, { es: 'Lista de deseos', en: 'Wishlist' })}</button>
-                 <a class="btn btn-ghost" href="/cart">${tr(lang, { es: 'Ver carrito', en: 'View cart' })}</a>`
+                 <a class="btn btn-ghost" href="${esc(langHref('/cart', lang))}">${tr(lang, { es: 'Ver carrito', en: 'View cart' })}</a>`
               : `<button class="btn is-disabled" type="button" disabled>${tr(lang, { es: 'No disponible', en: 'Unavailable' })}</button>
                  <button class="wish-btn" type="button" id="wishBtn" data-id="${p.id}">♡ ${tr(lang, { es: 'Lista de deseos', en: 'Wishlist' })}</button>`
           }
@@ -119,7 +120,7 @@ export async function productPage(url, env, request) {
           <div class="register-buy">
             <strong>${tr(lang, { es: 'Regístrate para comprar y seguir pedidos', en: 'Register to buy and track orders' })}</strong>
             <p>${tr(lang, { es: 'Con cuenta puedes guardar esta pieza, ver el estado de envío y checkout más rápido.', en: 'With an account you can save this piece, track shipping and check out faster.' })}</p>
-            <a href="/cuenta/registro?next=/products/${encodeURIComponent(p.slug || '')}">${tr(lang, { es: 'Crear cuenta gratuita →', en: 'Create a free account →' })}</a>
+            <a href="${esc(langHref(`/cuenta/registro?next=/products/${encodeURIComponent(p.slug || '')}`, lang))}">${tr(lang, { es: 'Crear cuenta gratuita →', en: 'Create a free account →' })}</a>
           </div>
           <section aria-labelledby="product-details-title">
             <h2 id="product-details-title">${tr(lang, { es: 'Detalles del producto', en: 'Product details' })}</h2>
@@ -142,7 +143,7 @@ export async function productPage(url, env, request) {
 <script>
 (function(){
   const L=${JSON.stringify({
-    addedHtml: tr(lang, { es: 'Añadido al carrito. <a href="/cart">Ver carrito →</a>', en: 'Added to cart. <a href="/cart">View cart →</a>' }),
+    addedHtml: tr(lang, { es: `Añadido al carrito. <a href="${langHref('/cart', lang)}">Ver carrito →</a>`, en: `Added to cart. <a href="${langHref('/cart', lang)}">View cart →</a>` }),
     added: tr(lang, { es: 'Añadido al carrito', en: 'Added to cart' }),
     wishOn: '♥ ' + wishOnLabel,
     wishOff: '♡ ' + wishLabel,
@@ -223,7 +224,7 @@ export async function productPage(url, env, request) {
       canonical: productPath,
       ogImage: mainImage || '',
       ogType: 'product',
-      jsonLd: productJsonLd(pForLd, { url: productPath, collectionPath: collectionHref }),
+      jsonLd: productJsonLd(pForLd, { url: productPath, collectionPath: collectionPath }),
       cache: 'private, no-cache',
       request,
       path: productPath,
