@@ -29,9 +29,12 @@ export function facebookLogoSvg({ size = 22 } = {}) {
 </svg>`;
 }
 
-export function socialLinksHtml({ size = 22, className = 'social-links' } = {}) {
-  return `<nav class="${className}" aria-label="Redes sociales">
-  <a class="social-link" href="${INSTAGRAM_URL}" target="_blank" rel="noopener noreferrer" aria-label="Maison Marnier en Instagram">${instagramLogoSvg({ size })}</a>
-  <a class="social-link" href="${FACEBOOK_URL}" target="_blank" rel="noopener noreferrer" aria-label="Maison Marnier en Facebook">${facebookLogoSvg({ size })}</a>
+export function socialLinksHtml({ size = 22, className = 'social-links', lang = 'es' } = {}) {
+  const ig = lang === 'en' ? 'Maison Marnier on Instagram' : 'Maison Marnier en Instagram';
+  const fb = lang === 'en' ? 'Maison Marnier on Facebook' : 'Maison Marnier en Facebook';
+  const aria = lang === 'en' ? 'Social' : 'Redes sociales';
+  return `<nav class="${className}" aria-label="${aria}">
+  <a class="social-link" href="${INSTAGRAM_URL}" target="_blank" rel="noopener noreferrer" aria-label="${ig}">${instagramLogoSvg({ size })}</a>
+  <a class="social-link" href="${FACEBOOK_URL}" target="_blank" rel="noopener noreferrer" aria-label="${fb}">${facebookLogoSvg({ size })}</a>
 </nav>`;
 }

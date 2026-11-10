@@ -1,5 +1,6 @@
 import { BRAND_ICON_PATH, BRAND_LOGO_PATH, BRAND_LOGO_LIGHT_PATH } from './brandAsset.js';
 import { esc } from './escape.js';
+import { DEFAULT_LANG, getLang, t } from './i18n.js';
 import { productImages } from './images.js';
 import { DEFAULT_OG_IMAGE, jsonLdScript, seoHeadHtml } from './seo.js';
 import { socialLinksHtml } from './social.js';
@@ -20,17 +21,24 @@ export function gtmNoscriptHtml() {
   return `<noscript><iframe src="https://www.googletagmanager.com/ns.html?id=${GTM_ID}" height="0" width="0" style="display:none;visibility:hidden"></iframe></noscript>`;
 }
 
-const NAV = [
-  ['Tienda Navidad', '/collections/seasonal'],
-  ['Novedades', '/collections/new'],
-  ['Iluminación', '/collections/lighting'],
-  ['Decoración', '/collections/decor'],
-  ['Velas', '/collections/candles'],
-  ['Diario', '/journal'],
+const NAV_HREFS = [
+  ['nav_seasonal', '/collections/seasonal'],
+  ['nav_new', '/collections/new'],
+  ['nav_lighting', '/collections/lighting'],
+  ['nav_decor', '/collections/decor'],
+  ['nav_candles', '/collections/candles'],
+  ['nav_journal', '/journal'],
 ];
 
-function navHtml() {
-  return NAV.map(([label, href]) => `<a href="${href}">${esc(label)}</a>`).join('');
+function navHtml(lang) {
+  return NAV_HREFS.map(([key, href]) => `<a href="${href}">${esc(t(lang, key))}</a>`).join('');
+}
+
+function langSwitchHtml(lang, path = '/') {
+  const next = encodeURIComponent(path || '/');
+  const mk = (code) =>
+    `<a class="lang-opt${lang === code ? ' is-active' : ''}" href="/lang?set=${code}&next=${next}" hreflang="${code}" lang="${code}">${code.toUpperCase()}</a>`;
+  return `<nav class="lang-switch" aria-label="${esc(t(lang, 'lang_aria'))}">${mk('en')}<span class="lang-sep" aria-hidden="true">|</span>${mk('es')}</nav>`;
 }
 
 /** Festive snowman beside cart — Santa hat, scarf, holly. */
@@ -65,15 +73,15 @@ export function snowmanHtml() {
 </svg>`;
 }
 
-export function cartControlHtml() {
-  return `<span class="cart-wrap" title="Carrito">
+export function cartControlHtml(lang = DEFAULT_LANG) {
+  return `<span class="cart-wrap" title="${esc(t(lang, 'cart_title'))}">
   ${snowmanHtml()}
-  <a href="/cart" id="cartBtn" class="cart-link">Carrito <span id="cartCount"></span></a>
+  <a href="/cart" id="cartBtn" class="cart-link">${esc(t(lang, 'cart'))} <span id="cartCount"></span></a>
 </span>`;
 }
 
-export function accountControlHtml() {
-  return `<a class="account-link" href="/cuenta" id="accountBtn" title="Mi cuenta">Cuenta</a>`;
+export function accountControlHtml(lang = DEFAULT_LANG) {
+  return `<a class="account-link" href="/cuenta" id="accountBtn" title="${esc(t(lang, 'account_title'))}">${esc(t(lang, 'account'))}</a>`;
 }
 
 /** Approved horizontal Christmas branding on a light background. */
@@ -82,18 +90,19 @@ export function brandLogoHtml({ light = false } = {}) {
   return `<img class="brand-mark-img" src="${path}" width="972" height="270" alt="Maison Marnier · Home &amp; Living" decoding="async">`;
 }
 
-export function storefrontHeaderHtml({ search = true } = {}) {
-  return `<div class="announce">Edición Navidad · Envío gratis desde 100 € · Europa</div>
+export function storefrontHeaderHtml({ search = true, lang = DEFAULT_LANG, path = '/' } = {}) {
+  return `<div class="announce">${esc(t(lang, 'announce'))}</div>
 <header class="site-nav">
   <div class="xmas-garland" aria-hidden="true">${'<i></i>'.repeat(24)}</div>
-  <a class="brand" href="/" aria-label="Maison Marnier inicio">${brandLogoHtml()}</a>
-  <nav class="links" aria-label="Navegación de tienda">${navHtml()}</nav>
+  <a class="brand" href="/" aria-label="${esc(t(lang, 'home_aria'))}">${brandLogoHtml()}</a>
+  <nav class="links" aria-label="${esc(t(lang, 'nav_aria'))}">${navHtml(lang)}</nav>
   <div class="tools">
     ${search ? `<form action="/collections/new" method="get" role="search">
-      <input class="search" type="search" name="q" placeholder="Buscar…" aria-label="Buscar productos">
+      <input class="search" type="search" name="q" placeholder="${esc(t(lang, 'search_ph'))}" aria-label="${esc(t(lang, 'search_aria'))}">
     </form>` : ''}
-    ${accountControlHtml()}
-    ${cartControlHtml()}
+    ${langSwitchHtml(lang, path)}
+    ${accountControlHtml(lang)}
+    ${cartControlHtml(lang)}
   </div>
 </header>`;
 }
@@ -134,6 +143,11 @@ img{max-width:100%;display:block}
 .tools .search{width:clamp(105px,9vw,138px);padding:9px 10px;border:1px solid #d8c1a6;background:#fffbf6;color:#34231b;font:600 13px/1.2 var(--font);border-radius:6px}
 .account-link{display:inline-flex;align-items:center;min-height:44px;padding:10px 12px;border:1px solid #d8c1a6;border-radius:8px;font:800 13px/1 var(--font);color:#34231b;background:#fffbf6;white-space:nowrap}
 .account-link:hover{border-color:#a97343;color:#852731}
+.lang-switch{display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid #d8c1a6;border-radius:8px;background:#fffbf6;font:800 12px/1 var(--font);letter-spacing:.04em}
+.lang-switch .lang-opt{color:#7a6556;padding:2px 1px}
+.lang-switch .lang-opt.is-active{color:#852731}
+.lang-switch .lang-opt:hover{color:#852731}
+.lang-switch .lang-sep{color:#c5a577;opacity:.85;font-weight:700}
 .cart-wrap{display:inline-flex;align-items:center;gap:8px}
 .nav-snowman{width:58px;height:69px;flex:0 0 auto;filter:drop-shadow(0 2px 4px rgba(75,41,24,.25));animation:snowmanBob 3.2s ease-in-out infinite;transform-origin:50% 100%}
 .nav-snowman .santa-hat{transform-origin:36px 18px;animation:hatTip 4.2s ease-in-out infinite}
@@ -290,6 +304,7 @@ img:not([hidden]) + .product-image-unavailable{display:none}
   .site-nav .nav-snowman{width:35px;height:43px}
   .site-nav .cart-link{min-height:44px;padding:9px 12px;font-size:15px}
   .site-nav .account-link{min-height:40px;padding:8px 10px;font-size:12px}
+  .site-nav .lang-switch{padding:7px 8px;font-size:11px;gap:4px}
   .site-nav .links{gap:16px;margin-right:-14px;padding-right:14px}
   .site-nav .links a{font-size:14px}
   .tools .search{display:none}
@@ -298,22 +313,22 @@ img:not([hidden]) + .product-image-unavailable{display:none}
 }
 `;
 
-export function storefrontFooterHtml() {
+export function storefrontFooterHtml({ lang = DEFAULT_LANG } = {}) {
   return `<footer class="site-footer">
   <div class="footer-grid">
-    <div><a class="brand" href="/" aria-label="Maison Marnier">${brandLogoHtml({ light: true })}</a><p class="muted" style="margin-top:12px;max-width:34ch">Ediciones navideñas para hogares cálidos — objetos festivos elegidos con cuidado.</p>${socialLinksHtml({ size: 24 })}</div>
-    <div><h4>Tienda</h4><a href="/collections/seasonal">Navidad</a><a href="/collections/new">Novedades</a><a href="/collections/lighting">Iluminación</a><a href="/cuenta/registro">Crear cuenta</a></div>
-    <div><h4>Maison</h4><a href="/about">Nuestra historia</a><a href="/journal">Diario</a><a href="/sourcing">Selección</a></div>
-    <div><h4>Ayuda</h4><a href="/shipping">Envíos</a><a href="/returns">Devoluciones</a><a href="/contact">Contacto</a><a href="/instagram">Enlaces</a><a href="/privacidad">Privacidad</a><a href="/cookies">Cookies</a><a href="/terminos">Términos</a></div>
+    <div><a class="brand" href="/" aria-label="Maison Marnier">${brandLogoHtml({ light: true })}</a><p class="muted" style="margin-top:12px;max-width:34ch">${esc(t(lang, 'footer_blurb'))}</p>${socialLinksHtml({ size: 24, lang })}</div>
+    <div><h4>${esc(t(lang, 'footer_shop'))}</h4><a href="/collections/seasonal">${esc(t(lang, 'footer_holiday'))}</a><a href="/collections/new">${esc(t(lang, 'footer_new'))}</a><a href="/collections/lighting">${esc(t(lang, 'footer_lighting'))}</a><a href="/cuenta/registro">${esc(t(lang, 'footer_create_account'))}</a></div>
+    <div><h4>${esc(t(lang, 'footer_maison'))}</h4><a href="/about">${esc(t(lang, 'footer_about'))}</a><a href="/journal">${esc(t(lang, 'footer_journal'))}</a><a href="/sourcing">${esc(t(lang, 'footer_sourcing'))}</a></div>
+    <div><h4>${esc(t(lang, 'footer_help'))}</h4><a href="/shipping">${esc(t(lang, 'footer_shipping'))}</a><a href="/returns">${esc(t(lang, 'footer_returns'))}</a><a href="/contact">${esc(t(lang, 'footer_contact'))}</a><a href="/instagram">${esc(t(lang, 'footer_links'))}</a><a href="/privacidad">${esc(t(lang, 'footer_privacy'))}</a><a href="/cookies">${esc(t(lang, 'footer_cookies'))}</a><a href="/terminos">${esc(t(lang, 'footer_terms'))}</a></div>
   </div>
-  <div class="bottom"><span>© 2026 Maison Marnier.</span><span>Europa · EUR €</span></div>
+  <div class="bottom"><span>© 2026 Maison Marnier.</span><span>${esc(t(lang, 'footer_region'))}</span></div>
 </footer>
 <div class="toast" id="toast"></div>
-<div class="cookie-banner" id="cookieBanner" role="dialog" aria-live="polite" aria-label="Consentimiento de cookies">
-  <p>Usamos cookies esenciales para la tienda y, si lo aceptas, cookies de medición. Más info en la <a href="/cookies">política de cookies</a> y la <a href="/privacidad">privacidad</a>.</p>
+<div class="cookie-banner" id="cookieBanner" role="dialog" aria-live="polite" aria-label="${esc(t(lang, 'cookie_aria'))}">
+  <p>${t(lang, 'cookie_body')}</p>
   <div class="cookie-actions">
-    <button type="button" class="btn" id="cookieAccept">Aceptar</button>
-    <button type="button" class="btn btn-ghost" id="cookieEssential">Solo esenciales</button>
+    <button type="button" class="btn" id="cookieAccept">${esc(t(lang, 'cookie_accept'))}</button>
+    <button type="button" class="btn btn-ghost" id="cookieEssential">${esc(t(lang, 'cookie_essential'))}</button>
   </div>
 </div>
 <script>
@@ -360,12 +375,17 @@ export function htmlPage(
     noindex = false,
     ogType = 'website',
     jsonLd = null,
+    lang = DEFAULT_LANG,
+    request = null,
+    path = '',
   } = {},
 ) {
+  const resolvedLang = request ? getLang(request) : lang;
+  const pagePath = path || canonical || '/';
   const pageTitle = `${title} — Maison Marnier`;
   const canonPath = canonical || '/';
   const html = `<!doctype html>
-<html lang="es">
+<html lang="${esc(resolvedLang)}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -387,9 +407,9 @@ ${fontLinksHtml()}
 </head>
 <body>
 ${gtmNoscriptHtml()}
-${storefrontHeaderHtml()}
+${storefrontHeaderHtml({ lang: resolvedLang, path: pagePath })}
 <main class="wrap">${body}</main>
-${storefrontFooterHtml()}
+${storefrontFooterHtml({ lang: resolvedLang })}
 </body>
 </html>`;
   return new Response(html, {
@@ -398,35 +418,36 @@ ${storefrontFooterHtml()}
       'content-type': 'text/html; charset=UTF-8',
       'cache-control': cache,
       'x-content-type-options': 'nosniff',
+      'content-language': resolvedLang,
     },
   });
 }
 
 /** Prefer a second supplier photo if the lead image fails to load. */
-export function storefrontProductImage(p, { featured = false, decorative = false } = {}) {
+export function storefrontProductImage(p, { featured = false, decorative = false, lang = DEFAULT_LANG } = {}) {
   const [primary, backup] = productImages(p, { max: 2 });
-  const unavailable = '<span class="product-image-unavailable">Foto no disponible</span>';
+  const unavailable = `<span class="product-image-unavailable">${esc(t(lang, 'photo_unavailable'))}</span>`;
   if (!primary) return unavailable;
   return `<img src="${esc(primary)}" data-backup="${esc(backup || '')}" alt="${decorative ? '' : esc(p.name || '')}" decoding="async"
     ${featured ? 'fetchpriority="high"' : 'loading="lazy"'}
     onerror="const backup=this.dataset.backup;if(backup){delete this.dataset.backup;this.src=backup;}else{this.hidden=true;}">${unavailable}`;
 }
 
-export function productCard(p) {
+export function productCard(p, lang = DEFAULT_LANG) {
   const href = '/products/' + encodeURIComponent(p.slug || '');
   const retail = Number(p.retail_price_eur || 0);
   const compareAt = Number(p.compare_at_price_eur || 0);
   const onSale = compareAt > retail && retail > 0;
   const compare = onSale ? `<span class="compare">€${compareAt.toFixed(2)}</span>` : '';
-  const badge = onSale ? `<span class="badge">Edición</span>` : '';
+  const badge = onSale ? `<span class="badge">${esc(t(lang, 'badge_edit'))}</span>` : '';
   return `<a class="p" href="${href}">
-    <div class="media">${badge}${storefrontProductImage(p)}</div>
+    <div class="media">${badge}${storefrontProductImage(p, { lang })}</div>
     <div class="meta">
       <div class="catline">${esc(p.category || 'Maison Marnier')}</div>
       <h3>${esc(p.name || '')}</h3>
       <div class="price-row">
         <span class="price">€${retail.toFixed(2)}${compare}</span>
-        <span class="cta-hint">Ver →</span>
+        <span class="cta-hint">${esc(t(lang, 'view'))}</span>
       </div>
     </div>
   </a>`;
@@ -436,28 +457,33 @@ export function productCard(p) {
  * Home product card — same structure as CarLuxHub home listings
  * (media + body with name / meta / price), themed for Maison Marnier.
  */
-export function homeProductCard(p, { featured = false } = {}) {
+export function homeProductCard(p, { featured = false, lang = DEFAULT_LANG } = {}) {
   const href = '/products/' + encodeURIComponent(p.slug || '');
   const name = String(p.name || 'Maison Marnier');
   const retail = Number(p.retail_price_eur || 0);
   const compareAt = Number(p.compare_at_price_eur || 0);
   const onSale = compareAt > retail && retail > 0;
-  const category = String(p.category || 'Decoración').trim() || 'Decoración';
+  const defaultCat = lang === 'en' ? 'Decor' : 'Decoración';
+  const category = String(p.category || defaultCat).trim() || defaultCat;
   const stock = Number(p.stock || 0);
   const metaParts = [category];
-  if (stock > 0 && stock <= 8) metaParts.push(`${stock} restantes`);
-  else if (stock > 8) metaParts.push('En stock');
-  metaParts.push('Envío UE');
+  if (stock > 0 && stock <= 8) {
+    metaParts.push(lang === 'en' ? `${stock} left` : `${stock} restantes`);
+  } else if (stock > 8) {
+    metaParts.push(lang === 'en' ? 'In stock' : 'En stock');
+  }
+  metaParts.push(lang === 'en' ? 'EU shipping' : 'Envío UE');
   const was = onSale
     ? `<s class="mm-card-was">€${compareAt.toFixed(2)}</s>`
     : '';
-  const drop = onSale ? `<span class="mm-card-drop">Edición</span>` : '';
+  const drop = onSale ? `<span class="mm-card-drop">${esc(t(lang, 'badge_edit'))}</span>` : '';
+  const viewLabel = lang === 'en' ? 'View' : 'Ver';
   return `<a class="mm-card" href="${href}" aria-label="${esc(name)}">
-    <span class="mm-card-media">${storefrontProductImage(p, { featured })}${drop}</span>
+    <span class="mm-card-media">${storefrontProductImage(p, { featured, lang })}${drop}</span>
     <span class="mm-card-body">
       <span class="mm-card-name">${esc(name)}</span>
       <span class="mm-card-meta">${esc(metaParts.join(' · '))}</span>
-      <strong class="mm-card-price">${retail > 0 ? `€${retail.toFixed(2)}` : 'Ver'}${was}</strong>
+      <strong class="mm-card-price">${retail > 0 ? `€${retail.toFixed(2)}` : viewLabel}${was}</strong>
     </span>
   </a>`;
 }

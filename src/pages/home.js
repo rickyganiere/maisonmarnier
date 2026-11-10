@@ -11,6 +11,7 @@ import {
   storefrontProductImage,
 } from '../lib/html.js';
 import { getLiveProducts, getLiveProductsBySlugs } from '../db/products.js';
+import { getLang, tr } from '../lib/i18n.js';
 import { CHRISTMAS_SCENES } from '../lib/seasonalAssets.js';
 import {
   DEFAULT_OG_IMAGE,
@@ -191,27 +192,30 @@ ${LAYOUT_CSS}
 }
 `;
 
-function heroCarouselHtml(products) {
+function heroCarouselHtml(products, lang) {
+  const empty = tr(lang, { es: 'Novedades navideñas', en: 'Holiday arrivals' });
+  const piece = tr(lang, { es: 'Pieza de temporada', en: 'Holiday piece' });
+  const shopNow = tr(lang, { es: 'Comprar', en: 'Shop now' });
   const slides = products.filter((p) => p.slug && (p.image_url || p.images?.[0])).slice(0, 5);
   if (!slides.length) {
-    return `<div class="mm-carousel"><div class="mm-carousel-empty"><strong>Novedades navideñas</strong></div></div>`;
+    return `<div class="mm-carousel"><div class="mm-carousel-empty"><strong>${esc(empty)}</strong></div></div>`;
   }
   const track = slides.map((p, i) => {
-    const name = esc(p.name || 'Pieza de temporada');
+    const name = esc(p.name || piece);
     const price = Number(p.retail_price_eur || 0);
     return `<a class="mm-carousel-slide" href="/products/${encodeURIComponent(p.slug)}">
-      ${storefrontProductImage(p, { featured: i === 0, decorative: true })}
+      ${storefrontProductImage(p, { featured: i === 0, decorative: true, lang })}
       <div class="mm-carousel-meta">
-        <span>${price > 0 ? `€${price.toFixed(2)}` : 'Comprar'}</span>
+        <span>${price > 0 ? `€${price.toFixed(2)}` : esc(shopNow)}</span>
         <strong>${name}</strong>
       </div>
     </a>`;
   }).join('');
   const controls = slides.length > 1 ? `<div class="mm-carousel-controls">
-    <button type="button" data-step="-1" aria-label="Producto destacado anterior" aria-controls="heroTrack">‹</button>
-    <button type="button" data-step="1" aria-label="Siguiente producto destacado" aria-controls="heroTrack">›</button>
+    <button type="button" data-step="-1" aria-label="${esc(tr(lang, { es: 'Producto destacado anterior', en: 'Previous featured product' }))}" aria-controls="heroTrack">‹</button>
+    <button type="button" data-step="1" aria-label="${esc(tr(lang, { es: 'Siguiente producto destacado', en: 'Next featured product' }))}" aria-controls="heroTrack">›</button>
   </div>` : '';
-  return `<section class="mm-carousel" id="heroCarousel" aria-roledescription="carousel" aria-label="Productos navideños destacados">
+  return `<section class="mm-carousel" id="heroCarousel" aria-roledescription="carousel" aria-label="${esc(tr(lang, { es: 'Productos navideños destacados', en: 'Featured Christmas products' }))}">
     <div class="mm-carousel-track" id="heroTrack">${track}</div>
     ${controls}
   </section>`;
@@ -228,23 +232,29 @@ function snowFlakesHtml(count = 26) {
   }).join('');
 }
 
-export async function homePage(env) {
+export async function homePage(env, request) {
+  const lang = getLang(request);
   const [curated, latest] = await Promise.all([
     getLiveProductsBySlugs(env, CHRISTMAS_HOME_EDIT).catch(() => []),
     getLiveProducts(env, 12).catch(() => []),
   ]);
   const products = [...new Map([...curated, ...latest].map((p) => [p.slug, p])).values()];
   const featuredHtml = products.length
-    ? products.slice(0, 8).map((p, i) => homeProductCard(p, { featured: i === 0 })).join('')
-    : `<p class="empty">Las piezas navideñas van llegando.</p>`;
-  const carouselHtml = heroCarouselHtml(curated.length ? curated : products);
+    ? products.slice(0, 8).map((p, i) => homeProductCard(p, { featured: i === 0, lang })).join('')
+    : `<p class="empty">${esc(tr(lang, { es: 'Las piezas navideñas van llegando.', en: 'Holiday pieces are arriving.' }))}</p>`;
+  const carouselHtml = heroCarouselHtml(curated.length ? curated : products, lang);
 
-  const homeTitle = 'Maison Marnier — Edición hogar de Navidad';
-  const homeDescription =
-    'Decoración festiva para interiores europeos — ornamentos, luces, velas y objetos de temporada seleccionados por Maison Marnier.';
+  const homeTitle = tr(lang, {
+    es: 'Maison Marnier — Edición hogar de Navidad',
+    en: 'Maison Marnier — Holiday Home Edit',
+  });
+  const homeDescription = tr(lang, {
+    es: 'Decoración festiva para interiores europeos — ornamentos, luces, velas y objetos de temporada seleccionados por Maison Marnier.',
+    en: 'Festive home decor for European interiors — ornaments, lights, candles and holiday objects curated by Maison Marnier.',
+  });
 
   const html = `<!doctype html>
-<html lang="es">
+<html lang="${esc(lang)}">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -265,19 +275,19 @@ ${fontLinksHtml()}
 </head>
 <body>
 ${gtmNoscriptHtml()}
-${storefrontHeaderHtml({ search: false })}
+${storefrontHeaderHtml({ search: false, lang, path: '/' })}
 <div class="mm-snow" aria-hidden="true">${snowFlakesHtml()}</div>
 
 <main class="home-main">
   <section class="mm-hero">
     <div class="mm-hero-inner">
       <div>
-        <span class="mm-kicker">La edición de Navidad</span>
-        <h1>Trae la <em>Navidad</em> a casa</h1>
-        <p class="lead">Luces cálidas, decoración festiva y detalles pensados para la Navidad en casa.</p>
+        <span class="mm-kicker">${esc(tr(lang, { es: 'La edición de Navidad', en: 'The Christmas Edit' }))}</span>
+        <h1>${lang === 'en' ? 'Bring <em>Christmas</em> home' : 'Trae la <em>Navidad</em> a casa'}</h1>
+        <p class="lead">${esc(tr(lang, { es: 'Luces cálidas, decoración festiva y detalles pensados para la Navidad en casa.', en: 'Warm lights, festive décor and thoughtful details for Christmas at home.' }))}</p>
         <div class="mm-actions">
-          <a class="btn" href="/collections/seasonal">Comprar Navidad</a>
-          <a class="btn btn-ghost" href="/cuenta/registro">Crear cuenta</a>
+          <a class="btn" href="/collections/seasonal">${esc(tr(lang, { es: 'Comprar Navidad', en: 'Shop Christmas' }))}</a>
+          <a class="btn btn-ghost" href="/cuenta/registro">${esc(tr(lang, { es: 'Crear cuenta', en: 'Create account' }))}</a>
         </div>
       </div>
       ${carouselHtml}
@@ -287,26 +297,26 @@ ${storefrontHeaderHtml({ search: false })}
   <section class="mm-section" id="featured">
     <div class="mm-section-inner">
       <div class="mm-section-head">
-        <h2>Novedades de temporada</h2>
-        <a href="/collections/new">Ver todas →</a>
+        <h2>${esc(tr(lang, { es: 'Novedades de temporada', en: 'Holiday arrivals' }))}</h2>
+        <a href="/collections/new">${esc(tr(lang, { es: 'Ver todas →', en: 'View all arrivals →' }))}</a>
       </div>
       <div class="mm-products" data-home-listings>${featuredHtml}</div>
-      <nav class="mm-cats" style="margin-top:22px" aria-label="Comprar por categoría">
+      <nav class="mm-cats" style="margin-top:22px" aria-label="${esc(tr(lang, { es: 'Comprar por categoría', en: 'Shop by category' }))}">
         <a class="mm-cat mm-cat--holiday" href="/collections/seasonal">
           <img class="mm-cat-media" src="${CHRISTMAS_SCENES.living}" alt="" width="640" height="400" loading="lazy" decoding="async">
-          <span class="mm-cat-copy"><span class="mm-cat-name">Navidad</span><span class="mm-cat-hint">Edición de temporada</span></span>
+          <span class="mm-cat-copy"><span class="mm-cat-name">${esc(tr(lang, { es: 'Navidad', en: 'Holiday' }))}</span><span class="mm-cat-hint">${esc(tr(lang, { es: 'Edición de temporada', en: 'Seasonal edit' }))}</span></span>
         </a>
         <a class="mm-cat mm-cat--glow" href="/collections/lighting">
           <span class="mm-cat-glow" aria-hidden="true"></span>
-          <span class="mm-cat-copy"><span class="mm-cat-name">Luz y brillo</span><span class="mm-cat-hint">Iluminación cálida</span></span>
+          <span class="mm-cat-copy"><span class="mm-cat-name">${esc(tr(lang, { es: 'Luz y brillo', en: 'Glow & lights' }))}</span><span class="mm-cat-hint">${esc(tr(lang, { es: 'Iluminación cálida', en: 'Warm lighting' }))}</span></span>
         </a>
         <a class="mm-cat mm-cat--candles" href="/collections/candles">
           <img class="mm-cat-media" src="${CHRISTMAS_SCENES.candlelight}" alt="" width="640" height="400" loading="lazy" decoding="async">
-          <span class="mm-cat-copy"><span class="mm-cat-name">Velas</span><span class="mm-cat-hint">Noches suaves</span></span>
+          <span class="mm-cat-copy"><span class="mm-cat-name">${esc(tr(lang, { es: 'Velas', en: 'Candles' }))}</span><span class="mm-cat-hint">${esc(tr(lang, { es: 'Noches suaves', en: 'Soft evenings' }))}</span></span>
         </a>
         <a class="mm-cat mm-cat--objects" href="/collections/objects">
           <img class="mm-cat-media" src="${CHRISTMAS_SCENES.table}" alt="" width="640" height="400" loading="lazy" decoding="async">
-          <span class="mm-cat-copy"><span class="mm-cat-name">Objetos</span><span class="mm-cat-hint">Mesa y decoración</span></span>
+          <span class="mm-cat-copy"><span class="mm-cat-name">${esc(tr(lang, { es: 'Objetos', en: 'Objects' }))}</span><span class="mm-cat-hint">${esc(tr(lang, { es: 'Mesa y decoración', en: 'Table & décor' }))}</span></span>
         </a>
       </nav>
     </div>
@@ -314,49 +324,49 @@ ${storefrontHeaderHtml({ search: false })}
 
   <section class="mm-band" id="seasonal">
     <div class="mm-band-copy">
-      <span class="mm-kicker">Edición de temporada</span>
-      <h2>Hogares cálidos para las fiestas</h2>
-      <p>Guirnaldas, calcetines, luz de mesa y pequeños objetos festivos — reunidos, sin ruido visual.</p>
-      <div class="mm-actions"><a class="btn" href="/collections/seasonal">Comprar temporada</a></div>
+      <span class="mm-kicker">${esc(tr(lang, { es: 'Edición de temporada', en: 'Seasonal edit' }))}</span>
+      <h2>${esc(tr(lang, { es: 'Hogares cálidos para las fiestas', en: 'Warm rooms for the holidays' }))}</h2>
+      <p>${esc(tr(lang, { es: 'Guirnaldas, calcetines, luz de mesa y pequeños objetos festivos — reunidos, sin ruido visual.', en: 'Garlands, stockings, table light and small festive objects — collected, not cluttered.' }))}</p>
+      <div class="mm-actions"><a class="btn" href="/collections/seasonal">${esc(tr(lang, { es: 'Comprar temporada', en: 'Shop holiday' }))}</a></div>
     </div>
     <div class="mm-band-img">
-      <img src="${CHRISTMAS_SCENES.living}" alt="Salón navideño con árbol iluminado, velas y chimenea" width="900" height="606" loading="lazy" decoding="async">
+      <img src="${CHRISTMAS_SCENES.living}" alt="${esc(tr(lang, { es: 'Salón navideño con árbol iluminado, velas y chimenea', en: 'A Christmas living room with a lit tree, candles and a fireplace' }))}" width="900" height="606" loading="lazy" decoding="async">
     </div>
   </section>
 
   <div class="mm-benefits">
-    <div class="mm-benefit"><strong>Envíos UE</strong><span>Cumplimiento con socios en Europa.</span></div>
-    <div class="mm-benefit"><strong>Devoluciones 30 días</strong><span>Claras, sencillas y justas.</span></div>
-    <div class="mm-benefit"><strong>Fotos reales</strong><span>Galerías del proveedor, no relleno genérico.</span></div>
-    <div class="mm-benefit"><strong>Pago seguro</strong><span>Stripe · IVA calculado en el pago.</span></div>
+    <div class="mm-benefit"><strong>${esc(tr(lang, { es: 'Envíos UE', en: 'EU shipping' }))}</strong><span>${esc(tr(lang, { es: 'Cumplimiento con socios en Europa.', en: 'Partner fulfilment across Europe.' }))}</span></div>
+    <div class="mm-benefit"><strong>${esc(tr(lang, { es: 'Devoluciones 30 días', en: '30-day returns' }))}</strong><span>${esc(tr(lang, { es: 'Claras, sencillas y justas.', en: 'Clear, simple and fair.' }))}</span></div>
+    <div class="mm-benefit"><strong>${esc(tr(lang, { es: 'Fotos reales', en: 'Real product photos' }))}</strong><span>${esc(tr(lang, { es: 'Galerías del proveedor, no relleno genérico.', en: 'Supplier galleries — not stock fillers.' }))}</span></div>
+    <div class="mm-benefit"><strong>${esc(tr(lang, { es: 'Pago seguro', en: 'Secure checkout' }))}</strong><span>${esc(tr(lang, { es: 'Stripe · IVA calculado en el pago.', en: 'Stripe · VAT calculated at payment.' }))}</span></div>
   </div>
 
   <section class="mm-stories" id="journal">
     <a class="mm-story" href="/journal">
       <img src="${CHRISTMAS_SCENES.table}" alt="" width="900" height="606" loading="lazy" decoding="async">
-      <div><span class="mm-kicker">Diario</span><h3>Una mesa de Navidad más serena</h3><p>Luz, lino y unos pocos objetos festivos.</p></div>
+      <div><span class="mm-kicker">${esc(tr(lang, { es: 'Diario', en: 'Journal' }))}</span><h3>${esc(tr(lang, { es: 'Una mesa de Navidad más serena', en: 'A quieter Christmas table' }))}</h3><p>${esc(tr(lang, { es: 'Luz, lino y unos pocos objetos festivos.', en: 'Light, linen and a few festive objects.' }))}</p></div>
     </a>
     <a class="mm-story" href="/collections/candles">
       <img src="${CHRISTMAS_SCENES.candlelight}" alt="" width="900" height="606" loading="lazy" decoding="async">
-      <div><span class="mm-kicker">Edición</span><h3>Brillo para noches largas</h3><p>Velas y lámparas cálidas después de cenar.</p></div>
+      <div><span class="mm-kicker">${esc(tr(lang, { es: 'Edición', en: 'Edit' }))}</span><h3>${esc(tr(lang, { es: 'Brillo para noches largas', en: 'Glow for long evenings' }))}</h3><p>${esc(tr(lang, { es: 'Velas y lámparas cálidas después de cenar.', en: 'Candles and warm lamps after dinner.' }))}</p></div>
     </a>
   </section>
 
   <section class="mm-news">
     <div>
-      <h2>Quédate cerca de Maison Marnier</h2>
-      <p>Novedades de temporada y notas ocasionales — sin ruido constante.</p>
+      <h2>${esc(tr(lang, { es: 'Quédate cerca de Maison Marnier', en: 'Stay close to Maison Marnier' }))}</h2>
+      <p>${esc(tr(lang, { es: 'Novedades de temporada y notas ocasionales — sin ruido constante.', en: 'Holiday drops and seasonal notes — occasionally, not constantly.' }))}</p>
     </div>
     <form class="mm-form" id="form">
-      <input required type="email" placeholder="Tu correo" aria-label="Correo electrónico">
-      <button type="submit">Suscribirme</button>
+      <input required type="email" placeholder="${esc(tr(lang, { es: 'Tu correo', en: 'Your email' }))}" aria-label="${esc(tr(lang, { es: 'Correo electrónico', en: 'Email' }))}">
+      <button type="submit">${esc(tr(lang, { es: 'Suscribirme', en: 'Subscribe' }))}</button>
     </form>
   </section>
 </main>
 
-${storefrontFooterHtml()}
+${storefrontFooterHtml({ lang })}
 <script>
-document.getElementById('form').onsubmit=e=>{e.preventDefault();toast('Gracias — bienvenida a Maison Marnier.');e.target.reset()};
+document.getElementById('form').onsubmit=e=>{e.preventDefault();toast(${JSON.stringify(tr(lang, { es: 'Gracias — bienvenida a Maison Marnier.', en: 'Thanks — welcome to Maison Marnier.' }))});e.target.reset()};
 (function(){
   const carousel = document.getElementById('heroCarousel');
   const track = document.getElementById('heroTrack');
