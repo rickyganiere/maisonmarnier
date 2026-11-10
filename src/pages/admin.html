@@ -278,6 +278,7 @@ td,th{border-bottom:1px solid #e4ddd2;padding:8px;text-align:left;vertical-align
         </div>
         <div class="row">
           <button class="btn" type="button" id="publishAllBtn">Publish all</button>
+          <button class="btn secondary" type="button" id="refreshCostsBtn">Refresh missing costs</button>
           <span class="msg" style="margin:0">Publishes drafts with a title, 2+ supplier photos, positive prices and stock.</span>
         </div>
         <div class="msg" id="draftsMsg" role="status"></div>
@@ -494,6 +495,7 @@ document.getElementById('newJournalBtn').onclick=()=>clearJournalForm();
 document.getElementById('probeCJBtn').onclick=()=>checkCJStatus(true);
 document.getElementById('reloadOrdersBtn').onclick=()=>loadOrders();
 document.getElementById('publishAllBtn').onclick=()=>publishAllDrafts();
+document.getElementById('refreshCostsBtn').onclick=()=>refreshMissingCosts();
 
 async function checkCJStatus(show){
   try{
@@ -618,6 +620,8 @@ function renderCjResults(products){
     const imgs=(p.images&&p.images.length?p.images:[p.image]).filter(Boolean).slice(0,6);
     const listed=p.listedNum!=null?` · listed ${esc(p.listedNum)}`:'';
     const ship=p.freeShipping?' · free ship':'';
+    const hasCost=Number(p.costUSD)>0;
+    const costLabel=hasCost?`cost $${Number(p.costUSD).toFixed(2)}`:'cost missing';
     return `<div class="card finder-card"><div class="cols">
       <div>
         <input class="check" type="checkbox" data-cj="${i}" aria-label="Select ${esc(p.name)}">
@@ -626,7 +630,8 @@ function renderCjResults(products){
       <div>
         <strong>${esc(p.name||'')}</strong>
         <span class="badge">${esc(p.imageCount||imgs.length)} photos</span>
-        <div class="msg">SKU ${esc(p.sku||'')} · cost $${Number(p.costUSD||0).toFixed(2)} · stock ${esc(p.stock)} · ${esc(p.category||'')}${listed}${ship}</div>
+        ${hasCost?'':`<span class="badge">needs cost refresh</span>`}
+        <div class="msg">SKU ${esc(p.sku||'')} · ${costLabel} · stock ${esc(p.stock)} · ${esc(p.category||'')}${listed}${ship}</div>
         <div class="finder-thumbs">${imgs.map(u=>`<img src="${esc(u)}" alt="">`).join('')}</div>
         <button class="btn secondary" type="button" data-import="${i}">Import draft</button>
       </div></div></div>`;
@@ -682,9 +687,11 @@ async function importCjDrafts(btn,body){
     if(!r.ok){msg('finderMsg',r.error||'Import failed',true);return}
     const error=r.errors?.[0]?.error;
     if(r.imported)await loadCatalog();
+    const costNote=r.missingCost?(' · '+r.missingCost+' still without cost'):'';
+    const enrichNote=r.enriched?(' · refreshed cost for '+r.enriched):'';
     msg('finderMsg',r.requested
-      ? 'Imported '+r.imported+' drafts · '+r.alreadyImported+' already in the catalog'+(error?' · '+error:'')
-      : 'CJ returned no products for this search.',!!error);
+      ? 'Imported '+r.imported+' drafts · '+r.alreadyImported+' already in the catalog'+enrichNote+costNote+(error?' · '+error:'')
+      : 'CJ returned no products for this search.',!!error||!!r.missingCost);
   }catch(e){msg('finderMsg',e.message||'Import failed',true)
   }finally{btn.disabled=false}
 }
@@ -728,6 +735,21 @@ async function publishAllDrafts(){
     msg('draftsMsg','Published '+r.published+' · skipped '+r.skipped+(r.errors&&r.errors.length?' · first skip: '+(r.errors[0].error||''):''));
     await loadCatalog();
   }catch(e){msg('draftsMsg',e.message||'Publish all failed',true)}
+  finally{btn.disabled=false}
+}
+async function refreshMissingCosts(){
+  const missing=catalog.filter(p=>p.status!=='live'&&p.supplier==='CJ'&&!(Number(p.supplier_cost_usd)>0)).length;
+  if(!missing){msg('draftsMsg','All CJ drafts already have a supplier cost.');return}
+  if(!confirm('Refresh supplier cost for up to 25 CJ drafts missing cost? Suggested retail is filled when retail is €0.'))return;
+  const btn=document.getElementById('refreshCostsBtn');
+  btn.disabled=true;
+  msg('draftsMsg','Refreshing missing CJ costs… this can take ~30s.');
+  try{
+    const r=await api('/api/lume/refresh-costs',{method:'POST',body:JSON.stringify({limit:25})});
+    if(!r.ok){msg('draftsMsg',r.error||'Cost refresh failed',true);return}
+    await loadCatalog();
+    msg('draftsMsg','Updated '+r.updated+' · still missing '+r.stillMissing+' · remaining '+r.remaining+(r.errors?.[0]?.error?' · '+r.errors[0].error:''),!!r.stillMissing);
+  }catch(e){msg('draftsMsg',e.message||'Cost refresh failed',true)}
   finally{btn.disabled=false}
 }
 
@@ -793,8 +815,8 @@ function renderCatalog(status) {
       </div>
     </div>
     <dl class="catalog-numbers">
-      <div><dt>Supplier cost</dt><dd>${p.supplier_cost_usd > 0 ? usd.format(p.supplier_cost_usd) : 'Unknown'}</dd></div>
-      <div><dt>Retail price</dt><dd>${eur.format(p.retail_price_eur || 0)}</dd></div>
+      <div><dt>Supplier cost</dt><dd class="${p.supplier_cost_usd > 0 ? '' : 'msg err'}" style="min-height:0;margin:0">${p.supplier_cost_usd > 0 ? usd.format(p.supplier_cost_usd) : 'Unknown'}</dd></div>
+      <div><dt>Retail price</dt><dd class="${Number(p.retail_price_eur) > 0 ? '' : 'msg err'}" style="min-height:0;margin:0">${eur.format(p.retail_price_eur || 0)}</dd></div>
       <div><dt>Stock / photos</dt><dd>${esc(p.stock ?? 0)} / ${esc(p.image_count ?? 0)}</dd></div>
     </dl>
     <div class="catalog-actions">
@@ -957,7 +979,16 @@ async function saveProduct(event) {
 
 const catalogActions = {
   publish: { success: 'Product published.' },
-  refresh: { success: 'CJ product data refreshed.', confirm: 'Refresh from CJ? This can replace the supplier cost, stock and photos.' },
+  refresh: {
+    success: 'CJ product data refreshed.',
+    confirm: 'Refresh from CJ? This can replace the supplier cost, stock and photos.',
+    formatSuccess(r){
+      const cost=Number(r.supplier_cost_usd||0);
+      const retail=Number(r.retail_price_eur||0);
+      if(!(cost>0)) return 'CJ refreshed photos/stock, but supplier cost is still missing.';
+      return 'CJ refreshed · cost $'+cost.toFixed(2)+(retail>0?' · retail €'+retail.toFixed(2):'');
+    },
+  },
   unpublish: { success: 'Product moved to Draft Products.', confirm: 'Move this product to Draft Products and remove it from the storefront?' },
   delete: { success: 'Product deleted.', confirm: 'Permanently delete this product?' },
 };
@@ -984,7 +1015,8 @@ for (const { list, message } of Object.values(catalogPanels)) {
         msg(message, r.error || 'Product action failed.', true);
         return;
       }
-      msg(message, operation.success);
+      const successText = typeof operation.formatSuccess === 'function' ? operation.formatSuccess(r) : operation.success;
+      msg(message, successText, action === 'refresh' && !(Number(r.supplier_cost_usd) > 0));
       await loadCatalog();
     } catch (error) {
       msg(message, error.message || 'Product action failed.', true);

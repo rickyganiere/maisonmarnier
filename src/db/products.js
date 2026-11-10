@@ -14,7 +14,7 @@ import {
   suggestedCompareEur,
   suggestedRetailEur,
 } from '../lib/merch.js';
-import { collectCjProducts, refreshProductFromCJ } from '../cj.js';
+import { collectCjProducts, lookupCjCostUsd, refreshProductFromCJ } from '../cj.js';
 import {
   exampleExternalProducts,
   normalizeSupplierCode,
@@ -101,7 +101,8 @@ async function prepareCjDraft(env, p, { enrich = false } = {}) {
   let skuRaw = String(p.sku || '');
   let image = safeUrl(p.image || images[0] || '', '');
 
-  // Finder imports use the data already returned by search. Legacy single imports can fill missing data from CJ.
+  // ListV2 often omits prices or returns ranges like "1.20-3.50".
+  // Full enrich when asked; otherwise only resolve missing cost via a light CJ lookup.
   if (enrich) {
     try {
       const fresh = await refreshProductFromCJ(env, p.id);
@@ -116,6 +117,13 @@ async function prepareCjDraft(env, p, { enrich = false } = {}) {
       }
     } catch {
       /* keep payload images if detail fetch fails */
+    }
+  } else if (!(cost > 0)) {
+    try {
+      const lookedUp = await lookupCjCostUsd(env, p.id);
+      if (lookedUp > 0) cost = lookedUp;
+    } catch {
+      /* leave cost at 0 if CJ detail is unavailable */
     }
   }
 
@@ -162,7 +170,16 @@ async function prepareCjDraft(env, p, { enrich = false } = {}) {
 
   return {
     statement,
-    draft: { lumeSku: sku, status: 'draft', name, category, slug, imageCount: images.length },
+    draft: {
+      lumeSku: sku,
+      status: 'draft',
+      name,
+      category,
+      slug,
+      imageCount: images.length,
+      costUSD: cost,
+      retailPriceEUR: retail,
+    },
   };
 }
 
@@ -210,10 +227,27 @@ export async function importLumeProductsBulk(request, env) {
     const imported = [];
     const skipped = [];
     const pending = [];
+    let enriched = 0;
+    let missingCost = 0;
     for (const p of candidates.slice(0, 100)) {
       try {
+        // Space out detail lookups when list rows omit cost (CJ rate limits ~1 rps).
+        const needsEnrich = !(Number(p.costUSD) > 0);
+        if (needsEnrich && enriched > 0) {
+          await new Promise((resolve) => setTimeout(resolve, 1100));
+        }
         const { statement, draft } = await prepareCjDraft(env, p);
-        pending.push({ statement, item: { id: p.id, lumeSku: draft.lumeSku, imageCount: draft.imageCount } });
+        if (needsEnrich) enriched += 1;
+        if (!(Number(draft.costUSD) > 0)) missingCost += 1;
+        pending.push({
+          statement,
+          item: {
+            id: p.id,
+            lumeSku: draft.lumeSku,
+            imageCount: draft.imageCount,
+            costUSD: draft.costUSD,
+          },
+        });
       } catch (e) {
         skipped.push({ id: p?.id, error: e.message || 'Import failed' });
       }
@@ -231,6 +265,8 @@ export async function importLumeProductsBulk(request, env) {
       imported: imported.length,
       skipped: skipped.length + alreadyImported,
       alreadyImported,
+      enriched,
+      missingCost,
       items: imported,
       errors: skipped.slice(0, 12),
     });
@@ -446,7 +482,7 @@ export async function refreshLumeProduct(request, env) {
     const id = Number(p.id);
     if (!id) return json({ ok: false, error: 'Missing product id' }, 400);
     const row = await env.LUME_DB.prepare(
-      'SELECT id,supplier,supplier_product_id FROM products WHERE id=?',
+      'SELECT id,supplier,supplier_product_id,supplier_cost_usd,retail_price_eur,compare_at_price_eur FROM products WHERE id=?',
     )
       .bind(id)
       .first();
@@ -456,15 +492,25 @@ export async function refreshLumeProduct(request, env) {
     }
     const fresh = await refreshProductFromCJ(env, row.supplier_product_id);
     const gallery = serializeImageUrls(fresh.images || []);
+    const nextCost =
+      fresh.costUSD > 0 ? Number(fresh.costUSD) : Number(row.supplier_cost_usd || 0) || 0;
+    let nextRetail = Number(row.retail_price_eur || 0) || 0;
+    let nextCompare = row.compare_at_price_eur == null ? null : Number(row.compare_at_price_eur);
+    if (!(nextRetail > 0) && nextCost > 0) {
+      nextRetail = suggestedRetailEur(nextCost);
+      nextCompare = suggestedCompareEur(nextRetail);
+    }
     await env.LUME_DB.prepare(
-      `UPDATE products SET supplier_cost_usd=?,stock=?,delivery_days=?,
+      `UPDATE products SET supplier_cost_usd=?,retail_price_eur=?,compare_at_price_eur=?,stock=?,delivery_days=?,
        image_url=CASE WHEN ?!='' THEN ? ELSE image_url END,
        image_urls=CASE WHEN ? IS NOT NULL THEN ? ELSE image_urls END,
        supplier_sku=CASE WHEN ?!='' THEN ? ELSE supplier_sku END,
        updated_at=CURRENT_TIMESTAMP WHERE id=?`,
     )
       .bind(
-        fresh.costUSD,
+        nextCost,
+        nextRetail,
+        nextCompare,
         fresh.stock,
         fresh.deliveryDays,
         fresh.image,
@@ -479,13 +525,88 @@ export async function refreshLumeProduct(request, env) {
     return json({
       ok: true,
       id,
-      supplier_cost_usd: fresh.costUSD,
+      supplier_cost_usd: nextCost,
+      retail_price_eur: nextRetail,
+      compare_at_price_eur: nextCompare,
       stock: fresh.stock,
       delivery_days: fresh.deliveryDays,
       images: fresh.images || [],
     });
   } catch (e) {
     return json({ ok: false, error: e.message || 'Refresh failed' }, 502);
+  }
+}
+
+/**
+ * Backfill supplier cost (+ suggested retail when retail is 0) for CJ drafts
+ * that were imported from list rows without usable prices.
+ */
+export async function refreshMissingCjCosts(request, env) {
+  try {
+    const body = await request.json().catch(() => ({}));
+    const limit = Math.max(1, Math.min(40, Number(body?.limit || 25) || 25));
+    const rows = (
+      await env.LUME_DB.prepare(
+        `SELECT id,supplier_product_id,supplier_cost_usd,retail_price_eur,compare_at_price_eur
+         FROM products
+         WHERE status='draft' AND supplier='CJ' AND supplier_product_id IS NOT NULL
+           AND IFNULL(supplier_cost_usd,0) <= 0
+         ORDER BY id DESC
+         LIMIT ?`,
+      )
+        .bind(limit)
+        .all()
+    ).results || [];
+
+    let updated = 0;
+    let stillMissing = 0;
+    const errors = [];
+    for (const [index, row] of rows.entries()) {
+      if (index > 0) await new Promise((resolve) => setTimeout(resolve, 1100));
+      try {
+        let cost = await lookupCjCostUsd(env, row.supplier_product_id);
+        if (!(cost > 0)) {
+          const fresh = await refreshProductFromCJ(env, row.supplier_product_id);
+          cost = Number(fresh?.costUSD || 0) || 0;
+        }
+        if (!(cost > 0)) {
+          stillMissing += 1;
+          continue;
+        }
+        let retail = Number(row.retail_price_eur || 0) || 0;
+        let compare = row.compare_at_price_eur == null ? null : Number(row.compare_at_price_eur);
+        if (!(retail > 0)) {
+          retail = suggestedRetailEur(cost);
+          compare = suggestedCompareEur(retail);
+        }
+        await env.LUME_DB.prepare(
+          `UPDATE products SET supplier_cost_usd=?,retail_price_eur=?,compare_at_price_eur=?,
+           updated_at=CURRENT_TIMESTAMP WHERE id=?`,
+        )
+          .bind(cost, retail, compare, row.id)
+          .run();
+        updated += 1;
+      } catch (e) {
+        stillMissing += 1;
+        errors.push({ id: row.id, error: e.message || 'Refresh failed' });
+      }
+    }
+
+    const remaining = await env.LUME_DB.prepare(
+      `SELECT COUNT(*) AS n FROM products
+       WHERE status='draft' AND supplier='CJ' AND IFNULL(supplier_cost_usd,0) <= 0`,
+    ).first();
+
+    return json({
+      ok: true,
+      scanned: rows.length,
+      updated,
+      stillMissing,
+      remaining: Number(remaining?.n || 0) || 0,
+      errors: errors.slice(0, 12),
+    });
+  } catch (e) {
+    return json({ ok: false, error: e.message || 'Cost refresh failed' }, 500);
   }
 }
 

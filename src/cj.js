@@ -47,13 +47,21 @@ function mergeCjPayloads(...parts) {
   const variants = [];
   for (const part of parts) {
     if (!part || typeof part !== 'object') continue;
-    Object.assign(base, part);
-    imageBag.push(...extractCjImages(part, { max: 24 }));
-    if (Array.isArray(part.variants)) variants.push(...part.variants);
-    if (Array.isArray(part.stanProducts)) variants.push(...part.stanProducts);
+    const normalized = normalizeCjProductShape(part);
+    Object.assign(base, normalized);
+    imageBag.push(...extractCjImages(normalized, { max: 24 }));
+    if (Array.isArray(normalized.variants)) variants.push(...normalized.variants);
+    if (Array.isArray(normalized.stanProducts)) variants.push(...normalized.stanProducts);
   }
-  if (variants.length) base.variants = variants;
+  if (variants.length) base.variants = variants.map(normalizeCjProductShape);
   if (imageBag.length) base.productImageSet = [...new Set(imageBag)];
+  // Prefer any positive cost found across parts; Object.assign can keep null list prices.
+  const costs = parts.map((p) => extractCjCostUsd(normalizeCjProductShape(p))).filter((n) => n > 0);
+  if (costs.length) {
+    const best = Math.min(...costs);
+    base.sellPrice = best;
+    base.nowPrice = best;
+  }
   return base;
 }
 
@@ -93,8 +101,91 @@ export async function cjStatus(env) {
   }
 }
 
+/**
+ * CJ list/detail payloads mix number prices, string prices, and ranges like "1.20-3.50".
+ * Prefer the lowest positive value so drafts never store NaN / blank cost.
+ */
+export function parseCjPrice(raw) {
+  if (raw == null || raw === '') return 0;
+  if (typeof raw === 'number') return Number.isFinite(raw) && raw > 0 ? raw : 0;
+  const text = String(raw).trim();
+  if (!text) return 0;
+  const direct = Number(text);
+  if (Number.isFinite(direct) && direct > 0) return direct;
+  const parts = text
+    .split(/[~–—\-to]+/i)
+    .map((p) => Number(String(p).replace(/[^0-9.]/g, '')))
+    .filter((n) => Number.isFinite(n) && n > 0);
+  if (!parts.length) return 0;
+  return Math.min(...parts);
+}
+
+function cjPriceCandidatesFromObject(x) {
+  if (!x || typeof x !== 'object') return [];
+  return [
+    x.nowPrice,
+    x.discountPrice,
+    x.sellPrice,
+    x.sellprice, // productDetail/query uses this exact lowercase key
+    x.price,
+    x.productSellPrice,
+    x.unsoldPrice,
+    x.selfPickupPrice,
+    x.variantSellPrice,
+    x.variantSugSellPrice,
+    x.wholesalePrice?.cjWholesalePrice,
+    x.wholesalePrice?.directWholesalePrice,
+  ];
+}
+
+/** Best-effort supplier cost from a CJ list/detail/variant payload. */
+export function extractCjCostUsd(x) {
+  if (!x || typeof x !== 'object') return 0;
+  for (const c of cjPriceCandidatesFromObject(x)) {
+    const n = parseCjPrice(c);
+    if (n > 0) return n;
+  }
+  const variants = [
+    ...(Array.isArray(x.variants) ? x.variants : []),
+    ...(Array.isArray(x.stanProducts) ? x.stanProducts : []),
+    ...(Array.isArray(x.variantList) ? x.variantList : []),
+  ];
+  let best = 0;
+  for (const v of variants) {
+    for (const c of cjPriceCandidatesFromObject(v)) {
+      const n = parseCjPrice(c);
+      if (n > 0 && (!best || n < best)) best = n;
+    }
+  }
+  return best;
+}
+
+/** Normalize CJ detail quirks (sellprice/bigimg/…) onto listV2-style keys. */
+function normalizeCjProductShape(x) {
+  if (!x || typeof x !== 'object') return x;
+  const out = { ...x };
+  if (out.sellPrice == null && out.sellprice != null) out.sellPrice = out.sellprice;
+  if (out.nowPrice == null && out.discountPrice != null) out.nowPrice = out.discountPrice;
+  if (!out.nameEn && out.nameen) out.nameEn = out.nameen;
+  if (!out.productNameEn && out.nameEn) out.productNameEn = out.nameEn;
+  if (!out.bigImage && out.bigimg) out.bigImage = out.bigimg;
+  if (!out.sku && out.productSku) out.sku = out.productSku;
+  if (Array.isArray(out.stanProducts)) {
+    out.stanProducts = out.stanProducts.map((v) => {
+      if (!v || typeof v !== 'object') return v;
+      const nv = { ...v };
+      if (nv.sellPrice == null && nv.sellprice != null) nv.sellPrice = nv.sellprice;
+      if (nv.variantSellPrice == null && nv.sellPrice != null) nv.variantSellPrice = nv.sellPrice;
+      if (!nv.variantImage && nv.img) nv.variantImage = nv.img;
+      return nv;
+    });
+  }
+  return out;
+}
+
 function mapCjListItem(x) {
   const images = extractCjImages(x, { max: 16 });
+  const costUSD = extractCjCostUsd(x);
   return {
     id: x.id || x.pid,
     name: x.nameEn || x.productNameEn || '',
@@ -102,7 +193,7 @@ function mapCjListItem(x) {
     image: images[0] || x.bigImage || x.productImage || '',
     images,
     imageCount: images.length,
-    costUSD: x.nowPrice || x.sellPrice,
+    costUSD,
     stock: x.warehouseInventoryNum ?? x.totalVerifiedInventory,
     verifiedStock: x.totalVerifiedInventory,
     deliveryDays: x.deliveryCycle,
@@ -111,7 +202,7 @@ function mapCjListItem(x) {
     listedNum: x.listedNum != null ? Number(x.listedNum) || 0 : null,
     freeShipping: x.addMarkStatus === 1,
     supplier: x.supplierName || 'CJ',
-    suggestedRetailEUR: suggestedRetailEur(x.nowPrice || x.sellPrice),
+    suggestedRetailEUR: suggestedRetailEur(costUSD),
   };
 }
 
@@ -509,12 +600,59 @@ export async function fetchCjProduct(env, supplierProductId) {
   return mergeCjPayloads(...parts);
 }
 
+/** Lightweight cost/stock lookup when listV2 rows omit a usable price. */
+export async function lookupCjCostUsd(env, supplierProductId) {
+  const token = await getCJToken(env);
+  const pid = String(supplierProductId || '');
+  if (!pid) return 0;
+  const headers = { 'CJ-Access-Token': token, accept: 'application/json' };
+  const parts = [];
+
+  try {
+    const rDetail = await fetch(
+      'https://developers.cjdropshipping.com/api2.0/v1/product/productDetail/query',
+      {
+        method: 'POST',
+        headers: { ...headers, 'content-type': 'application/json' },
+        body: JSON.stringify({ id: pid }),
+      },
+    );
+    const dDetail = await rDetail.json().catch(() => ({}));
+    if (rDetail.ok && dDetail.code === 200 && dDetail.data) parts.push(dDetail.data);
+  } catch {
+    /* optional */
+  }
+
+  let cost = extractCjCostUsd(mergeCjPayloads(...parts));
+  if (cost > 0) return cost;
+
+  try {
+    const qv = new URLSearchParams({ pid });
+    const rv = await fetch(
+      'https://developers.cjdropshipping.com/api2.0/v1/product/variant/query?' + qv.toString(),
+      { headers },
+    );
+    const dv = await rv.json().catch(() => ({}));
+    if (rv.ok && dv.code === 200 && dv.data) {
+      const list = Array.isArray(dv.data)
+        ? dv.data
+        : Array.isArray(dv.data.variants)
+          ? dv.data.variants
+          : [dv.data];
+      cost = extractCjCostUsd({ variants: list });
+    }
+  } catch {
+    /* optional */
+  }
+  return cost;
+}
+
 /** Refresh stock/cost/images for a draft from CJ by supplier product id. */
 export async function refreshProductFromCJ(env, supplierProductId) {
   const match = await fetchCjProduct(env, supplierProductId);
   const images = extractCjImages(match);
   return {
-    costUSD: Number(match.nowPrice || match.sellPrice || 0) || 0,
+    costUSD: extractCjCostUsd(match),
     stock: Number(match.warehouseInventoryNum || match.totalVerifiedInventory || 0) || 0,
     deliveryDays: String(match.deliveryCycle || ''),
     image: images[0] || match.bigImage || match.productImage || '',
