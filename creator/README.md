@@ -42,6 +42,7 @@ Point Stripe webhook to `https://<your-domain>/api/stripe/webhook`.
 | `content/prompts/` | Avatar / scene prompt packs |
 | `content/calendar-30-day.md` | First 30 days |
 | `content/sops/` | Upload + account setup checklists |
+| `content/production/` | Batch-01 keyframes, shot lists, captions |
 
 ## Disclosure
 
