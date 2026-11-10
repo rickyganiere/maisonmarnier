@@ -6,7 +6,7 @@ const IG_URL = 'https://www.instagram.com/maison.marnier/';
 const PAGE_CSS = `
 .ig-hub{max-width:420px;margin:0 auto;padding:28px 0 48px;text-align:center}
 .ig-hero{padding:12px 0 28px}
-.ig-hero .brand-lockup{justify-content:center;margin-bottom:18px}
+.ig-hero .brand-mark-img{margin:0 auto 18px}
 .ig-hero h1{margin:0;font:900 clamp(1.55rem,4.2vw,1.9rem)/1.05 var(--font);letter-spacing:-.035em;color:#fff}
 .ig-hero p{margin:12px auto 0;max-width:32ch;color:var(--muted);font:500 14px/1.5 var(--font)}
 .ig-links{display:grid;gap:10px;margin:0;padding:0;list-style:none}

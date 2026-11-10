@@ -1,5 +1,7 @@
 /** Site-wide SEO helpers for Maison Marnier (apex host). */
 
+import { BRAND_ICON_PATH } from './brandAsset.js';
+
 export const SITE_ORIGIN = 'https://maisonmarnier.com';
 
 export const DEFAULT_OG_IMAGE =
@@ -46,7 +48,7 @@ export function organizationWebsiteJsonLd() {
         '@id': `${SITE_ORIGIN}/#organization`,
         name: 'Maison Marnier',
         url: SITE_ORIGIN,
-        logo: DEFAULT_OG_IMAGE,
+        logo: absoluteUrl(BRAND_ICON_PATH),
         email: 'hello@maisonmarnier.com',
         areaServed: 'EU',
         sameAs: ['https://www.instagram.com/maison.marnier/'],

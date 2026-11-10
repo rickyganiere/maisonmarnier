@@ -459,6 +459,16 @@ export async function getLiveProducts(env, limit = 100) {
     .map(withGalleryMeta);
 }
 
+export async function getLiveProductsBySlugs(env, slugs) {
+  const { results = [] } = await env.LUME_DB.prepare(
+    `SELECT id,name,slug,image_url,image_urls,retail_price_eur,compare_at_price_eur,category,description,stock,published_at
+     FROM products WHERE status='live' AND slug IN (${slugs.map(() => '?').join(',')})`,
+  ).bind(...slugs).all();
+  const bySlug = new Map(results.filter((p) => isStorefrontListable(p, { minPhotos: 2 }))
+    .map((p) => [p.slug, withGalleryMeta(p)]));
+  return slugs.map((slug) => bySlug.get(slug)).filter(Boolean);
+}
+
 export async function getLiveProductBySlug(env, slug) {
   const row = await env.LUME_DB.prepare(
     `SELECT id,name,slug,image_url,image_urls,retail_price_eur,compare_at_price_eur,category,description,stock,published_at
