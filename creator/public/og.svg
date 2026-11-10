@@ -1,0 +1,15 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1200" height="630" viewBox="0 0 1200 630" role="img" aria-label="June Signal">
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0%" stop-color="#0c1210"/>
+      <stop offset="55%" stop-color="#14201b"/>
+      <stop offset="100%" stop-color="#0a1512"/>
+    </linearGradient>
+  </defs>
+  <rect width="1200" height="630" fill="url(#bg)"/>
+  <circle cx="980" cy="140" r="180" fill="#2fe0a5" fill-opacity="0.16"/>
+  <circle cx="160" cy="520" r="160" fill="#f0b429" fill-opacity="0.12"/>
+  <text x="72" y="250" fill="#f2f5f1" font-family="Georgia, serif" font-size="96" font-weight="700">June Signal</text>
+  <text x="72" y="330" fill="#a7b5ad" font-family="Arial, sans-serif" font-size="36">AI character · tech comedy · not a real person</text>
+  <rect x="72" y="390" width="220" height="10" rx="5" fill="#2fe0a5"/>
+</svg>

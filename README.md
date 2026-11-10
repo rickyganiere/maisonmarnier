@@ -2,6 +2,10 @@
 
 Cloudflare Worker `lume-living-dev` serving [maisonmarnier.com](https://maisonmarnier.com).
 
+## June Signal (separate brand)
+
+Disclosed AI creator brand site + content ops live in [`creator/`](creator/) and deploy as Worker `june-signal` (not the storefront). See [`creator/README.md`](creator/README.md).
+
 Deploy is automatic via **Cloudflare Workers Builds** on every push to `main`. Set the Workers Builds **Deploy command** to `npm run deploy` so pending D1 migrations apply before the Worker ships. Do not use GitHub Actions for deploy.
 
 `wrangler deploy` alone does **not** apply D1 migrations. Account features (for example `/cuenta/registro`) fail with `no such table: customers` if a migration lands in git without a remote apply.

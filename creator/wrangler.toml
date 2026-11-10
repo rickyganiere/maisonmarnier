@@ -1,0 +1,28 @@
+name = "june-signal"
+main = "src/worker.js"
+compatibility_date = "2026-10-29"
+
+# Attach a custom domain in Cloudflare when ready, e.g.:
+# routes = [
+#   { pattern = "junesignal.com", custom_domain = true },
+#   { pattern = "www.junesignal.com", custom_domain = true }
+# ]
+
+[assets]
+directory = "./public"
+binding = "ASSETS"
+
+[vars]
+SITE_NAME = "June Signal"
+SITE_URL = "https://junesignal.example"
+OFFER_PRICE_CENTS = "1900"
+OFFER_CURRENCY = "usd"
+OFFER_NAME = "June Signal Shorts Script Pack"
+
+[observability]
+enabled = true
+
+# Secrets (set via `wrangler secret put`, never commit):
+#   STRIPE_SECRET_KEY
+#   STRIPE_WEBHOOK_SECRET
+# Optional plain vars: STRIPE_PRICE_ID (preferred over ad-hoc price_data)
