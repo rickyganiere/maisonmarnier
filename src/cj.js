@@ -108,9 +108,125 @@ function mapCjListItem(x) {
     deliveryDays: x.deliveryCycle,
     category: x.threeCategoryName || x.twoCategoryName || x.oneCategoryName || null,
     categoryId: x.categoryId || null,
+    listedNum: x.listedNum != null ? Number(x.listedNum) || 0 : null,
     freeShipping: x.addMarkStatus === 1,
     supplier: x.supplierName || 'CJ',
     suggestedRetailEUR: suggestedRetailEur(x.nowPrice || x.sellPrice),
+  };
+}
+
+function parseOptionalInt(value, { min = null, max = null } = {}) {
+  if (value == null || value === '') return null;
+  const n = Number.parseInt(String(value), 10);
+  if (!Number.isFinite(n)) return null;
+  if (min != null && n < min) return null;
+  if (max != null && n > max) return null;
+  return n;
+}
+
+function normalizeCjSearchFilters({
+  q = '',
+  page = 1,
+  size = 24,
+  categoryId = '',
+  productFlag = null,
+  orderBy = null,
+  sort = '',
+  freeShipping = null,
+  countryCode = '',
+  startSellPrice = '',
+  endSellPrice = '',
+} = {}) {
+  const category = String(categoryId || '').trim().slice(0, 80);
+  const flag = parseOptionalInt(productFlag, { min: 0, max: 3 });
+  const rawQ = String(q || '').trim().slice(0, 100);
+  // Allow empty keyword when browsing a category / trending shelf.
+  const query = rawQ || (category || flag != null ? '' : 'home decor');
+  const pageNum = Math.max(1, Math.min(1000, Number(page) || 1));
+  const pageSize = Math.max(1, Math.min(100, Number(size) || 24));
+  const order = parseOptionalInt(orderBy, { min: 0, max: 4 });
+  const sortDir = String(sort || '').toLowerCase() === 'asc' ? 'asc' : String(sort || '').toLowerCase() === 'desc' ? 'desc' : '';
+  const ship = parseOptionalInt(freeShipping, { min: 0, max: 1 });
+  const country = String(countryCode || '').trim().toUpperCase().slice(0, 8);
+  const minPrice = String(startSellPrice || '').trim();
+  const maxPrice = String(endSellPrice || '').trim();
+  return {
+    query,
+    page: pageNum,
+    size: pageSize,
+    categoryId: category,
+    productFlag: flag,
+    orderBy: order,
+    sort: sortDir,
+    freeShipping: ship,
+    countryCode: country,
+    startSellPrice: minPrice,
+    endSellPrice: maxPrice,
+  };
+}
+
+async function fetchCjListV2(env, filters) {
+  const f = normalizeCjSearchFilters(filters);
+  const token = await getCJToken(env);
+  const p = new URLSearchParams({
+    page: String(f.page),
+    size: String(f.size),
+  });
+  if (f.query) p.set('keyWord', f.query);
+  if (f.categoryId) p.set('categoryId', f.categoryId);
+  if (f.productFlag != null) p.set('productFlag', String(f.productFlag));
+  if (f.orderBy != null) p.set('orderBy', String(f.orderBy));
+  if (f.sort) p.set('sort', f.sort);
+  if (f.freeShipping != null) p.set('addMarkStatus', String(f.freeShipping));
+  if (f.countryCode) p.set('countryCode', f.countryCode);
+  if (f.startSellPrice) p.set('startSellPrice', f.startSellPrice);
+  if (f.endSellPrice) p.set('endSellPrice', f.endSellPrice);
+  p.append('features', 'enable_category');
+
+  const endpoint = 'https://developers.cjdropshipping.com/api2.0/v1/product/listV2?' + p.toString();
+  const options = { headers: { 'CJ-Access-Token': token, accept: 'application/json' } };
+  let r = await fetch(endpoint, options);
+  let d = await r.json().catch(() => ({}));
+  if (r.status === 429 || d.code === 1600200) {
+    await new Promise((resolve) => setTimeout(resolve, 1100));
+    r = await fetch(endpoint, options);
+    d = await r.json().catch(() => ({}));
+  }
+  if (!r.ok || d.code !== 200) {
+    const err = new Error(d.message || `CJ product search failed (HTTP ${r.status})`);
+    err.code = d.code || r.status;
+    throw err;
+  }
+
+  const groups = Array.isArray(d.data?.content) ? d.data.content : [];
+  const batch = groups.flatMap((g) => (Array.isArray(g.productList) ? g.productList : []));
+  const related = [];
+  const seenCat = new Set();
+  for (const g of groups) {
+    const list = Array.isArray(g?.relatedCategoryList) ? g.relatedCategoryList : [];
+    for (const c of list) {
+      const id = String(c?.categoryId || '').trim();
+      const name = String(c?.categoryName || '').trim();
+      if (!id || !name || seenCat.has(id)) continue;
+      seenCat.add(id);
+      related.push({ id, name });
+    }
+  }
+
+  const totalRecords = Number(d.data?.totalRecords || 0) || 0;
+  const totalPages = Math.max(
+    1,
+    Number(d.data?.totalPages) || Math.ceil(totalRecords / f.size) || 1,
+  );
+
+  return {
+    ...f,
+    products: batch,
+    relatedCategories: related,
+    totalRecords,
+    totalPages,
+    pageNumber: Number(d.data?.pageNumber) || f.page,
+    pageSize: Number(d.data?.pageSize) || f.size,
   };
 }
 
@@ -121,40 +237,42 @@ export async function collectCjProducts(env, {
   q = 'home decor',
   limit = 24,
   startPage = 1,
+  categoryId = '',
+  productFlag = null,
+  orderBy = null,
+  sort = '',
+  freeShipping = null,
+  countryCode = '',
 } = {}) {
-  const query = String(q || 'home decor').trim().slice(0, 100) || 'home decor';
   const want = Math.max(1, Math.min(100, Number(limit) || 24));
-  const token = await getCJToken(env);
   const products = [];
   const seen = new Set();
   let page = Math.max(1, Number(startPage) || 1);
   let scanned = 0;
   let totalRecords = 0;
+  let totalPages = 1;
+  let query = '';
+  let relatedCategories = [];
 
-  for (let i = 0; i < 3 && products.length < want; i += 1) {
-    const p = new URLSearchParams({
-      page: String(page),
-      size: String(want),
-      keyWord: query,
+  for (let i = 0; i < 5 && products.length < want; i += 1) {
+    const pageResult = await fetchCjListV2(env, {
+      q,
+      page,
+      size: Math.min(100, Math.max(want - products.length, 20)),
+      categoryId,
+      productFlag,
+      orderBy,
+      sort,
+      freeShipping,
+      countryCode,
     });
-    p.append('features', 'enable_category');
-    const endpoint = 'https://developers.cjdropshipping.com/api2.0/v1/product/listV2?' + p.toString();
-    const options = { headers: { 'CJ-Access-Token': token, accept: 'application/json' } };
-    let r = await fetch(endpoint, options);
-    let d = await r.json().catch(() => ({}));
-    if (r.status === 429 || d.code === 1600200) {
-      await new Promise(resolve => setTimeout(resolve, 1100));
-      r = await fetch(endpoint, options);
-      d = await r.json().catch(() => ({}));
+    query = pageResult.query;
+    totalRecords = pageResult.totalRecords || totalRecords;
+    totalPages = pageResult.totalPages || totalPages;
+    if (pageResult.relatedCategories?.length && !relatedCategories.length) {
+      relatedCategories = pageResult.relatedCategories;
     }
-    if (!r.ok || d.code !== 200) {
-      const err = new Error(d.message || `CJ product search failed (HTTP ${r.status})`);
-      err.code = d.code || r.status;
-      throw err;
-    }
-    totalRecords = Number(d.data?.totalRecords || totalRecords) || totalRecords;
-    const groups = Array.isArray(d.data?.content) ? d.data.content : [];
-    const batch = groups.flatMap((g) => (Array.isArray(g.productList) ? g.productList : []));
+    const batch = pageResult.products || [];
     if (!batch.length) break;
     scanned += batch.length;
     for (const raw of batch) {
@@ -166,39 +284,146 @@ export async function collectCjProducts(env, {
       if (!mapped.name) continue;
       products.push(mapped);
     }
-    if (batch.length < want || page >= Number(d.data?.totalPages)) break;
+    if (page >= totalPages) break;
     page += 1;
-    if (products.length < want && i < 2) await new Promise(resolve => setTimeout(resolve, 1100));
+    if (products.length < want && i < 4) await new Promise((resolve) => setTimeout(resolve, 1100));
   }
 
   return {
     query,
     limit: want,
-    page,
+    page: Math.max(1, Number(startPage) || 1),
     scanned,
     totalRecords,
+    totalPages,
+    relatedCategories,
+    categoryId: String(categoryId || '').trim(),
+    productFlag: parseOptionalInt(productFlag, { min: 0, max: 3 }),
     products,
   };
 }
 
-export async function cjSearch(url, env) {
+function flattenCjCategories(tree) {
+  const out = [];
+  const roots = Array.isArray(tree) ? tree : [];
+  for (const first of roots) {
+    const firstName = String(first?.categoryFirstName || '').trim();
+    const seconds = Array.isArray(first?.categoryFirstList) ? first.categoryFirstList : [];
+    for (const second of seconds) {
+      const secondName = String(second?.categorySecondName || '').trim();
+      const thirds = Array.isArray(second?.categorySecondList) ? second.categorySecondList : [];
+      for (const third of thirds) {
+        const id = String(third?.categoryId || '').trim();
+        const name = String(third?.categoryName || '').trim();
+        if (!id || !name) continue;
+        out.push({
+          id,
+          name,
+          path: [firstName, secondName, name].filter(Boolean).join(' / '),
+          first: firstName,
+          second: secondName,
+        });
+      }
+    }
+  }
+  out.sort((a, b) => a.path.localeCompare(b.path));
+  return out;
+}
+
+/** Prefer home/lifestyle trees in the admin picker, keep the rest searchable. */
+const PRIORITY_CATEGORY_FIRST = [
+  'home',
+  'garden',
+  'furniture',
+  'household',
+  'kitchen',
+  'lighting',
+  'decor',
+  'candle',
+  'festive',
+  'holiday',
+  'christmas',
+  'wedding',
+  'party',
+];
+
+export async function cjCategories(env) {
   try {
-    const q = (url.searchParams.get('q') || 'home decor').trim().slice(0, 100);
-    const size = Math.max(1, Math.min(100, parseInt(url.searchParams.get('size') || '24', 10) || 24));
-    const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10) || 1);
-    const collected = await collectCjProducts(env, {
-      q,
-      limit: size,
-      startPage: page,
+    const token = await getCJToken(env);
+    const r = await fetch('https://developers.cjdropshipping.com/api2.0/v1/product/getCategory', {
+      headers: { 'CJ-Access-Token': token, accept: 'application/json' },
+    });
+    const d = await r.json().catch(() => ({}));
+    if (!r.ok || d.code !== 200) {
+      return json(
+        { ok: false, error: d.message || `CJ categories failed (HTTP ${r.status})`, code: d.code || r.status },
+        502,
+      );
+    }
+    const categories = flattenCjCategories(d.data);
+    const featured = categories.filter((c) => {
+      const blob = `${c.first} ${c.second} ${c.name}`.toLowerCase();
+      return PRIORITY_CATEGORY_FIRST.some((k) => blob.includes(k));
     });
     return json({
       ok: true,
-      query: collected.query,
-      page,
-      size,
-      scanned: collected.scanned,
-      total: collected.totalRecords || collected.products.length,
-      products: collected.products,
+      total: categories.length,
+      featured: featured.slice(0, 120),
+      categories,
+    });
+  } catch (e) {
+    return json(
+      {
+        ok: false,
+        error: e && e.message ? e.message : 'CJ categories error',
+        code: e?.code,
+      },
+      502,
+    );
+  }
+}
+
+export async function cjSearch(url, env) {
+  try {
+    const filters = {
+      q: url.searchParams.get('q') || '',
+      size: url.searchParams.get('size') || '24',
+      page: url.searchParams.get('page') || '1',
+      categoryId: url.searchParams.get('categoryId') || '',
+      productFlag: url.searchParams.get('productFlag'),
+      orderBy: url.searchParams.get('orderBy'),
+      sort: url.searchParams.get('sort') || '',
+      freeShipping: url.searchParams.get('freeShipping'),
+      countryCode: url.searchParams.get('countryCode') || '',
+      startSellPrice: url.searchParams.get('startSellPrice') || '',
+      endSellPrice: url.searchParams.get('endSellPrice') || '',
+    };
+    const pageResult = await fetchCjListV2(env, filters);
+    const products = [];
+    const seen = new Set();
+    for (const raw of pageResult.products || []) {
+      const mapped = mapCjListItem(raw);
+      const id = String(mapped.id || '');
+      if (!id || seen.has(id) || !mapped.name) continue;
+      seen.add(id);
+      products.push(mapped);
+    }
+    return json({
+      ok: true,
+      query: pageResult.query,
+      page: pageResult.page,
+      size: pageResult.size,
+      total: pageResult.totalRecords || products.length,
+      totalPages: pageResult.totalPages,
+      categoryId: pageResult.categoryId || null,
+      productFlag: pageResult.productFlag,
+      orderBy: pageResult.orderBy,
+      sort: pageResult.sort || null,
+      freeShipping: pageResult.freeShipping,
+      countryCode: pageResult.countryCode || null,
+      relatedCategories: pageResult.relatedCategories || [],
+      scanned: products.length,
+      products,
       shippingCountryChecked: false,
       note: 'Products can be imported as drafts with any number of supplier photos.',
     });

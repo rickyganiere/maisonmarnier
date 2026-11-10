@@ -193,8 +193,17 @@ export async function importLumeProductsBulk(request, env) {
     }
     if (!Array.isArray(body?.products)) {
       const limit = Math.max(1, Math.min(100, Number(body?.limit || 50) || 50));
-      const q = String(body?.q || body?.query || 'home decor').trim().slice(0, 100);
-      const collected = await collectCjProducts(env, { q, limit });
+      const q = String(body?.q || body?.query || '').trim().slice(0, 100);
+      const collected = await collectCjProducts(env, {
+        q,
+        limit,
+        categoryId: body?.categoryId || '',
+        productFlag: body?.productFlag,
+        orderBy: body?.orderBy,
+        sort: body?.sort || '',
+        freeShipping: body?.freeShipping,
+        countryCode: body?.countryCode || '',
+      });
       candidates = collected.products;
     }
 
