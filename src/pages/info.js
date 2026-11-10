@@ -1,6 +1,6 @@
 import { esc } from '../lib/escape.js';
 import { htmlPage } from '../lib/html.js';
-import { getLang, t } from '../lib/i18n.js';
+import { getLang, langHref, t } from '../lib/i18n.js';
 
 const PAGES = {
   shipping: {
@@ -251,7 +251,7 @@ export function infoPage(path, request) {
   const description = String(body).split('\n\n')[0].slice(0, 160);
   return htmlPage(
     title,
-    `<nav class="crumbs" aria-label="${t(lang, 'crumbs_aria')}"><a href="/">${t(lang, 'home')}</a><span class="sep">/</span><span>${esc(title)}</span></nav>
+    `<nav class="crumbs" aria-label="${t(lang, 'crumbs_aria')}"><a href="${esc(langHref('/', lang))}">${t(lang, 'home')}</a><span class="sep">/</span><span>${esc(title)}</span></nav>
      <div class="head"><h1>${esc(title)}</h1></div>
      <div class="buy-panel" style="max-width:720px"><div class="desc" style="margin:0">${esc(body)}</div></div>`,
     {
