@@ -1,5 +1,6 @@
 /** Link-in-bio hub for Instagram → maisonmarnier.com/instagram */
 import { brandLogoHtml, htmlPage } from '../lib/html.js';
+import { getLang } from '../lib/i18n.js';
 import {
   FACEBOOK_URL,
   INSTAGRAM_URL,
@@ -35,7 +36,8 @@ const LINKS = [
   { href: '/', label: 'Sitio completo' },
 ];
 
-export function instagramPage() {
+export function instagramPage(request) {
+  const lang = getLang(request);
   const linksHtml = LINKS.map((l) => {
     const cls = l.primary ? ' class="ig-primary"' : '';
     return `<li><a${cls} href="${l.href}">${l.label}</a></li>`;
@@ -61,5 +63,8 @@ export function instagramPage() {
       'Maison Marnier en Instagram — compra la edición hogar de Navidad, novedades, diario y contacto.',
     canonical: '/instagram',
     cache: 'public, max-age=3600',
+    request,
+    path: '/instagram',
+    lang,
   });
 }

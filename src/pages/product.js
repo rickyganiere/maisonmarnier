@@ -1,19 +1,21 @@
 import { esc } from '../lib/escape.js';
 import { htmlPage, productCard } from '../lib/html.js';
+import { getLang, t, tr } from '../lib/i18n.js';
 import { productImages } from '../lib/images.js';
 import { productJsonLd } from '../lib/seo.js';
 import { getLiveProductBySlug, getLiveProducts } from '../db/products.js';
 
-export async function productPage(url, env) {
+export async function productPage(url, env, request) {
+  const lang = getLang(request);
   try {
     const slug = decodeURIComponent(url.pathname.split('/').filter(Boolean)[1] || '');
     const p = await getLiveProductBySlug(env, slug);
     if (!p) {
       return htmlPage(
-        'Producto no encontrado',
-        `<div class="head"><h1>Producto no encontrado</h1></div>
-         <p class="empty">Esta pieza ya no está disponible. <a href="/collections/new">Ver novedades →</a></p>`,
-        { status: 404 },
+        tr(lang, { es: 'Producto no encontrado', en: 'Product not found' }),
+        `<div class="head"><h1>${tr(lang, { es: 'Producto no encontrado', en: 'Product not found' })}</h1></div>
+         <p class="empty">${tr(lang, { es: 'Esta pieza ya no está disponible.', en: 'This piece is no longer available.' })} <a href="/collections/new">${tr(lang, { es: 'Ver novedades →', en: 'See new arrivals →' })}</a></p>`,
+        { status: 404, request, path: url.pathname, lang },
       );
     }
 
@@ -60,7 +62,7 @@ export async function productPage(url, env) {
              <h2>También te puede gustar</h2>
              <a class="view-all" href="${collectionHref}">Ver colección →</a>
            </div>
-           <div class="grid">${relatedFallback.map(productCard).join('')}</div>
+           <div class="grid">${relatedFallback.map((r)=>productCard(r, lang)).join('')}</div>
          </section>`
       : '';
 
@@ -80,8 +82,8 @@ export async function productPage(url, env) {
               .join('')}
           </div>`
         : '';
-    const body = `<nav class="crumbs" aria-label="Miga de pan">
-        <a href="/">Inicio</a><span class="sep">/</span>
+    const body = `<nav class="crumbs" aria-label="${t(lang, 'crumbs_aria')}">
+        <a href="/">${t(lang, 'home')}</a><span class="sep">/</span>
         <a href="${collectionHref}">${esc(p.category || 'Tienda')}</a><span class="sep">/</span>
         <span>${esc(p.name || '')}</span>
       </nav>
@@ -104,18 +106,18 @@ export async function productPage(url, env) {
                   data-slug="${esc(p.slug || '')}"
                   data-name="${esc(p.name || '')}"
                   data-price="${retail}"
-                  data-image="${esc(mainImage)}">Añadir al carrito</button>
-                 <button class="wish-btn" type="button" id="wishBtn" data-id="${p.id}">♡ Lista de deseos</button>
-                 <a class="btn btn-ghost" href="/cart">Ver carrito</a>`
-              : `<button class="btn is-disabled" type="button" disabled>No disponible</button>
-                 <button class="wish-btn" type="button" id="wishBtn" data-id="${p.id}">♡ Lista de deseos</button>`
+                  data-image="${esc(mainImage)}">${tr(lang, { es: 'Añadir al carrito', en: 'Add to cart' })}</button>
+                 <button class="wish-btn" type="button" id="wishBtn" data-id="${p.id}">♡ ${tr(lang, { es: 'Lista de deseos', en: 'Wishlist' })}</button>
+                 <a class="btn btn-ghost" href="/cart">${tr(lang, { es: 'Ver carrito', en: 'View cart' })}</a>`
+              : `<button class="btn is-disabled" type="button" disabled>${tr(lang, { es: 'No disponible', en: 'Unavailable' })}</button>
+                 <button class="wish-btn" type="button" id="wishBtn" data-id="${p.id}">♡ ${tr(lang, { es: 'Lista de deseos', en: 'Wishlist' })}</button>`
           }
           </div>
           <p class="muted" style="margin-top:12px" id="addMsg"></p>
           <div class="register-buy">
-            <strong>Regístrate para comprar y seguir pedidos</strong>
-            <p>Con cuenta puedes guardar esta pieza, ver el estado de envío y checkout más rápido.</p>
-            <a href="/cuenta/registro?next=/products/${encodeURIComponent(p.slug || '')}">Crear cuenta gratuita →</a>
+            <strong>${tr(lang, { es: 'Regístrate para comprar y seguir pedidos', en: 'Register to buy and track orders' })}</strong>
+            <p>${tr(lang, { es: 'Con cuenta puedes guardar esta pieza, ver el estado de envío y checkout más rápido.', en: 'With an account you can save this piece, track shipping and check out faster.' })}</p>
+            <a href="/cuenta/registro?next=/products/${encodeURIComponent(p.slug || '')}">${tr(lang, { es: 'Crear cuenta gratuita →', en: 'Create a free account →' })}</a>
           </div>
           <section aria-labelledby="product-details-title">
             <h2 id="product-details-title">Detalles del producto</h2>
@@ -211,8 +213,11 @@ export async function productPage(url, env) {
       ogType: 'product',
       jsonLd: productJsonLd(pForLd, { url: productPath, collectionPath: collectionHref }),
       cache: 'public, max-age=0, must-revalidate',
+      request,
+      path: productPath,
+      lang,
     });
   } catch {
-    return htmlPage('Producto', '<p class="empty">Error al cargar el producto.</p>', { status: 500 });
+    return htmlPage(tr(lang, { es: 'Producto', en: 'Product' }), `<p class="empty">${tr(lang, { es: 'Error al cargar el producto.', en: 'Product error.' })}</p>`, { status: 500, request, path: '/products' });
   }
 }

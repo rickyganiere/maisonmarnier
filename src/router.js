@@ -45,6 +45,7 @@ import { importChristmasCatalog } from './jobs/importChristmasCatalog.js';
 import { replaceSeedWithCj } from './jobs/replaceSeedWithCj.js';
 import { syncProductGalleries } from './jobs/syncGalleries.js';
 import { BRAND_ICON_PATH, BRAND_LOGO_PATH, BRAND_LOGO_LIGHT_PATH, brandImageResponse, brandLockupResponse } from './lib/brandAsset.js';
+import { getLang, setLangResponse, t } from './lib/i18n.js';
 import { json } from './lib/json.js';
 import { seasonalImageResponse } from './lib/seasonalAssets.js';
 import { accountRoute } from './pages/account.js';
@@ -86,6 +87,8 @@ export async function handleRequest(request, env, ctx) {
 
   const redirected = apexRedirect(request, url);
   if (redirected) return redirected;
+
+  if (pathname === '/lang') return setLangResponse(request, url);
 
   // --- Technical SEO / brand ---
   if (pathname === '/robots.txt') return robotsTxt();
@@ -300,36 +303,37 @@ export async function handleRequest(request, env, ctx) {
   }
 
   // --- HTML pages ---
-  if (pathname === '/cart') return cartPage(url);
+  if (pathname === '/cart') return cartPage(url, request);
   if (pathname === '/checkout/success') {
     const info = await checkoutSuccessPage(url, env);
-    return checkoutSuccessPageHtml(info);
+    return checkoutSuccessPageHtml(info, request);
   }
   if (pathname.startsWith('/cuenta')) {
     const accountPage = await accountRoute(request, env, pathname);
     if (accountPage) return accountPage;
   }
-  if (pathname.startsWith('/collections/')) return collectionPage(url, env);
-  if (pathname.startsWith('/products/')) return productPage(url, env);
-  if (pathname === '/journal' || pathname.startsWith('/journal/')) return journalPage(url, env);
+  if (pathname.startsWith('/collections/')) return collectionPage(url, env, request);
+  if (pathname.startsWith('/products/')) return productPage(url, env, request);
+  if (pathname === '/journal' || pathname.startsWith('/journal/')) return journalPage(url, env, request);
   if (
     ['/shipping', '/returns', '/contact', '/sourcing', '/about', '/privacidad', '/cookies', '/terminos'].includes(
       pathname,
     )
   ) {
-    return infoPage(pathname);
+    return infoPage(pathname, request);
   }
-  if (pathname === '/instagram') return instagramPage();
+  if (pathname === '/instagram') return instagramPage(request);
   if (pathname === '/admin') return adminPage();
 
-  if (pathname === '/' || pathname === '') return homePage(env);
+  if (pathname === '/' || pathname === '') return homePage(env, request);
 
-  return htmlNotFound();
+  return htmlNotFound(request);
 }
 
-function htmlNotFound() {
+function htmlNotFound(request) {
+  const lang = request ? getLang(request) : 'es';
   return new Response(
-    '<!doctype html><html lang="es"><body><h1>No encontrado</h1><p><a href="/">Maison Marnier</a></p></body></html>',
+    `<!doctype html><html lang="${lang}"><body><h1>${t(lang, 'not_found')}</h1><p><a href="/">Maison Marnier</a></p></body></html>`,
     {
       status: 404,
       headers: { 'content-type': 'text/html; charset=UTF-8', 'cache-control': 'no-store' },

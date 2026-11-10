@@ -1,5 +1,6 @@
 import { esc } from '../lib/escape.js';
 import { htmlPage, productCard } from '../lib/html.js';
+import { getLang } from '../lib/i18n.js';
 import {
   getCustomerFromRequest,
   listOrdersForCustomer,
@@ -91,7 +92,8 @@ function authScript(mode) {
 </script>`;
 }
 
-export function registerPageHtml({ next = '/cuenta' } = {}) {
+export function registerPageHtml({ next = '/cuenta', request = null } = {}) {
+  const lang = request ? getLang(request) : 'es';
   const body = `<style>${ACCOUNT_CSS}</style>
 <nav class="crumbs" aria-label="Miga de pan">
   <a href="/">Inicio</a><span class="sep">/</span>
@@ -135,10 +137,14 @@ ${authScript('register')}`;
     description: 'Crea tu cuenta Maison Marnier para seguir pedidos y guardar tu lista de deseos.',
     canonical: '/cuenta/registro',
     noindex: true,
+    request,
+    path: '/cuenta/registro',
+    lang,
   });
 }
 
-export function loginPageHtml({ next = '/cuenta' } = {}) {
+export function loginPageHtml({ next = '/cuenta', request = null } = {}) {
+  const lang = request ? getLang(request) : 'es';
   const body = `<style>${ACCOUNT_CSS}</style>
 <nav class="crumbs" aria-label="Miga de pan">
   <a href="/">Inicio</a><span class="sep">/</span>
@@ -178,10 +184,14 @@ ${authScript('login')}`;
     description: 'Inicia sesión en Maison Marnier para ver pedidos y lista de deseos.',
     canonical: '/cuenta/entrar',
     noindex: true,
+    request,
+    path: '/cuenta/entrar',
+    lang,
   });
 }
 
 export async function accountDashboardPage(request, env) {
+  const lang = getLang(request);
   const customer = await getCustomerFromRequest(request, env);
   if (!customer) {
     return Response.redirect(new URL('/cuenta/entrar?next=/cuenta', request.url).toString(), 302);
@@ -209,7 +219,7 @@ export async function accountDashboardPage(request, env) {
 
   const wishHtml = wishlist.length
     ? `<div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr));padding-top:8px">${wishlist
-        .map(productCard)
+        .map((p)=>productCard(p, lang))
         .join('')}</div>`
     : `<p class="wish-empty">Tu lista de deseos está vacía. Guarda piezas desde la ficha de producto.</p>`;
 
@@ -254,6 +264,9 @@ document.getElementById('logoutBtn')?.addEventListener('click',async()=>{
     description: 'Tu cuenta Maison Marnier: pedidos y lista de deseos.',
     canonical: '/cuenta',
     noindex: true,
+    request,
+    path: '/cuenta',
+    lang,
   });
 }
 
@@ -265,13 +278,13 @@ export async function accountRoute(request, env, pathname) {
     const customer = await getCustomerFromRequest(request, env);
     if (customer) return Response.redirect(new URL('/cuenta', request.url).toString(), 302);
     const next = new URL(request.url).searchParams.get('next') || '/cuenta';
-    return registerPageHtml({ next });
+    return registerPageHtml({ next, request });
   }
   if (pathname === '/cuenta/entrar') {
     const customer = await getCustomerFromRequest(request, env);
     if (customer) return Response.redirect(new URL('/cuenta', request.url).toString(), 302);
     const next = new URL(request.url).searchParams.get('next') || '/cuenta';
-    return loginPageHtml({ next });
+    return loginPageHtml({ next, request });
   }
   return null;
 }

@@ -1,8 +1,10 @@
 import { esc } from '../lib/escape.js';
 import { htmlPage } from '../lib/html.js';
+import { getLang } from '../lib/i18n.js';
 import { getArticleBySlug, listPublishedArticles } from '../db/journal.js';
 
-export async function journalPage(url, env) {
+export async function journalPage(url, env, request) {
+  const lang = getLang(request);
   try {
     const slug = url.pathname.split('/').filter(Boolean)[1] || '';
     if (!slug) {
@@ -16,6 +18,9 @@ export async function journalPage(url, env) {
             description: 'Historias y notas desde Maison Marnier.',
             canonical: '/journal',
             cache: 'public, max-age=300',
+            request,
+            path: '/journal',
+            lang,
           },
         );
       }
@@ -38,6 +43,9 @@ export async function journalPage(url, env) {
           description: 'Historias y notas desde Maison Marnier.',
           canonical: '/journal',
           cache: 'public, max-age=300',
+          request,
+          path: '/journal',
+          lang,
         },
       );
     }
@@ -48,7 +56,7 @@ export async function journalPage(url, env) {
         'Artículo no encontrado',
         `<div class="head"><h1>Artículo no encontrado</h1></div>
          <p class="empty"><a href="/journal">Volver al diario →</a></p>`,
-        { status: 404, noindex: true },
+        { status: 404, noindex: true, request, path: url.pathname, lang },
       );
     }
 
@@ -66,9 +74,12 @@ export async function journalPage(url, env) {
         ogImage: a.image_url || '',
         ogType: 'article',
         cache: 'public, max-age=300',
+        request,
+        path: articlePath,
+        lang,
       },
     );
   } catch {
-    return htmlPage('Diario de la maison', '<p class="empty">No se pudo cargar el diario.</p>', { status: 500 });
+    return htmlPage('Diario de la maison', '<p class="empty">No se pudo cargar el diario.</p>', { status: 500, request, path: '/journal', lang });
   }
 }
