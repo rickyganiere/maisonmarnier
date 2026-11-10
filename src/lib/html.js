@@ -69,31 +69,12 @@ export function cartControlHtml() {
 </span>`;
 }
 
-/** Official Maison Marnier mark — circle monogram + diamond peak. */
-export function brandMarkSvg({ size = 40, className = 'brand-mark' } = {}) {
-  return `<svg class="${className}" viewBox="0 0 48 48" width="${size}" height="${size}" aria-hidden="true" focusable="false">
-  <circle cx="24" cy="24" r="18.25" fill="none" stroke="currentColor" stroke-width="1.55"/>
-  <path d="M14.2 34.2V17.6L24 29.4 33.8 17.6v16.6" fill="none" stroke="currentColor" stroke-width="2.15" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M24 14.2l1.35 1.35L24 16.9l-1.35-1.35z" fill="currentColor"/>
-</svg>`;
-}
-
-export function brandLogoSvgDocument() {
-  return `<?xml version="1.0" encoding="UTF-8"?>
-<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 48 48" width="256" height="256" role="img" aria-label="Maison Marnier">
-  <rect width="48" height="48" fill="#100e0c"/>
-  <g fill="none" stroke="#e6c48a" stroke-linecap="round" stroke-linejoin="round">
-    <circle cx="24" cy="24" r="18.25" stroke-width="1.55"/>
-    <path d="M14.2 34.2V17.6L24 29.4 33.8 17.6v16.6" stroke-width="2.15"/>
-  </g>
-  <path d="M24 14.2l1.35 1.35L24 16.9l-1.35-1.35z" fill="#e6c48a"/>
-</svg>`;
-}
-
-/** Official wordmark + mark — used in header/footer on every storefront page. */
+/** Official seal already includes MAISON / MARNIER — image is the brand lockup. */
 export function brandLogoHtml({ compact = false } = {}) {
-  const mark = brandMarkSvg({ size: compact ? 34 : 42 });
-  return `<span class="brand-lockup${compact ? ' is-compact' : ''}">${mark}<span class="brand-text">MAISON <span>MARNIER</span></span></span>`;
+  const size = compact ? 44 : 58;
+  return `<span class="brand-lockup${compact ? ' is-compact' : ''}">
+  <img class="brand-mark-img" src="/logo.jpg" width="${size}" height="${size}" alt="Maison Marnier" decoding="async" />
+</span>`;
 }
 
 /** Shared premium cozy design system — Christmas seasonal overlay (same structure). */
@@ -116,13 +97,12 @@ a{color:inherit;text-decoration:none}
 img{max-width:100%;display:block}
 .announce{background:linear-gradient(90deg,#1a0f10,#0c0b0a 40%,#122019);color:var(--soft);text-align:center;font:700 11px/1 var(--font);letter-spacing:.14em;text-transform:uppercase;padding:12px 16px;border-bottom:1px solid var(--line)}
 .site-nav{display:grid;grid-template-columns:minmax(240px,320px) 1fr auto;align-items:center;gap:28px;min-height:var(--nav-h);padding:0 var(--pad);border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(16,14,12,.94);backdrop-filter:blur(14px);z-index:40}
-.brand,.brand-lockup{display:inline-flex;align-items:center;gap:14px;color:#fff;text-decoration:none}
-.brand-mark{color:var(--accent2);flex:0 0 auto;overflow:visible;filter:drop-shadow(0 0 10px rgba(201,164,106,.18));width:42px;height:42px}
+.brand,.brand-lockup{display:inline-flex;align-items:center;gap:12px;color:#fff;text-decoration:none}
+.brand-mark-img{display:block;width:58px;height:58px;border-radius:50%;object-fit:cover;flex:0 0 auto;box-shadow:0 0 0 1px rgba(230,196,138,.28),0 6px 18px rgba(0,0,0,.35)}
+.brand-lockup.is-compact .brand-mark-img{width:44px;height:44px}
 @keyframes hatTip{0%,100%{transform:rotate(0deg)}45%{transform:rotate(-4deg)}70%{transform:rotate(2deg)}}
 .brand-text{font:900 17px/1 var(--font);letter-spacing:.18em;text-transform:uppercase;color:#fff}
 .brand-text span,.brand span{color:var(--accent)}
-.brand-lockup.is-compact .brand-text{font-size:15px;letter-spacing:.14em}
-.brand-lockup.is-compact .brand-mark{width:34px;height:34px}
 .xmas-garland{display:flex;justify-content:center;gap:10px;padding:6px var(--pad) 2px;pointer-events:none}
 .xmas-garland span{width:7px;height:7px;border-radius:50%;background:var(--accent2);box-shadow:0 0 0 2px rgba(31,61,50,.55);opacity:.85;position:relative}
 .xmas-garland span:nth-child(odd){background:#9a2430;box-shadow:0 0 0 2px rgba(154,36,48,.35);transform:translateY(3px)}
@@ -282,8 +262,8 @@ function saveWish(ids){localStorage.setItem(WISH_KEY,JSON.stringify(ids))}
 }
 
 export function fontLinksHtml() {
-  return `<link rel="icon" href="/favicon.svg" type="image/svg+xml">
-<link rel="apple-touch-icon" href="/logo.svg">
+  return `<link rel="icon" href="/logo.jpg" type="image/jpeg">
+<link rel="apple-touch-icon" href="/logo.jpg">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">`;
