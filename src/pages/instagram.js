@@ -2,6 +2,7 @@
 import { brandLogoHtml, htmlPage } from '../lib/html.js';
 
 const IG_URL = 'https://www.instagram.com/maison.marnier/';
+const FB_URL = 'https://www.facebook.com/profile.php?id=61596578393485';
 
 const PAGE_CSS = `
 .ig-hub{max-width:420px;margin:0 auto;padding:28px 0 48px;text-align:center}
@@ -45,6 +46,7 @@ export function instagramPage() {
   <ul class="ig-links">
     ${linksHtml}
     <li><a class="ig-external" href="${IG_URL}" target="_blank" rel="noopener noreferrer">@maison.marnier on Instagram</a></li>
+    <li><a class="ig-external" href="${FB_URL}" target="_blank" rel="noopener noreferrer">Maison Marnier on Facebook</a></li>
   </ul>
   <p class="ig-note">Europe · EUR · Free shipping over €100</p>
 </section>`;

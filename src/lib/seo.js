@@ -51,7 +51,10 @@ export function organizationWebsiteJsonLd() {
         logo: absoluteUrl(BRAND_ICON_PATH),
         email: 'hello@maisonmarnier.com',
         areaServed: 'EU',
-        sameAs: ['https://www.instagram.com/maison.marnier/'],
+        sameAs: [
+          'https://www.instagram.com/maison.marnier/',
+          'https://www.facebook.com/profile.php?id=61596578393485',
+        ],
       },
       {
         '@type': 'WebSite',
