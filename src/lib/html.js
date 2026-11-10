@@ -1,3 +1,4 @@
+import { BRAND_ICON_PATH, BRAND_LOGO_PATH } from './brandAsset.js';
 import { esc } from './escape.js';
 import { DEFAULT_OG_IMAGE, jsonLdScript, seoHeadHtml } from './seo.js';
 
@@ -18,10 +19,10 @@ export function gtmNoscriptHtml() {
 }
 
 const NAV = [
-  ['Holiday', '/collections/seasonal'],
-  ['New', '/collections/new'],
+  ['Christmas Shop', '/collections/seasonal'],
+  ['New Arrivals', '/collections/new'],
   ['Lighting', '/collections/lighting'],
-  ['Objects', '/collections/objects'],
+  ['Home Décor', '/collections/decor'],
   ['Candles', '/collections/candles'],
   ['Journal', '/journal'],
 ];
@@ -69,12 +70,24 @@ export function cartControlHtml() {
 </span>`;
 }
 
-/** Official seal already includes MAISON / MARNIER — image is the brand lockup. */
-export function brandLogoHtml({ compact = false } = {}) {
-  const size = compact ? 64 : 88;
-  return `<span class="brand-lockup${compact ? ' is-compact' : ''}">
-  <img class="brand-mark-img" src="/logo.jpg" width="${size}" height="${size}" alt="Maison Marnier" decoding="async" />
-</span>`;
+/** Approved horizontal Christmas branding on a light background. */
+export function brandLogoHtml() {
+  return `<img class="brand-mark-img" src="${BRAND_LOGO_PATH}" width="720" height="200" alt="Maison Marnier · Home &amp; Living" decoding="async">`;
+}
+
+export function storefrontHeaderHtml({ search = true } = {}) {
+  return `<div class="announce">Christmas Edit · Free shipping over €100 · Europe</div>
+<header class="site-nav">
+  <div class="xmas-garland" aria-hidden="true">${'<i></i>'.repeat(24)}</div>
+  <a class="brand" href="/" aria-label="Maison Marnier home">${brandLogoHtml()}</a>
+  <nav class="links" aria-label="Shop navigation">${navHtml()}</nav>
+  <div class="tools">
+    ${search ? `<form action="/collections/new" method="get" role="search">
+      <input class="search" type="search" name="q" placeholder="Search…" aria-label="Search products">
+    </form>` : ''}
+    ${cartControlHtml()}
+  </div>
+</header>`;
 }
 
 /** Shared premium cozy design system — Christmas seasonal overlay (same structure). */
@@ -83,7 +96,7 @@ export const LAYOUT_CSS = `
   --bg:#100e0c;--panel:#171411;--panel2:#211c17;--ink:#f6f0e6;--muted:#b3a89a;
   --line:#342c24;--accent:#c9a46a;--accent2:#e6c48a;--soft:#ddd3c5;
   --festive:#7a1f28;--pine:#1f3d32;--pine2:#2f5a48;
-  --pad:clamp(18px,4vw,56px);--max:1420px;--nav-h:112px;
+  --pad:clamp(18px,4vw,56px);--max:1420px;--nav-h:104px;
   --font:"Hanken Grotesk",system-ui,-apple-system,sans-serif;
 }
 *{box-sizing:border-box}
@@ -95,29 +108,28 @@ body{margin:0;background:
   color:var(--ink);font:400 15px/1.55 var(--font);-webkit-font-smoothing:antialiased}
 a{color:inherit;text-decoration:none}
 img{max-width:100%;display:block}
-.announce{background:linear-gradient(90deg,#1a0f10,#0c0b0a 40%,#122019);color:var(--soft);text-align:center;font:700 11px/1 var(--font);letter-spacing:.14em;text-transform:uppercase;padding:12px 16px;border-bottom:1px solid var(--line)}
-.site-nav{display:grid;grid-template-columns:minmax(280px,360px) 1fr auto;align-items:center;gap:24px;min-height:var(--nav-h);padding:10px var(--pad);border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(16,14,12,.94);backdrop-filter:blur(14px);z-index:40}
-.brand,.brand-lockup{display:inline-flex;align-items:center;gap:12px;color:#fff;text-decoration:none}
-.brand-mark-img{display:block;width:88px;height:88px;border-radius:50%;object-fit:cover;flex:0 0 auto;background:#0a0908;box-shadow:0 0 0 2px rgba(230,196,138,.55),0 0 28px rgba(201,164,106,.35),0 10px 24px rgba(0,0,0,.45)}
-.brand-lockup.is-compact .brand-mark-img{width:64px;height:64px}
-@keyframes hatTip{0%,100%{transform:rotate(0deg)}45%{transform:rotate(-4deg)}70%{transform:rotate(2deg)}}
-.brand-text{font:900 17px/1 var(--font);letter-spacing:.18em;text-transform:uppercase;color:#fff}
-.brand-text span,.brand span{color:var(--accent)}
-.xmas-garland{display:flex;justify-content:center;gap:10px;padding:6px var(--pad) 2px;pointer-events:none}
-.xmas-garland span{width:7px;height:7px;border-radius:50%;background:var(--accent2);box-shadow:0 0 0 2px rgba(31,61,50,.55);opacity:.85;position:relative}
-.xmas-garland span:nth-child(odd){background:#9a2430;box-shadow:0 0 0 2px rgba(154,36,48,.35);transform:translateY(3px)}
-.xmas-garland span::after{content:"";position:absolute;left:50%;top:-5px;width:1px;height:5px;background:rgba(47,90,72,.7);transform:translateX(-50%)}
-.site-nav .links{display:flex;flex-wrap:wrap;justify-content:center;gap:28px}
-.site-nav .links a{color:var(--soft);font:800 15px/1 var(--font);letter-spacing:.04em;text-transform:uppercase;opacity:.95;transition:color .2s}
-.site-nav .links a:hover{color:var(--accent2)}
-.tools{display:flex;gap:12px;align-items:center;justify-content:flex-end}
-.tools .search{width:150px;padding:12px 14px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:600 13px/1.2 var(--font);border-radius:6px}
-.cart-wrap{display:inline-flex;align-items:center;gap:10px}
-.nav-snowman{width:58px;height:70px;flex:0 0 auto;filter:drop-shadow(0 4px 10px rgba(0,0,0,.4));animation:snowmanBob 3.2s ease-in-out infinite;transform-origin:50% 100%}
+.announce{background:#53262a;color:#fff2dd;text-align:center;font:800 10px/1.2 var(--font);letter-spacing:.12em;text-transform:uppercase;padding:7px 12px}
+.site-nav{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:clamp(12px,1.7vw,26px);min-height:var(--nav-h);padding:13px var(--pad) 7px;border-bottom:1px solid #d8c1a6;position:sticky;top:0;background:#f7efe4;color:#34231b;z-index:40}
+.brand{display:inline-flex;align-items:center;justify-self:start;text-decoration:none}
+.brand-mark-img{display:block;width:clamp(238px,21vw,306px);height:auto;border-radius:6px}
+.xmas-garland{position:absolute;inset:0 var(--pad) auto;display:flex;justify-content:space-between;gap:4px;border-top:1px solid #d6b990;pointer-events:none}
+.xmas-garland i{width:5px;height:7px;border-radius:60%;background:#ffedb7;box-shadow:0 0 7px 2px #ffc671,0 0 13px 3px #ffe0a6}
+.xmas-garland i:nth-child(4n+2){background:#f78c75;box-shadow:0 0 7px 2px #f0a58c}
+.xmas-garland i:nth-child(4n){background:#d7e5ab;box-shadow:0 0 7px 2px #bfc88d}
+.site-nav .links{min-width:0;display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:0 clamp(12px,1.5vw,25px)}
+.site-nav .links a{flex:0 0 auto;white-space:nowrap;color:#3d2c22;font:800 16px/1.15 var(--font);padding:10px 0;transition:color .2s}
+.site-nav .links a:first-child,.site-nav .links a:hover{color:#852731}
+.site-nav a:focus-visible,.site-nav input:focus-visible{outline:2px solid #852731;outline-offset:3px}
+.tools{display:flex;gap:10px;align-items:center;justify-content:flex-end}
+.tools .search{width:clamp(105px,9vw,138px);padding:9px 10px;border:1px solid #d8c1a6;background:#fffbf6;color:#34231b;font:600 13px/1.2 var(--font);border-radius:6px}
+.cart-wrap{display:inline-flex;align-items:center;gap:4px}
+.nav-snowman{width:34px;height:42px;flex:0 0 auto;filter:drop-shadow(0 2px 4px rgba(75,41,24,.25));animation:snowmanBob 3.2s ease-in-out infinite;transform-origin:50% 100%}
 .nav-snowman .santa-hat{transform-origin:36px 18px;animation:hatTip 4.2s ease-in-out infinite}
+@keyframes hatTip{0%,100%{transform:rotate(0deg)}45%{transform:rotate(-4deg)}70%{transform:rotate(2deg)}}
 @keyframes snowmanBob{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-3px) rotate(-4deg)}}
-.cart-link{display:inline-flex;align-items:center;gap:6px;padding:13px 16px;border:1px solid var(--accent);border-radius:6px;font:800 12px/1 var(--font);letter-spacing:.1em;text-transform:uppercase;color:#fff;background:transparent}
-.cart-link:hover{background:rgba(201,164,106,.12)}
+.cart-link{display:inline-flex;align-items:center;gap:4px;min-height:42px;padding:10px 13px;border:1px solid #c5a577;border-radius:6px;font:800 13px/1 var(--font);white-space:nowrap;color:#452b1d;background:#fff9ef}
+.cart-link:hover{background:#f0deca}
+@media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.nav-snowman,.nav-snowman .santa-hat{animation:none}}
 .wrap{max-width:var(--max);margin:auto;padding:0 var(--pad) 56px}
 .crumbs{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:22px 0 0;font:700 11px/1 var(--font);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 .crumbs a:hover{color:var(--accent2)}
@@ -218,16 +230,20 @@ h1{font:900 clamp(34px,4.6vw,56px)/.98 var(--font);margin:0;letter-spacing:-.045
 .site-footer h4{font:800 12px/1 var(--font);letter-spacing:.12em;text-transform:uppercase;margin:0 0 14px;color:#fff}
 .site-footer a{display:block;color:var(--muted);margin:8px 0;font-size:14px;font-weight:600}
 .site-footer a:hover{color:var(--accent2)}
+.site-footer .brand-mark-img{width:clamp(190px,22vw,252px)}
 .bottom{max-width:var(--max);margin:28px auto 0;display:flex;justify-content:space-between;gap:12px;color:var(--muted);font-size:12px;font-weight:600;border-top:1px solid var(--line);padding-top:16px}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--panel2);color:#fff;border:1px solid var(--line);padding:12px 18px;border-radius:8px;opacity:0;transition:.25s;pointer-events:none;z-index:50;font:700 12px/1.3 var(--font)}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
 @keyframes fadeRise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 @media(max-width:1200px){.grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:1100px){
+  :root{--nav-h:124px}
+  .site-nav{grid-template-columns:minmax(0,1fr) auto;gap:0 12px;padding:11px var(--pad) 0}
+  .site-nav .links{grid-column:1/-1;grid-row:2;flex-wrap:nowrap;justify-content:flex-start;gap:22px;overflow-x:auto;scrollbar-width:thin;scrollbar-color:#c5a577 transparent;padding:1px 4px 2px}
+  .site-nav .links a{padding:12px 0}
+  .site-nav .tools{grid-column:2;grid-row:1}
+}
 @media(max-width:980px){
-  .site-nav{grid-template-columns:1fr auto;min-height:88px;padding:8px var(--pad)}
-  .site-nav .links{display:none}
-  .brand-mark-img{width:72px;height:72px}
-  .brand-lockup.is-compact .brand-mark-img{width:56px;height:56px}
   .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .product{grid-template-columns:1fr}
   .product-gallery{position:static}
@@ -237,13 +253,18 @@ h1{font:900 clamp(34px,4.6vw,56px)/.98 var(--font);margin:0;letter-spacing:-.045
   .journal-card{grid-template-columns:1fr}
 }
 @media(max-width:520px){
-  .tools .search{display:none}
+  :root{--nav-h:108px}
+  .site-nav{padding-inline:14px;gap:0 7px}
+  .site-nav .brand-mark-img{width:min(218px, 66vw)}
+  .site-nav .links{gap:16px;margin-right:-14px;padding-right:14px}
+  .site-nav .links a{font-size:14px}
+  .site-nav .nav-snowman,.tools .search{display:none}
   .footer-grid{grid-template-columns:1fr}
   .p h3{min-height:0}
 }
 `;
 
-function footerHtml() {
+export function storefrontFooterHtml() {
   return `<footer class="site-footer">
   <div class="footer-grid">
     <div><a class="brand" href="/" aria-label="Maison Marnier">${brandLogoHtml()}</a><p class="muted" style="margin-top:12px;max-width:34ch">Holiday edits for warm rooms — festive objects chosen with quiet care.</p></div>
@@ -260,12 +281,17 @@ function toast(m){if(!t)return;t.textContent=m;t.classList.add('show');setTimeou
 const WISH_KEY='mm_wishlist';
 function loadWish(){try{return JSON.parse(localStorage.getItem(WISH_KEY)||'[]')}catch(e){return []}}
 function saveWish(ids){localStorage.setItem(WISH_KEY,JSON.stringify(ids))}
+(function(){
+  function count(){try{return (JSON.parse(localStorage.getItem('mm_cart')||'[]')||[]).reduce((s,i)=>s+Number(i.qty||1),0)}catch(e){return 0}}
+  function paint(){const el=document.getElementById('cartCount'); if(!el)return; const n=count(); el.textContent=n?('('+n+')'):'';}
+  paint(); window.addEventListener('mm-cart',paint); window.addEventListener('storage',paint);
+})();
 </script>`;
 }
 
 export function fontLinksHtml() {
-  return `<link rel="icon" href="/logo.jpg" type="image/jpeg">
-<link rel="apple-touch-icon" href="/logo.jpg">
+  return `<link rel="icon" href="${BRAND_ICON_PATH}" type="image/jpeg" sizes="192x192">
+<link rel="apple-touch-icon" href="${BRAND_ICON_PATH}">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Hanken+Grotesk:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">`;
@@ -311,27 +337,9 @@ ${fontLinksHtml()}
 </head>
 <body>
 ${gtmNoscriptHtml()}
-<div class="announce">Holiday edit · Free shipping over €100 · Europe</div>
-<div class="xmas-garland" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
-<header class="site-nav">
-  <a class="brand" href="/" aria-label="Maison Marnier home">${brandLogoHtml()}</a>
-  <nav class="links">${navHtml()}</nav>
-  <div class="tools">
-    <form action="/collections/new" method="get" role="search">
-      <input class="search" type="search" name="q" placeholder="Search…" aria-label="Search products">
-    </form>
-    ${cartControlHtml()}
-  </div>
-</header>
+${storefrontHeaderHtml()}
 <main class="wrap">${body}</main>
-${footerHtml()}
-<script>
-(function(){
-  function count(){try{return (JSON.parse(localStorage.getItem('mm_cart')||'[]')||[]).reduce((s,i)=>s+Number(i.qty||1),0)}catch(e){return 0}}
-  function paint(){const el=document.getElementById('cartCount'); if(!el)return; const n=count(); el.textContent=n?('('+n+')'):'';}
-  paint(); window.addEventListener('mm-cart',paint); window.addEventListener('storage',paint);
-})();
-</script>
+${storefrontFooterHtml()}
 </body>
 </html>`;
   return new Response(html, {

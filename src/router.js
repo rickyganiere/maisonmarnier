@@ -31,7 +31,7 @@ import {
 import { importChristmasCatalog } from './jobs/importChristmasCatalog.js';
 import { replaceSeedWithCj } from './jobs/replaceSeedWithCj.js';
 import { syncProductGalleries } from './jobs/syncGalleries.js';
-import { logoJpegResponse } from './lib/brandAsset.js';
+import { BRAND_ICON_PATH, BRAND_LOGO_PATH, brandImageResponse } from './lib/brandAsset.js';
 import { json } from './lib/json.js';
 import { homePage } from './pages/home.js';
 import { adminPage } from './pages/admin.js';
@@ -74,9 +74,8 @@ export async function handleRequest(request, env, ctx) {
 
   // --- Technical SEO / brand ---
   if (pathname === '/robots.txt') return robotsTxt();
-  if (pathname === '/logo.jpg' || pathname === '/logo.png' || pathname === '/favicon.ico' || pathname === '/favicon.svg' || pathname === '/logo.svg') {
-    return logoJpegResponse();
-  }
+  if ([BRAND_LOGO_PATH, '/logo.jpg', '/logo.png', '/logo.svg'].includes(pathname)) return brandImageResponse();
+  if ([BRAND_ICON_PATH, '/favicon.ico', '/favicon.svg'].includes(pathname)) return brandImageResponse({ icon: true });
   if (pathname === '/sitemap.xml' || pathname === '/sitemap_index.xml') return sitemapXml();
   if (pathname === '/sitemap-pages.xml') return sitemapPagesXml();
   if (pathname === '/sitemap-products.xml') return sitemapProductsXml(env);
