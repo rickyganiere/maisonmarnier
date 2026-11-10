@@ -278,6 +278,7 @@ td,th{border-bottom:1px solid #e4ddd2;padding:8px;text-align:left;vertical-align
         </div>
         <div class="row">
           <button class="btn" type="button" id="publishAllBtn">Publish all</button>
+          <button class="btn secondary" type="button" id="refreshCostsBtn">Refresh missing costs</button>
           <span class="msg" style="margin:0">Publishes drafts with a title, 2+ supplier photos, positive prices and stock.</span>
         </div>
         <div class="msg" id="draftsMsg" role="status"></div>
@@ -494,6 +495,7 @@ document.getElementById('newJournalBtn').onclick=()=>clearJournalForm();
 document.getElementById('probeCJBtn').onclick=()=>checkCJStatus(true);
 document.getElementById('reloadOrdersBtn').onclick=()=>loadOrders();
 document.getElementById('publishAllBtn').onclick=()=>publishAllDrafts();
+document.getElementById('refreshCostsBtn').onclick=()=>refreshMissingCosts();
 
 async function checkCJStatus(show){
   try{
@@ -735,6 +737,21 @@ async function publishAllDrafts(){
   }catch(e){msg('draftsMsg',e.message||'Publish all failed',true)}
   finally{btn.disabled=false}
 }
+async function refreshMissingCosts(){
+  const missing=catalog.filter(p=>p.status!=='live'&&p.supplier==='CJ'&&!(Number(p.supplier_cost_usd)>0)).length;
+  if(!missing){msg('draftsMsg','All CJ drafts already have a supplier cost.');return}
+  if(!confirm('Refresh supplier cost for up to 25 CJ drafts missing cost? Suggested retail is filled when retail is €0.'))return;
+  const btn=document.getElementById('refreshCostsBtn');
+  btn.disabled=true;
+  msg('draftsMsg','Refreshing missing CJ costs… this can take ~30s.');
+  try{
+    const r=await api('/api/lume/refresh-costs',{method:'POST',body:JSON.stringify({limit:25})});
+    if(!r.ok){msg('draftsMsg',r.error||'Cost refresh failed',true);return}
+    await loadCatalog();
+    msg('draftsMsg','Updated '+r.updated+' · still missing '+r.stillMissing+' · remaining '+r.remaining+(r.errors?.[0]?.error?' · '+r.errors[0].error:''),!!r.stillMissing);
+  }catch(e){msg('draftsMsg',e.message||'Cost refresh failed',true)}
+  finally{btn.disabled=false}
+}
 
 const catalogPanels = {
   draft: { list: 'drafts', message: 'draftsMsg' },
@@ -798,8 +815,8 @@ function renderCatalog(status) {
       </div>
     </div>
     <dl class="catalog-numbers">
-      <div><dt>Supplier cost</dt><dd>${p.supplier_cost_usd > 0 ? usd.format(p.supplier_cost_usd) : 'Unknown'}</dd></div>
-      <div><dt>Retail price</dt><dd>${eur.format(p.retail_price_eur || 0)}</dd></div>
+      <div><dt>Supplier cost</dt><dd class="${p.supplier_cost_usd > 0 ? '' : 'msg err'}" style="min-height:0;margin:0">${p.supplier_cost_usd > 0 ? usd.format(p.supplier_cost_usd) : 'Unknown'}</dd></div>
+      <div><dt>Retail price</dt><dd class="${Number(p.retail_price_eur) > 0 ? '' : 'msg err'}" style="min-height:0;margin:0">${eur.format(p.retail_price_eur || 0)}</dd></div>
       <div><dt>Stock / photos</dt><dd>${esc(p.stock ?? 0)} / ${esc(p.image_count ?? 0)}</dd></div>
     </dl>
     <div class="catalog-actions">
