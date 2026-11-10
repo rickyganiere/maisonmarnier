@@ -49,9 +49,16 @@ td,th{border-bottom:1px solid #e4ddd2;padding:8px;text-align:left;vertical-align
 .finder-filters{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:12px 0}
 .finder-filters label{display:grid;gap:4px;font-size:12px;color:#6e665d}
 .finder-filters select,.finder-filters input{width:100%}
-.finder-chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 4px}
+.finder-chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 4px;align-items:center}
 .finder-chip{border:1px solid #d4cec4;background:#f6f2eb;color:#211f1b;padding:6px 10px;font:inherit;cursor:pointer;border-radius:4px}
 .finder-chip.active,.finder-chip:hover{background:#efe7da;border-color:#b9b0a4}
+.finder-suggest{margin:10px 0 4px;padding:12px;border:1px solid #d4cec4;background:#faf7f2}
+.finder-suggest-head{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:8px;margin:0 0 8px}
+.finder-suggest-head p{margin:0;color:#6e665d;font-size:13px}
+.finder-suggest-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.finder-suggest-actions label{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#6e665d;margin:0}
+.finder-chip.pulse{animation:chipPulse .45s ease}
+@keyframes chipPulse{0%{transform:scale(1)}50%{transform:scale(1.04)}100%{transform:scale(1)}}
 .finder-pager{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin:14px 0 4px}
 .finder-pager .pages{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
 .finder-pager .meta{color:#6e665d;font-size:13px}
@@ -167,10 +174,20 @@ td,th{border-bottom:1px solid #e4ddd2;padding:8px;text-align:left;vertical-align
 
             <section class="panel" id="panel-finder">
         <h2>CJ Product Finder</h2>
-        <p class="catalog-intro">Browse CJ with categories, trending / best sellers, and pagination. Products without a supplier cost are not imported.</p>
+        <p class="catalog-intro">Browse CJ with Maison Marnier suggestion chips, trending shelves, and pagination. Products without a supplier cost are not imported.</p>
         <div class="searchbar">
           <input id="cjQ" placeholder="Search CJ products… (optional with category or shelf)">
           <button class="btn" type="button" id="cjSearchBtn">Search</button>
+        </div>
+        <div class="finder-suggest" id="cjSuggestBox">
+          <div class="finder-suggest-head">
+            <p>Maison Marnier ideas — click a chip to search. Suggestions reshuffle automatically.</p>
+            <div class="finder-suggest-actions">
+              <label><input type="checkbox" id="cjLiveBrowse" checked> Live browse</label>
+              <button class="btn secondary" type="button" id="cjShuffleSuggestBtn">Shuffle</button>
+            </div>
+          </div>
+          <div class="finder-chips" id="cjSuggestChips" aria-label="Suggested Maison Marnier searches"></div>
         </div>
         <div class="finder-filters">
           <label>Shelf
@@ -438,7 +455,12 @@ function logout(soft){
 function goAdmin(id){
   document.querySelectorAll('.sideBtn').forEach(b=>b.classList.toggle('active',b.dataset.panel===id));
   document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id==='panel-'+id));
-  if(id==='finder') loadCjCategories();
+  if(id==='finder'){
+    loadCjCategories();
+    startCjSuggestionLoop(true);
+  }else{
+    stopCjSuggestionLoop();
+  }
 }
 async function boot(){
   if(!token())return;
@@ -494,6 +516,14 @@ document.getElementById('cjRelatedCats').onclick=e=>{
   document.getElementById('cjCategory').value=chip.dataset.cat;
   searchCJ(1);
 };
+document.getElementById('cjSuggestChips').onclick=e=>{
+  const chip=e.target.closest('[data-suggest]'); if(!chip) return;
+  applyCjSuggestion(Number(chip.dataset.suggest),{search:true});
+};
+document.getElementById('cjShuffleSuggestBtn').onclick=()=>renderCjSuggestions({force:true,pulse:true});
+document.getElementById('cjLiveBrowse').onchange=()=>{
+  if(document.getElementById('panel-finder').classList.contains('active')) startCjSuggestionLoop(true);
+};
 ['cjPagerTop','cjPagerBottom'].forEach(id=>{
   document.getElementById(id).onclick=e=>{
     const b=e.target.closest('[data-cj-page]'); if(!b) return;
@@ -508,6 +538,8 @@ document.getElementById('cjRelatedCats').onclick=e=>{
 });
 
 document.getElementById('cjQ').addEventListener('keydown',e=>{if(e.key==='Enter')searchCJ(1)});
+document.getElementById('cjQ').addEventListener('focus',()=>{cjSuggestPaused=true});
+document.getElementById('cjQ').addEventListener('blur',()=>{cjSuggestPaused=false});
 document.getElementById('saveHomeBtn').onclick=()=>saveHomeContent();
 document.getElementById('saveJournalBtn').onclick=()=>saveJournal();
 document.getElementById('newJournalBtn').onclick=()=>clearJournalForm();
@@ -548,6 +580,97 @@ async function loadAdminAll(){
 let cjLastResults=[];
 let cjCategoriesLoaded=false;
 let cjSearchState={page:1,totalPages:1,total:0,size:24};
+let cjSuggestVisible=[];
+let cjSuggestCursor=0;
+let cjSuggestTimer=null;
+let cjSuggestBusy=false;
+let cjSuggestPaused=false;
+const MAISON_CJ_SUGGESTIONS=[
+  {label:'Amber glass candle',q:'amber glass candle',flag:'0'},
+  {label:'Linen pillow cover',q:'linen pillow cover',flag:''},
+  {label:'Ceramic vase decor',q:'ceramic vase home decor',flag:''},
+  {label:'Warm table lamp',q:'warm table lamp',flag:'0'},
+  {label:'Christmas garland',q:'christmas garland',flag:''},
+  {label:'Wall mirror decor',q:'wall mirror home decor',flag:''},
+  {label:'Throw blanket soft',q:'soft throw blanket',flag:''},
+  {label:'Scented diffuser',q:'reed diffuser home',flag:''},
+  {label:'Holiday ornament',q:'christmas ornament set',flag:''},
+  {label:'Candle holder brass',q:'brass candle holder',flag:''},
+  {label:'Woven basket',q:'woven storage basket home',flag:''},
+  {label:'Fairy string lights',q:'warm fairy string lights',flag:''},
+  {label:'Ceramic tray',q:'ceramic tray decor',flag:''},
+  {label:'Boucle cushion',q:'boucle cushion cover',flag:''},
+  {label:'Dried flower vase',q:'dried flower vase',flag:''},
+  {label:'Christmas wreath',q:'christmas wreath door',flag:''},
+  {label:'Table runner linen',q:'linen table runner',flag:''},
+  {label:'LED lantern decor',q:'led lantern home decor',flag:''},
+  {label:'Marble coaster set',q:'marble coaster set',flag:''},
+  {label:'Seasonal stocking',q:'christmas stocking decor',flag:''},
+  {label:'Minimal wall art',q:'minimal wall art poster',flag:''},
+  {label:'Ceramic mug gift',q:'ceramic mug gift set',flag:''},
+  {label:'Pine cone decor',q:'pine cone christmas decor',flag:''},
+  {label:'Soft area rug',q:'soft area rug living room',flag:''},
+];
+function shuffleList(list){
+  const arr=list.slice();
+  for(let i=arr.length-1;i>0;i-=1){
+    const j=Math.floor(Math.random()*(i+1));
+    [arr[i],arr[j]]=[arr[j],arr[i]];
+  }
+  return arr;
+}
+function renderCjSuggestions({force=false,pulse=false}={}){
+  if(!force && cjSuggestVisible.length) return;
+  cjSuggestVisible=shuffleList(MAISON_CJ_SUGGESTIONS).slice(0,8);
+  cjSuggestCursor=0;
+  const box=document.getElementById('cjSuggestChips');
+  const current=document.getElementById('cjQ').value.trim().toLowerCase();
+  box.innerHTML=cjSuggestVisible.map((s,i)=>
+    `<button class="finder-chip${s.q.toLowerCase()===current?' active':''}${pulse?' pulse':''}" type="button" data-suggest="${i}">${esc(s.label)}</button>`
+  ).join('');
+}
+function applyCjSuggestion(index,{search=true}={}){
+  const item=cjSuggestVisible[index];
+  if(!item) return;
+  cjSuggestCursor=index;
+  document.getElementById('cjQ').value=item.q;
+  document.getElementById('cjCategory').value='';
+  if(item.flag!=null) document.getElementById('cjFlag').value=item.flag;
+  document.querySelectorAll('#cjSuggestChips [data-suggest]').forEach(el=>{
+    el.classList.toggle('active',Number(el.dataset.suggest)===index);
+  });
+  if(search) return searchCJ(1);
+}
+function stopCjSuggestionLoop(){
+  if(cjSuggestTimer){
+    clearInterval(cjSuggestTimer);
+    cjSuggestTimer=null;
+  }
+}
+function startCjSuggestionLoop(reset=false){
+  renderCjSuggestions({force:reset||!cjSuggestVisible.length,pulse:!!reset});
+  stopCjSuggestionLoop();
+  let ticks=0;
+  cjSuggestTimer=setInterval(async()=>{
+    if(!document.getElementById('panel-finder').classList.contains('active')) return;
+    if(cjSuggestBusy || cjSuggestPaused || document.getElementById('cjSearchBtn').disabled) return;
+    ticks+=1;
+    const live=document.getElementById('cjLiveBrowse').checked;
+    if(!live){
+      // Keep chips refreshing even without auto-search.
+      if(ticks%2===0) renderCjSuggestions({force:true,pulse:true});
+      return;
+    }
+    if(!cjSuggestVisible.length || ticks%4===0) renderCjSuggestions({force:true,pulse:true});
+    cjSuggestCursor=(cjSuggestCursor+1)%Math.max(cjSuggestVisible.length,1);
+    cjSuggestBusy=true;
+    try{
+      await applyCjSuggestion(cjSuggestCursor,{search:true});
+    }finally{
+      cjSuggestBusy=false;
+    }
+  },12000);
+}
 function cjQuery(){return document.getElementById('cjQ').value.trim()}
 function cjFilterParams(){
   const sortRaw=document.getElementById('cjSort').value;
