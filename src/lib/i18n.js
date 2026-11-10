@@ -128,27 +128,19 @@ export function readLangFromUrl(request) {
   }
 }
 
-export function preferLangFromAccept(request) {
-  const h = (request?.headers?.get?.('Accept-Language') || '').toLowerCase();
-  if (!h) return DEFAULT_LANG;
-  // Prefer explicit quality order roughly: if es appears before en, keep es.
-  const esIdx = h.search(/(^|,)\s*es\b/);
-  const enIdx = h.search(/(^|,)\s*en\b/);
-  if (esIdx >= 0 && (enIdx < 0 || esIdx < enIdx)) return 'es';
-  if (enIdx >= 0 && (esIdx < 0 || enIdx < esIdx)) return 'en';
-  if (h.includes('es')) return 'es';
-  if (h.includes('en')) return 'en';
+/**
+ * Do not auto-switch from Accept-Language.
+ * English browsers were flipping every navigation back to EN whenever the
+ * mm_lang cookie was missing; language must come from an explicit choice
+ * (?hl= / cookie) or the Spanish default.
+ */
+export function preferLangFromAccept(_request) {
   return DEFAULT_LANG;
 }
 
-/** URL ?hl= wins, then cookie, then Accept-Language, then default. */
+/** URL ?hl= wins, then cookie, then Spanish default. */
 export function getLang(request) {
-  return (
-    readLangFromUrl(request) ||
-    readLangCookie(request) ||
-    preferLangFromAccept(request) ||
-    DEFAULT_LANG
-  );
+  return readLangFromUrl(request) || readLangCookie(request) || DEFAULT_LANG;
 }
 
 export function langCookieHeader(lang, { secure = true } = {}) {
@@ -234,25 +226,35 @@ export function htmlCacheHeaders(lang, cache = 'private, no-cache') {
   return {
     'cache-control': cache,
     'content-language': normalizeLang(lang),
-    vary: 'Cookie, Accept-Language',
+    vary: 'Cookie',
   };
 }
 
+function requestIsSecure(request) {
+  try {
+    return new URL(request.url).protocol === 'https:';
+  } catch {
+    return true;
+  }
+}
+
 /**
- * If the request carries ?hl=/lang=, return a Set-Cookie so the preference
- * sticks after the user navigates away from the query-param URL.
+ * Always re-assert mm_lang for the resolved page language so navigation
+ * keeps the chosen locale even when links omit ?hl=.
  */
-export function syncLangCookieHeader(request) {
+export function persistLangCookieHeader(request, lang) {
+  return langCookieHeader(normalizeLang(lang), { secure: requestIsSecure(request) });
+}
+
+/** @deprecated use persistLangCookieHeader — kept for older call sites */
+export function syncLangCookieHeader(request, lang) {
+  if (lang) return persistLangCookieHeader(request, lang);
   const fromUrl = readLangFromUrl(request);
   if (!fromUrl) return null;
-  const fromCookie = readLangCookie(request);
-  if (fromCookie === fromUrl) return null;
-  const secure = (() => {
-    try {
-      return new URL(request.url).protocol === 'https:';
-    } catch {
-      return true;
-    }
-  })();
-  return langCookieHeader(fromUrl, { secure });
+  return persistLangCookieHeader(request, fromUrl);
+}
+
+/** Storefront href that keeps the active language across page changes. */
+export function langHref(path, lang) {
+  return withLangQuery(path, lang);
 }

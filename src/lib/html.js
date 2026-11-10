@@ -1,6 +1,6 @@
 import { BRAND_ICON_PATH, BRAND_LOGO_PATH, BRAND_LOGO_LIGHT_PATH } from './brandAsset.js';
 import { esc } from './escape.js';
-import { DEFAULT_LANG, getLang, htmlCacheHeaders, syncLangCookieHeader, t } from './i18n.js';
+import { DEFAULT_LANG, getLang, htmlCacheHeaders, langHref, persistLangCookieHeader, t } from './i18n.js';
 import { productImages } from './images.js';
 import { DEFAULT_OG_IMAGE, jsonLdScript, seoHeadHtml } from './seo.js';
 import { socialLinksHtml } from './social.js';
@@ -31,11 +31,22 @@ const NAV_HREFS = [
 ];
 
 function navHtml(lang) {
-  return NAV_HREFS.map(([key, href]) => `<a href="${href}">${esc(t(lang, key))}</a>`).join('');
+  return NAV_HREFS.map(([key, href]) => `<a href="${esc(langHref(href, lang))}">${esc(t(lang, key))}</a>`).join('');
 }
 
 function langSwitchHtml(lang, path = '/') {
-  const next = encodeURIComponent(path || '/');
+  // Strip existing hl from next so /lang can set the destination language cleanly.
+  let nextPath = path || '/';
+  try {
+    const u = new URL(nextPath, 'https://maisonmarnier.com');
+    u.searchParams.delete('hl');
+    u.searchParams.delete('lang');
+    const q = u.searchParams.toString();
+    nextPath = `${u.pathname}${q ? `?${q}` : ''}${u.hash || ''}` || '/';
+  } catch {
+    nextPath = path || '/';
+  }
+  const next = encodeURIComponent(nextPath);
   const mk = (code) =>
     `<a class="lang-opt${lang === code ? ' is-active' : ''}" href="/lang?set=${code}&next=${next}" hreflang="${code}" lang="${code}">${code.toUpperCase()}</a>`;
   return `<nav class="lang-switch" aria-label="${esc(t(lang, 'lang_aria'))}">${mk('en')}<span class="lang-sep" aria-hidden="true">|</span>${mk('es')}</nav>`;
@@ -76,12 +87,12 @@ export function snowmanHtml() {
 export function cartControlHtml(lang = DEFAULT_LANG) {
   return `<span class="cart-wrap" title="${esc(t(lang, 'cart_title'))}">
   ${snowmanHtml()}
-  <a href="/cart" id="cartBtn" class="cart-link">${esc(t(lang, 'cart'))} <span id="cartCount"></span></a>
+  <a href="${esc(langHref('/cart', lang))}" id="cartBtn" class="cart-link">${esc(t(lang, 'cart'))} <span id="cartCount"></span></a>
 </span>`;
 }
 
 export function accountControlHtml(lang = DEFAULT_LANG) {
-  return `<a class="account-link" href="/cuenta" id="accountBtn" title="${esc(t(lang, 'account_title'))}">${esc(t(lang, 'account'))}</a>`;
+  return `<a class="account-link" href="${esc(langHref('/cuenta', lang))}" id="accountBtn" title="${esc(t(lang, 'account_title'))}">${esc(t(lang, 'account'))}</a>`;
 }
 
 /** Approved horizontal Christmas branding on a light background. */
@@ -91,13 +102,16 @@ export function brandLogoHtml({ light = false } = {}) {
 }
 
 export function storefrontHeaderHtml({ search = true, lang = DEFAULT_LANG, path = '/' } = {}) {
+  const homeHref = esc(langHref('/', lang));
+  const searchAction = esc(langHref('/collections/new', lang).split('?')[0]);
   return `<div class="announce">${esc(t(lang, 'announce'))}</div>
 <header class="site-nav">
   <div class="xmas-garland" aria-hidden="true">${'<i></i>'.repeat(24)}</div>
-  <a class="brand" href="/" aria-label="${esc(t(lang, 'home_aria'))}">${brandLogoHtml()}</a>
+  <a class="brand" href="${homeHref}" aria-label="${esc(t(lang, 'home_aria'))}">${brandLogoHtml()}</a>
   <nav class="links" aria-label="${esc(t(lang, 'nav_aria'))}">${navHtml(lang)}</nav>
   <div class="tools">
-    ${search ? `<form action="/collections/new" method="get" role="search">
+    ${search ? `<form action="${searchAction}" method="get" role="search">
+      <input type="hidden" name="hl" value="${esc(lang)}">
       <input class="search" type="search" name="q" placeholder="${esc(t(lang, 'search_ph'))}" aria-label="${esc(t(lang, 'search_aria'))}">
     </form>` : ''}
     ${langSwitchHtml(lang, path)}
@@ -314,12 +328,13 @@ img:not([hidden]) + .product-image-unavailable{display:none}
 `;
 
 export function storefrontFooterHtml({ lang = DEFAULT_LANG } = {}) {
+  const h = (path) => esc(langHref(path, lang));
   return `<footer class="site-footer">
   <div class="footer-grid">
-    <div><a class="brand" href="/" aria-label="Maison Marnier">${brandLogoHtml({ light: true })}</a><p class="muted" style="margin-top:12px;max-width:34ch">${esc(t(lang, 'footer_blurb'))}</p>${socialLinksHtml({ size: 24, lang })}</div>
-    <div><h4>${esc(t(lang, 'footer_shop'))}</h4><a href="/collections/seasonal">${esc(t(lang, 'footer_holiday'))}</a><a href="/collections/new">${esc(t(lang, 'footer_new'))}</a><a href="/collections/lighting">${esc(t(lang, 'footer_lighting'))}</a><a href="/cuenta/registro">${esc(t(lang, 'footer_create_account'))}</a></div>
-    <div><h4>${esc(t(lang, 'footer_maison'))}</h4><a href="/about">${esc(t(lang, 'footer_about'))}</a><a href="/journal">${esc(t(lang, 'footer_journal'))}</a><a href="/sourcing">${esc(t(lang, 'footer_sourcing'))}</a></div>
-    <div><h4>${esc(t(lang, 'footer_help'))}</h4><a href="/shipping">${esc(t(lang, 'footer_shipping'))}</a><a href="/returns">${esc(t(lang, 'footer_returns'))}</a><a href="/contact">${esc(t(lang, 'footer_contact'))}</a><a href="/instagram">${esc(t(lang, 'footer_links'))}</a><a href="/privacidad">${esc(t(lang, 'footer_privacy'))}</a><a href="/cookies">${esc(t(lang, 'footer_cookies'))}</a><a href="/terminos">${esc(t(lang, 'footer_terms'))}</a></div>
+    <div><a class="brand" href="${h('/')}" aria-label="Maison Marnier">${brandLogoHtml({ light: true })}</a><p class="muted" style="margin-top:12px;max-width:34ch">${esc(t(lang, 'footer_blurb'))}</p>${socialLinksHtml({ size: 24, lang })}</div>
+    <div><h4>${esc(t(lang, 'footer_shop'))}</h4><a href="${h('/collections/seasonal')}">${esc(t(lang, 'footer_holiday'))}</a><a href="${h('/collections/new')}">${esc(t(lang, 'footer_new'))}</a><a href="${h('/collections/lighting')}">${esc(t(lang, 'footer_lighting'))}</a><a href="${h('/cuenta/registro')}">${esc(t(lang, 'footer_create_account'))}</a></div>
+    <div><h4>${esc(t(lang, 'footer_maison'))}</h4><a href="${h('/about')}">${esc(t(lang, 'footer_about'))}</a><a href="${h('/journal')}">${esc(t(lang, 'footer_journal'))}</a><a href="${h('/sourcing')}">${esc(t(lang, 'footer_sourcing'))}</a></div>
+    <div><h4>${esc(t(lang, 'footer_help'))}</h4><a href="${h('/shipping')}">${esc(t(lang, 'footer_shipping'))}</a><a href="${h('/returns')}">${esc(t(lang, 'footer_returns'))}</a><a href="${h('/contact')}">${esc(t(lang, 'footer_contact'))}</a><a href="${h('/instagram')}">${esc(t(lang, 'footer_links'))}</a><a href="${h('/privacidad')}">${esc(t(lang, 'footer_privacy'))}</a><a href="${h('/cookies')}">${esc(t(lang, 'footer_cookies'))}</a><a href="${h('/terminos')}">${esc(t(lang, 'footer_terms'))}</a></div>
   </div>
   <div class="bottom"><span>© 2026 Maison Marnier.</span><span>${esc(t(lang, 'footer_region'))}</span></div>
 </footer>
@@ -421,8 +436,7 @@ ${storefrontFooterHtml({ lang: resolvedLang })}
   if (String(cache).includes('public')) {
     headers['cache-control'] = 'private, no-cache';
   }
-  const setCookie = request ? syncLangCookieHeader(request) : null;
-  if (setCookie) headers['set-cookie'] = setCookie;
+  if (request) headers['set-cookie'] = persistLangCookieHeader(request, resolvedLang);
   return new Response(html, { status, headers });
 }
 
@@ -437,7 +451,7 @@ export function storefrontProductImage(p, { featured = false, decorative = false
 }
 
 export function productCard(p, lang = DEFAULT_LANG) {
-  const href = '/products/' + encodeURIComponent(p.slug || '');
+  const href = esc(langHref('/products/' + encodeURIComponent(p.slug || ''), lang));
   const retail = Number(p.retail_price_eur || 0);
   const compareAt = Number(p.compare_at_price_eur || 0);
   const onSale = compareAt > retail && retail > 0;
@@ -461,7 +475,7 @@ export function productCard(p, lang = DEFAULT_LANG) {
  * (media + body with name / meta / price), themed for Maison Marnier.
  */
 export function homeProductCard(p, { featured = false, lang = DEFAULT_LANG } = {}) {
-  const href = '/products/' + encodeURIComponent(p.slug || '');
+  const href = esc(langHref('/products/' + encodeURIComponent(p.slug || ''), lang));
   const name = String(p.name || 'Maison Marnier');
   const retail = Number(p.retail_price_eur || 0);
   const compareAt = Number(p.compare_at_price_eur || 0);
