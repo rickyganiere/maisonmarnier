@@ -397,3 +397,33 @@ export function productCard(p) {
     </div>
   </a>`;
 }
+
+/**
+ * Home product card — same structure as CarLuxHub home listings
+ * (media + body with name / meta / price), themed for Maison Marnier.
+ */
+export function homeProductCard(p, { featured = false } = {}) {
+  const href = '/products/' + encodeURIComponent(p.slug || '');
+  const name = String(p.name || 'Maison Marnier');
+  const retail = Number(p.retail_price_eur || 0);
+  const compareAt = Number(p.compare_at_price_eur || 0);
+  const onSale = compareAt > retail && retail > 0;
+  const category = String(p.category || 'Home décor').trim() || 'Home décor';
+  const stock = Number(p.stock || 0);
+  const metaParts = [category];
+  if (stock > 0 && stock <= 8) metaParts.push(`${stock} left`);
+  else if (stock > 8) metaParts.push('In stock');
+  metaParts.push('EU ship');
+  const was = onSale
+    ? `<s class="mm-card-was">€${compareAt.toFixed(2)}</s>`
+    : '';
+  const drop = onSale ? `<span class="mm-card-drop">Edit</span>` : '';
+  return `<a class="mm-card" href="${href}" aria-label="${esc(name)}">
+    <span class="mm-card-media">${storefrontProductImage(p, { featured })}${drop}</span>
+    <span class="mm-card-body">
+      <span class="mm-card-name">${esc(name)}</span>
+      <span class="mm-card-meta">${esc(metaParts.join(' · '))}</span>
+      <strong class="mm-card-price">${retail > 0 ? `€${retail.toFixed(2)}` : 'View'}${was}</strong>
+    </span>
+  </a>`;
+}
