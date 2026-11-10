@@ -46,6 +46,15 @@ td,th{border-bottom:1px solid #e4ddd2;padding:8px;text-align:left;vertical-align
 .finder-toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0}
 .finder-toolbar label{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#6e665d}
 .finder-toolbar input[type="checkbox"],.draft-selection input[type="checkbox"],.draft-check{width:18px;height:18px;margin:0;flex:none;accent-color:#24211d}
+.finder-filters{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin:12px 0}
+.finder-filters label{display:grid;gap:4px;font-size:12px;color:#6e665d}
+.finder-filters select,.finder-filters input{width:100%}
+.finder-chips{display:flex;flex-wrap:wrap;gap:6px;margin:8px 0 4px}
+.finder-chip{border:1px solid #d4cec4;background:#f6f2eb;color:#211f1b;padding:6px 10px;font:inherit;cursor:pointer;border-radius:4px}
+.finder-chip.active,.finder-chip:hover{background:#efe7da;border-color:#b9b0a4}
+.finder-pager{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px;margin:14px 0 4px}
+.finder-pager .pages{display:flex;gap:8px;align-items:center;flex-wrap:wrap}
+.finder-pager .meta{color:#6e665d;font-size:13px}
 .draft-selection{display:flex;align-items:center;gap:8px}
 #deleteDraftsBtn{background:#8b2e2e}
 .finder-card{position:relative}
@@ -53,6 +62,8 @@ td,th{border-bottom:1px solid #e4ddd2;padding:8px;text-align:left;vertical-align
 .finder-thumbs{display:flex;gap:4px;margin:8px 0;flex-wrap:wrap}
 .finder-thumbs img{width:36px;height:48px;object-fit:cover;background:#e9e0d3;border:1px solid #d4cec4}
 .badge{display:inline-block;background:#efe7da;border:1px solid #d4cec4;padding:2px 7px;font-size:11px;margin-left:6px}
+@media(max-width:900px){.finder-filters{grid-template-columns:1fr 1fr}}
+@media(max-width:640px){.finder-filters{grid-template-columns:1fr}}
 .catalog-intro,.catalog-meta,.field-note{color:#6e665d}
 .catalog-tools{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:16px 0}
 .catalog-tools input{width:min(100%,360px)}
@@ -147,11 +158,70 @@ td,th{border-bottom:1px solid #e4ddd2;padding:8px;text-align:left;vertical-align
 
             <section class="panel" id="panel-finder">
         <h2>CJ Product Finder</h2>
-        <p class="catalog-intro">Import any CJ result as a draft. You can add photos before publishing.</p>
+        <p class="catalog-intro">Browse CJ with categories, trending / best sellers, and pagination. Import any result as a draft.</p>
         <div class="searchbar">
-          <input id="cjQ" placeholder="Search CJ products…">
+          <input id="cjQ" placeholder="Search CJ products… (optional with category or shelf)">
           <button class="btn" type="button" id="cjSearchBtn">Search</button>
         </div>
+        <div class="finder-filters">
+          <label>Shelf
+            <select id="cjFlag">
+              <option value="">All products</option>
+              <option value="0">Best sellers / Trending</option>
+              <option value="1">New products</option>
+              <option value="2">Video products</option>
+              <option value="3">Slow-moving</option>
+            </select>
+          </label>
+          <label>Category
+            <select id="cjCategory">
+              <option value="">Any category</option>
+            </select>
+          </label>
+          <label>Sort
+            <select id="cjSort">
+              <option value="">Best match</option>
+              <option value="1:desc">Most listed</option>
+              <option value="2:asc">Price · low to high</option>
+              <option value="2:desc">Price · high to low</option>
+              <option value="3:desc">Newest</option>
+              <option value="4:desc">Inventory · high to low</option>
+            </select>
+          </label>
+          <label>Page size
+            <select id="cjSize">
+              <option value="24">24</option>
+              <option value="40">40</option>
+              <option value="60">60</option>
+              <option value="100">100</option>
+            </select>
+          </label>
+          <label>Free shipping
+            <select id="cjFreeShip">
+              <option value="">Any</option>
+              <option value="1">Free shipping only</option>
+              <option value="0">Not free shipping</option>
+            </select>
+          </label>
+          <label>Warehouse country
+            <select id="cjCountry">
+              <option value="">Any</option>
+              <option value="CN">CN</option>
+              <option value="US">US</option>
+              <option value="DE">DE</option>
+              <option value="ES">ES</option>
+              <option value="GB">GB</option>
+              <option value="FR">FR</option>
+            </select>
+          </label>
+          <label>Min price (USD)
+            <input id="cjMinPrice" type="number" min="0" step="0.01" placeholder="e.g. 2">
+          </label>
+          <label>Max price (USD)
+            <input id="cjMaxPrice" type="number" min="0" step="0.01" placeholder="e.g. 40">
+          </label>
+        </div>
+        <div class="finder-chips" id="cjRelatedCats" hidden></div>
         <div class="finder-toolbar">
           <label><input type="checkbox" id="cjSelectAll"> Select all</label>
           <button class="btn" type="button" id="cjImportSelectedBtn">Import selected</button>
@@ -159,7 +229,21 @@ td,th{border-bottom:1px solid #e4ddd2;padding:8px;text-align:left;vertical-align
           <button class="btn secondary" type="button" id="cjImport100Btn">Import 100</button>
         </div>
         <div class="msg" id="finderMsg" role="status"></div>
+        <div class="finder-pager" id="cjPagerTop" hidden>
+          <div class="meta" id="cjPageMetaTop"></div>
+          <div class="pages">
+            <button class="btn secondary" type="button" data-cj-page="prev">Previous</button>
+            <button class="btn secondary" type="button" data-cj-page="next">Next</button>
+          </div>
+        </div>
         <div id="cjResults"></div>
+        <div class="finder-pager" id="cjPagerBottom" hidden>
+          <div class="meta" id="cjPageMetaBottom"></div>
+          <div class="pages">
+            <button class="btn secondary" type="button" data-cj-page="prev">Previous</button>
+            <button class="btn secondary" type="button" data-cj-page="next">Next</button>
+          </div>
+        </div>
       </section>
 
       <section class="panel" id="panel-suppliers">
@@ -334,6 +418,7 @@ function logout(soft){
 function goAdmin(id){
   document.querySelectorAll('.sideBtn').forEach(b=>b.classList.toggle('active',b.dataset.panel===id));
   document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id==='panel-'+id));
+  if(id==='finder') loadCjCategories();
 }
 async function boot(){
   if(!token())return;
@@ -370,7 +455,7 @@ document.getElementById('logoutBtn').onclick=()=>logout();
 document.getElementById('side').onclick=e=>{
   const b=e.target.closest('.sideBtn');if(!b)return;goAdmin(b.dataset.panel);
 };
-document.getElementById('cjSearchBtn').onclick=()=>searchCJ();
+document.getElementById('cjSearchBtn').onclick=()=>searchCJ(1);
 document.getElementById('cjImportSelectedBtn').onclick=()=>importSelectedCj();
 document.getElementById('cjImport50Btn').onclick=()=>importByCount(50);
 document.getElementById('cjImport100Btn').onclick=()=>importByCount(100);
@@ -384,8 +469,25 @@ document.getElementById('cjResults').onclick=e=>{
   const product=cjLastResults[Number(b.dataset.import)];
   if(product) importCjDrafts(b,{products:[product]});
 };
+document.getElementById('cjRelatedCats').onclick=e=>{
+  const chip=e.target.closest('[data-cat]'); if(!chip) return;
+  document.getElementById('cjCategory').value=chip.dataset.cat;
+  searchCJ(1);
+};
+['cjPagerTop','cjPagerBottom'].forEach(id=>{
+  document.getElementById(id).onclick=e=>{
+    const b=e.target.closest('[data-cj-page]'); if(!b) return;
+    if(b.dataset.cjPage==='prev') searchCJ(Math.max(1,(cjSearchState.page||1)-1));
+    if(b.dataset.cjPage==='next') searchCJ((cjSearchState.page||1)+1);
+  };
+});
+['cjFlag','cjCategory','cjSort','cjSize','cjFreeShip','cjCountry'].forEach(id=>{
+  document.getElementById(id).addEventListener('change',()=>{
+    if(cjCategoriesLoaded) searchCJ(1);
+  });
+});
 
-document.getElementById('cjQ').addEventListener('keydown',e=>{if(e.key==='Enter')searchCJ()});
+document.getElementById('cjQ').addEventListener('keydown',e=>{if(e.key==='Enter')searchCJ(1)});
 document.getElementById('saveHomeBtn').onclick=()=>saveHomeContent();
 document.getElementById('saveJournalBtn').onclick=()=>saveJournal();
 document.getElementById('newJournalBtn').onclick=()=>clearJournalForm();
@@ -422,10 +524,91 @@ async function loadAdminAll(){
 }
 
 let cjLastResults=[];
-function cjQuery(){return document.getElementById('cjQ').value.trim()||'home decor'}
+let cjCategoriesLoaded=false;
+let cjSearchState={page:1,totalPages:1,total:0,size:24};
+function cjQuery(){return document.getElementById('cjQ').value.trim()}
+function cjFilterParams(){
+  const sortRaw=document.getElementById('cjSort').value;
+  const [orderBy,sort]=sortRaw?sortRaw.split(':'):['',''];
+  return {
+    q:cjQuery(),
+    categoryId:document.getElementById('cjCategory').value,
+    productFlag:document.getElementById('cjFlag').value,
+    orderBy,
+    sort,
+    size:document.getElementById('cjSize').value||'24',
+    freeShipping:document.getElementById('cjFreeShip').value,
+    countryCode:document.getElementById('cjCountry').value,
+    startSellPrice:document.getElementById('cjMinPrice').value.trim(),
+    endSellPrice:document.getElementById('cjMaxPrice').value.trim(),
+  };
+}
+function cjSearchQuery(page){
+  const f=cjFilterParams();
+  const p=new URLSearchParams();
+  if(f.q)p.set('q',f.q);
+  p.set('page',String(page||1));
+  p.set('size',f.size);
+  if(f.categoryId)p.set('categoryId',f.categoryId);
+  if(f.productFlag!=='')p.set('productFlag',f.productFlag);
+  if(f.orderBy!==''){p.set('orderBy',f.orderBy);if(f.sort)p.set('sort',f.sort)}
+  if(f.freeShipping!=='')p.set('freeShipping',f.freeShipping);
+  if(f.countryCode)p.set('countryCode',f.countryCode);
+  if(f.startSellPrice)p.set('startSellPrice',f.startSellPrice);
+  if(f.endSellPrice)p.set('endSellPrice',f.endSellPrice);
+  return p.toString();
+}
 function selectedCjPayloads(){
   return [...document.querySelectorAll('#cjResults input[data-cj]:checked')]
     .map(el=>cjLastResults[Number(el.dataset.cj)]).filter(Boolean);
+}
+function fillCjCategories(payload){
+  const sel=document.getElementById('cjCategory');
+  const current=sel.value;
+  const featured=payload.featured||[];
+  const featuredIds=new Set(featured.map(c=>c.id));
+  const all=(payload.categories||[]).filter(c=>!featuredIds.has(c.id));
+  const opts=['<option value="">Any category</option>'];
+  if(featured.length){
+    opts.push('<optgroup label="Home & lifestyle">');
+    featured.forEach(c=>opts.push(`<option value="${esc(c.id)}">${esc(c.path)}</option>`));
+    opts.push('</optgroup>');
+  }
+  opts.push('<optgroup label="All CJ categories">');
+  all.forEach(c=>opts.push(`<option value="${esc(c.id)}">${esc(c.path)}</option>`));
+  opts.push('</optgroup>');
+  sel.innerHTML=opts.join('');
+  if(current) sel.value=current;
+}
+async function loadCjCategories(){
+  if(cjCategoriesLoaded)return;
+  try{
+    const d=await api('/api/cj/categories');
+    if(!d.ok){msg('finderMsg',d.error||'Could not load CJ categories',true);return}
+    fillCjCategories(d);
+    cjCategoriesLoaded=true;
+  }catch(e){msg('finderMsg',e.message||'Could not load CJ categories',true)}
+}
+function renderRelatedCategories(list){
+  const box=document.getElementById('cjRelatedCats');
+  const cats=list||[];
+  if(!cats.length){box.hidden=true;box.replaceChildren();return}
+  const current=document.getElementById('cjCategory').value;
+  box.hidden=false;
+  box.innerHTML='<span class="msg" style="margin:0;min-height:0">Related:</span>'+cats.slice(0,12).map(c=>
+    `<button class="finder-chip${c.id===current?' active':''}" type="button" data-cat="${esc(c.id)}">${esc(c.name)}</button>`
+  ).join('');
+}
+function updateCjPager(state){
+  cjSearchState=state;
+  const label=`Page ${state.page} of ${state.totalPages} · ${state.total} products`+(state.query?` · “${state.query}”`:'');
+  document.getElementById('cjPageMetaTop').textContent=label;
+  document.getElementById('cjPageMetaBottom').textContent=label;
+  const show=state.totalPages>1 || state.total>0;
+  document.getElementById('cjPagerTop').hidden=!show;
+  document.getElementById('cjPagerBottom').hidden=!show;
+  document.querySelectorAll('[data-cj-page="prev"]').forEach(b=>b.disabled=state.page<=1);
+  document.querySelectorAll('[data-cj-page="next"]').forEach(b=>b.disabled=state.page>=state.totalPages);
 }
 function renderCjResults(products){
   cjLastResults=products||[];
@@ -433,6 +616,8 @@ function renderCjResults(products){
   if(!cjLastResults.length){box.innerHTML='<p class="msg">No CJ products found for this search.</p>';return}
   box.innerHTML=cjLastResults.map((p,i)=>{
     const imgs=(p.images&&p.images.length?p.images:[p.image]).filter(Boolean).slice(0,6);
+    const listed=p.listedNum!=null?` · listed ${esc(p.listedNum)}`:'';
+    const ship=p.freeShipping?' · free ship':'';
     return `<div class="card finder-card"><div class="cols">
       <div>
         <input class="check" type="checkbox" data-cj="${i}" aria-label="Select ${esc(p.name)}">
@@ -441,25 +626,30 @@ function renderCjResults(products){
       <div>
         <strong>${esc(p.name||'')}</strong>
         <span class="badge">${esc(p.imageCount||imgs.length)} photos</span>
-        <div class="msg">SKU ${esc(p.sku||'')} · cost $${Number(p.costUSD||0).toFixed(2)} · stock ${esc(p.stock)} · ${esc(p.category||'')}</div>
+        <div class="msg">SKU ${esc(p.sku||'')} · cost $${Number(p.costUSD||0).toFixed(2)} · stock ${esc(p.stock)} · ${esc(p.category||'')}${listed}${ship}</div>
         <div class="finder-thumbs">${imgs.map(u=>`<img src="${esc(u)}" alt="">`).join('')}</div>
         <button class="btn secondary" type="button" data-import="${i}">Import draft</button>
       </div></div></div>`;
   }).join('');
 }
-async function searchCJ(){
+async function searchCJ(page=1){
   const button=document.getElementById('cjSearchBtn');
   if(button.disabled)return;
-  const q=cjQuery();
+  await loadCjCategories();
   button.disabled=true;
   msg('finderMsg','Searching CJ…');
   document.getElementById('cjSelectAll').checked=false;
   document.getElementById('cjResults').replaceChildren();
   cjLastResults=[];
   try{
-    const d=await api('/api/cj/search?q='+encodeURIComponent(q)+'&size=24');
+    const d=await api('/api/cj/search?'+cjSearchQuery(page));
     if(!d.ok){msg('finderMsg',d.error||'Search failed',true);return}
-    msg('finderMsg',(d.products||[]).length+' CJ products found.');
+    const total=Number(d.total||0)||0;
+    const totalPages=Math.max(1,Number(d.totalPages)||1);
+    const current=Math.max(1,Number(d.page)||page);
+    updateCjPager({page:current,totalPages,total,size:Number(d.size)||24,query:d.query||''});
+    renderRelatedCategories(d.relatedCategories||[]);
+    msg('finderMsg',`${(d.products||[]).length} on this page · ${total} total`+(d.productFlag===0?' · best sellers / trending':''));
     renderCjResults(d.products||[]);
   }catch(e){msg('finderMsg',e.message||'Search failed',true)}
   finally{button.disabled=false}
@@ -470,9 +660,19 @@ function importSelectedCj(){
   return importCjDrafts(document.getElementById('cjImportSelectedBtn'),{products});
 }
 function importByCount(limit){
-  const q=cjQuery();
-  if(!confirm('Import up to '+limit+' CJ products as drafts for "'+q+'"?'))return;
-  return importCjDrafts(document.getElementById(limit===100?'cjImport100Btn':'cjImport50Btn'),{q,limit});
+  const f=cjFilterParams();
+  const label=f.q||(f.categoryId?'selected category':f.productFlag==='0'?'best sellers':'current filters');
+  if(!confirm('Import up to '+limit+' CJ products as drafts for "'+label+'"?'))return;
+  return importCjDrafts(document.getElementById(limit===100?'cjImport100Btn':'cjImport50Btn'),{
+    q:f.q,
+    limit,
+    categoryId:f.categoryId||undefined,
+    productFlag:f.productFlag===''?undefined:Number(f.productFlag),
+    orderBy:f.orderBy===''?undefined:Number(f.orderBy),
+    sort:f.sort||undefined,
+    freeShipping:f.freeShipping===''?undefined:Number(f.freeShipping),
+    countryCode:f.countryCode||undefined,
+  });
 }
 async function importCjDrafts(btn,body){
   btn.disabled=true;

@@ -1,5 +1,5 @@
 import { requireAdmin, requireImportAuth } from './auth.js';
-import { cjSearch, cjStatus } from './cj.js';
+import { cjCategories, cjSearch, cjStatus } from './cj.js';
 import {
   checkout,
   checkoutSuccessPage,
@@ -161,6 +161,11 @@ export async function handleRequest(request, env, ctx) {
     const denied = await requireAdmin(request, env);
     if (denied) return denied;
     return cjSearch(url, env);
+  }
+  if (pathname === '/api/cj/categories') {
+    const denied = await requireAdmin(request, env);
+    if (denied) return denied;
+    return cjCategories(env);
   }
 
   // --- Lume admin APIs ---
