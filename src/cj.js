@@ -96,14 +96,14 @@ export async function cjStatus(env) {
 function mapCjListItem(x) {
   const images = extractCjImages(x, { max: 16 });
   return {
-    id: x.id,
+    id: x.id || x.pid,
     name: x.nameEn || x.productNameEn || '',
     sku: x.sku || x.productSku || '',
     image: images[0] || x.bigImage || x.productImage || '',
     images,
     imageCount: images.length,
     costUSD: x.nowPrice || x.sellPrice,
-    stock: x.warehouseInventoryNum,
+    stock: x.warehouseInventoryNum ?? x.totalVerifiedInventory,
     verifiedStock: x.totalVerifiedInventory,
     deliveryDays: x.deliveryCycle,
     category: x.threeCategoryName || x.twoCategoryName || x.oneCategoryName || null,
@@ -115,42 +115,40 @@ function mapCjListItem(x) {
 }
 
 /**
- * Collect CJ products that already expose enough gallery photos.
- * Pages through listV2 until `limit` matches or `maxPages` is exhausted.
+ * Collect CJ products for the draft inbox, including products with thin galleries.
  */
 export async function collectCjProducts(env, {
   q = 'home decor',
   limit = 24,
-  minImages = 4,
   startPage = 1,
-  maxPages = 12,
-  pageSize = 20,
 } = {}) {
   const query = String(q || 'home decor').trim().slice(0, 100) || 'home decor';
   const want = Math.max(1, Math.min(100, Number(limit) || 24));
-  const min = Math.max(3, Math.min(8, Number(minImages) || 4));
   const token = await getCJToken(env);
   const products = [];
   const seen = new Set();
   let page = Math.max(1, Number(startPage) || 1);
   let scanned = 0;
   let totalRecords = 0;
-  const pagesCap = Math.max(1, Math.min(20, Number(maxPages) || 12));
 
-  for (let i = 0; i < pagesCap && products.length < want; i += 1) {
+  for (let i = 0; i < 3 && products.length < want; i += 1) {
     const p = new URLSearchParams({
       page: String(page),
-      size: String(Math.max(1, Math.min(50, Number(pageSize) || 20))),
+      size: String(want),
       keyWord: query,
     });
     p.append('features', 'enable_category');
-    const r = await fetch(
-      'https://developers.cjdropshipping.com/api2.0/v1/product/listV2?' + p.toString(),
-      { headers: { 'CJ-Access-Token': token, accept: 'application/json' } },
-    );
-    const d = await r.json();
+    const endpoint = 'https://developers.cjdropshipping.com/api2.0/v1/product/listV2?' + p.toString();
+    const options = { headers: { 'CJ-Access-Token': token, accept: 'application/json' } };
+    let r = await fetch(endpoint, options);
+    let d = await r.json().catch(() => ({}));
+    if (r.status === 429 || d.code === 1600200) {
+      await new Promise(resolve => setTimeout(resolve, 1100));
+      r = await fetch(endpoint, options);
+      d = await r.json().catch(() => ({}));
+    }
     if (!r.ok || d.code !== 200) {
-      const err = new Error(d.message || 'CJ product search failed');
+      const err = new Error(d.message || `CJ product search failed (HTTP ${r.status})`);
       err.code = d.code || r.status;
       throw err;
     }
@@ -165,15 +163,16 @@ export async function collectCjProducts(env, {
       const id = String(mapped.id || '');
       if (!id || seen.has(id)) continue;
       seen.add(id);
-      if (mapped.imageCount < min) continue;
+      if (!mapped.name) continue;
       products.push(mapped);
     }
+    if (batch.length < want || page >= Number(d.data?.totalPages)) break;
     page += 1;
+    if (products.length < want && i < 2) await new Promise(resolve => setTimeout(resolve, 1100));
   }
 
   return {
     query,
-    minImages: min,
     limit: want,
     page,
     scanned,
@@ -187,29 +186,21 @@ export async function cjSearch(url, env) {
     const q = (url.searchParams.get('q') || 'home decor').trim().slice(0, 100);
     const size = Math.max(1, Math.min(100, parseInt(url.searchParams.get('size') || '24', 10) || 24));
     const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10) || 1);
-    const minImages = Math.max(
-      3,
-      Math.min(8, parseInt(url.searchParams.get('minImages') || '4', 10) || 4),
-    );
     const collected = await collectCjProducts(env, {
       q,
       limit: size,
-      minImages,
       startPage: page,
-      maxPages: Math.max(6, Math.ceil(size / 4) + 4),
-      pageSize: 20,
     });
     return json({
       ok: true,
       query: collected.query,
       page,
       size,
-      minImages: collected.minImages,
       scanned: collected.scanned,
       total: collected.totalRecords || collected.products.length,
       products: collected.products,
       shippingCountryChecked: false,
-      note: `Only products with ${collected.minImages}+ supplier photos are listed. Tick boxes to import selected, or import 50/100 by query.`,
+      note: 'Products can be imported as drafts with any number of supplier photos.',
     });
   } catch (e) {
     return json(

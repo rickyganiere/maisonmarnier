@@ -86,9 +86,8 @@ export async function listPublishedProducts(env, { q = '', limit = 48 } = {}) {
   }
 }
 
-async function upsertImportedCjProduct(env, p, { minImages = 4 } = {}) {
-  if (!p || !p.id) throw new Error('Missing product id');
-  const min = Math.max(3, Math.min(8, Number(minImages) || 4));
+async function prepareCjDraft(env, p, { enrich = false } = {}) {
+  if (!p?.id || !['string', 'number'].includes(typeof p.id)) throw new Error('Missing product id');
   let images = Array.isArray(p.images) ? p.images : Array.isArray(p.image_urls) ? p.image_urls : [];
   let cost = Number(p.costUSD || 0) || 0;
   let stock = Number(p.stock || 0) || 0;
@@ -97,12 +96,12 @@ async function upsertImportedCjProduct(env, p, { minImages = 4 } = {}) {
   let skuRaw = String(p.sku || '');
   let image = safeUrl(p.image || images[0] || '', '');
 
-  // Enrich from CJ detail unless bulk path already has enough photos.
-  if (!p.skipEnrich) {
+  // Finder imports use the data already returned by search. Legacy single imports can fill missing data from CJ.
+  if (enrich) {
     try {
       const fresh = await refreshProductFromCJ(env, p.id);
       if (fresh) {
-        if (Array.isArray(fresh.images) && fresh.images.length) images = fresh.images;
+        if (Array.isArray(fresh.images) && fresh.images.length) images = [...fresh.images, ...images];
         if (fresh.image) image = safeUrl(fresh.image, image);
         if (fresh.costUSD > 0) cost = Number(fresh.costUSD) || cost;
         if (fresh.stock > 0) stock = Number(fresh.stock) || stock;
@@ -115,15 +114,14 @@ async function upsertImportedCjProduct(env, p, { minImages = 4 } = {}) {
     }
   }
 
-  images = (images || []).map((u) => safeUrl(u, '')).filter(Boolean);
-  if (!image && images[0]) image = images[0];
-  if (images.length < min) {
-    throw new Error(`Need at least ${min} supplier photos (found ${images.length})`);
-  }
+  images = productImages({ image_url: image, image_urls: images }, { max: 12 });
+  image = images[0] || '';
 
   let retail = Number(p.retailPriceEUR || 0) || 0;
+  cost = Number.isFinite(cost) && cost > 0 ? cost : 0;
+  stock = Number.isFinite(stock) && stock > 0 ? stock : 0;
+  retail = Number.isFinite(retail) && retail > 0 ? retail : 0;
   if (!(retail > 0) && cost > 0) retail = suggestedRetailEur(cost);
-  if (!(retail > 0)) throw new Error('Missing retail price');
 
   const name = cleanProductName(nameRaw) || nameRaw || 'Untitled';
   const category = mapMaisonCategory(name, p.category);
@@ -133,16 +131,10 @@ async function upsertImportedCjProduct(env, p, { minImages = 4 } = {}) {
   const sku = ('LL-CJ-' + String(skuRaw || p.id).replace(/[^A-Za-z0-9]/g, '').slice(-18)).toUpperCase();
   const gallery = serializeImageUrls(images);
 
-  await env.LUME_DB.prepare(
+  const statement = env.LUME_DB.prepare(
     `INSERT INTO products (lume_sku,supplier,supplier_product_id,supplier_sku,name,image_url,image_urls,supplier_cost_usd,retail_price_eur,compare_at_price_eur,category,stock,delivery_days,status,slug,description,updated_at)
      VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP)
-     ON CONFLICT(supplier_product_id) DO UPDATE SET
-       supplier_sku=excluded.supplier_sku,name=excluded.name,image_url=excluded.image_url,image_urls=excluded.image_urls,
-       supplier_cost_usd=excluded.supplier_cost_usd,retail_price_eur=excluded.retail_price_eur,
-       compare_at_price_eur=excluded.compare_at_price_eur,category=excluded.category,
-       stock=excluded.stock,delivery_days=excluded.delivery_days,slug=excluded.slug,
-       description=CASE WHEN products.description IS NULL OR products.description='' THEN excluded.description ELSE products.description END,
-       updated_at=CURRENT_TIMESTAMP`,
+     ON CONFLICT(supplier_product_id) DO NOTHING RETURNING id`,
   )
     .bind(
       sku,
@@ -161,17 +153,11 @@ async function upsertImportedCjProduct(env, p, { minImages = 4 } = {}) {
       'draft',
       slug,
       description,
-    )
-    .run();
+    );
 
   return {
-    ok: true,
-    lumeSku: sku,
-    status: 'draft',
-    name,
-    category,
-    slug,
-    imageCount: images.length,
+    statement,
+    draft: { lumeSku: sku, status: 'draft', name, category, slug, imageCount: images.length },
   };
 }
 
@@ -179,9 +165,9 @@ export async function importLumeProduct(request, env) {
   try {
     const p = await request.json();
     if (!p || !p.id || !p.name) return json({ ok: false, error: 'Missing product id/name' }, 400);
-    const minImages = Math.max(3, Math.min(8, Number(p.minImages || 4) || 4));
-    const result = await upsertImportedCjProduct(env, p, { minImages });
-    return json(result);
+    const { statement, draft } = await prepareCjDraft(env, p, { enrich: !Array.isArray(p.images) && !p.skipEnrich });
+    const saved = await statement.first();
+    return json({ ok: true, alreadyImported: !saved, ...draft });
   } catch (e) {
     return json({ ok: false, error: e.message || 'Import failed' }, 500);
   }
@@ -189,49 +175,48 @@ export async function importLumeProduct(request, env) {
 
 /**
  * Bulk import:
- * - { products: [...], minImages }
- * - or { q, limit: 50|100, minImages } to pull from CJ search
+ * - { products: [...] }
+ * - or { q, limit: 50|100 } to pull from CJ search
  */
 export async function importLumeProductsBulk(request, env) {
   try {
     const body = await request.json();
-    const minImages = Math.max(3, Math.min(8, Number(body?.minImages || 4) || 4));
     let candidates = Array.isArray(body?.products) ? body.products : [];
 
-    if (!candidates.length) {
+    if (Array.isArray(body?.products) && !candidates.length) {
+      return json({ ok: false, error: 'Select at least one product to import.' }, 400);
+    }
+    if (!Array.isArray(body?.products)) {
       const limit = Math.max(1, Math.min(100, Number(body?.limit || 50) || 50));
       const q = String(body?.q || body?.query || 'home decor').trim().slice(0, 100);
-      const collected = await collectCjProducts(env, {
-        q,
-        limit,
-        minImages,
-        maxPages: Math.max(8, Math.ceil(limit / 3) + 4),
-      });
+      const collected = await collectCjProducts(env, { q, limit });
       candidates = collected.products;
     }
 
     const imported = [];
     const skipped = [];
-    const enrichSelected = Array.isArray(body?.products) && body.products.length <= 20;
+    const pending = [];
     for (const p of candidates.slice(0, 100)) {
       try {
-        const r = await upsertImportedCjProduct(
-          env,
-          { ...p, skipEnrich: !enrichSelected },
-          { minImages },
-        );
-        imported.push({ id: p.id, lumeSku: r.lumeSku, imageCount: r.imageCount });
+        const { statement, draft } = await prepareCjDraft(env, p);
+        pending.push({ statement, item: { id: p.id, lumeSku: draft.lumeSku, imageCount: draft.imageCount } });
       } catch (e) {
         skipped.push({ id: p?.id, error: e.message || 'Import failed' });
       }
     }
+    const results = pending.length ? await env.LUME_DB.batch(pending.map(p => p.statement)) : [];
+    let alreadyImported = 0;
+    for (const [index, result] of results.entries()) {
+      if (result.results.length) imported.push(pending[index].item);
+      else alreadyImported += 1;
+    }
 
     return json({
       ok: true,
-      minImages,
       requested: candidates.length,
       imported: imported.length,
-      skipped: skipped.length,
+      skipped: skipped.length + alreadyImported,
+      alreadyImported,
       items: imported,
       errors: skipped.slice(0, 12),
     });
@@ -261,9 +246,8 @@ export async function updateLumeProduct(request, env) {
     const slug = live ? current.slug : slugify((p.slug ?? current.slug) || name);
     const description = p.description === undefined ? current.description : String(p.description ?? '').trim().slice(0, 5000);
     const category = p.category === undefined ? current.category : String(p.category ?? '').trim().slice(0, 160);
-    const imageInput = p.image_url ?? current.image_url ?? '';
-    const image = safeUrl(imageInput, '');
-    if (String(imageInput).trim() && !image) {
+    const image = p.image_url === undefined ? current.image_url : safeUrl(p.image_url, '');
+    if (String(p.image_url ?? '').trim() && !image) {
       return json({ ok: false, error: 'Main image URL must be http(s) or a site path' }, 400);
     }
     const galleryInput = Array.isArray(p.image_urls) ? p.image_urls : String(p.image_urls ?? '').split(/[\n,]+/);
@@ -317,11 +301,12 @@ export async function publishLumeProduct(request, env) {
     if (err) return json({ ok: false, error: err }, 400);
     const slug = slugify(row.slug || row.name);
     const images = productImages(row, { max: 12, allowStock: false });
-    await env.LUME_DB.prepare(
+    const saved = await env.LUME_DB.prepare(
       "UPDATE products SET status='live',slug=?,image_url=?,image_urls=?,published_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=?",
     )
       .bind(slug, images[0] || row.image_url, serializeImageUrls(images), id)
       .run();
+    if (!saved.meta.changes) return json({ ok: false, error: 'Product not found' }, 404);
     return json({ ok: true, id, slug, status: 'live', published_at: new Date().toISOString(), image_count: images.length });
   } catch (e) {
     return json({ ok: false, error: e.message || 'Publish failed' }, 500);
@@ -349,11 +334,12 @@ export async function publishAllLumeProducts(request, env) {
       try {
         const slug = slugify(row.slug || row.name);
         const images = productImages(row, { max: 12, allowStock: false });
-        await env.LUME_DB.prepare(
+        const saved = await env.LUME_DB.prepare(
           "UPDATE products SET status='live',slug=?,image_url=?,image_urls=?,published_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=?",
         )
           .bind(slug, images[0] || row.image_url, serializeImageUrls(images), row.id)
           .run();
+        if (!saved.meta.changes) throw new Error('Product no longer exists');
         published += 1;
       } catch (e) {
         skipped += 1;
@@ -387,7 +373,25 @@ export async function unpublishLumeProduct(request, env) {
   }
 }
 
-/** Permanently delete a product row. */
+/** Permanently delete selected rows that are still drafts. */
+export async function deleteLumeDrafts(request, env) {
+  const body = await request.json().catch(() => null);
+  if (!Array.isArray(body?.ids) || !body.ids.length || body.ids.length > 500 ||
+      !body.ids.every(id => Number.isSafeInteger(id) && id > 0)) {
+    return json({ ok: false, error: 'Select between 1 and 500 valid draft products.' }, 400);
+  }
+  const ids = [...new Set(body.ids)];
+  try {
+    const { results } = await env.LUME_DB.prepare(
+      "DELETE FROM products WHERE status='draft' AND id IN (SELECT value FROM json_each(?)) RETURNING id",
+    ).bind(JSON.stringify(ids)).all();
+    return json({ ok: true, deleted: results.length, skipped: ids.length - results.length });
+  } catch (e) {
+    return json({ ok: false, error: e.message || 'Could not delete drafts' }, 500);
+  }
+}
+
+/** Permanently delete a single product row. */
 export async function deleteLumeProduct(request, env) {
   try {
     const p = await request.json();

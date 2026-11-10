@@ -10,6 +10,7 @@ import {
   retryFulfill,
 } from './commerce.js';
 import {
+  deleteLumeDrafts,
   deleteLumeProduct,
   importLumeProduct,
   importLumeProductsBulk,
@@ -151,6 +152,12 @@ export async function handleRequest(request, env, ctx) {
     const denied = await requireAdmin(request, env);
     if (denied) return denied;
     return deleteLumeProduct(request, env);
+  }
+  if (pathname === '/api/lume/delete-drafts') {
+    if (method !== 'POST') return methodNotAllowed();
+    const denied = await requireAdmin(request, env);
+    if (denied) return denied;
+    return deleteLumeDrafts(request, env);
   }
   if (pathname === '/api/lume/prune-thin') {
     if (method !== 'POST') return methodNotAllowed();
