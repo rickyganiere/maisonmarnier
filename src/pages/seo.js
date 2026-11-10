@@ -1,5 +1,5 @@
 import { COLLECTION_RULES } from './collection.js';
-import { hasMultiRealPhotos } from '../lib/images.js';
+import { isStorefrontListable } from '../lib/images.js';
 import { SITE_ORIGIN, escXml, formatLastmod } from '../lib/seo.js';
 
 const INFO_PATHS = ['/about', '/shipping', '/returns', '/contact', '/sourcing', '/journal'];
@@ -97,7 +97,7 @@ export async function sitemapProductsXml(env) {
       .bind(PRODUCT_CAP * 3)
       .all();
     for (const p of r.results || []) {
-      if (!hasMultiRealPhotos(p, { min: 2 })) continue;
+      if (!isStorefrontListable(p, { minPhotos: 2 })) continue;
       entries.push(
         urlEntry(`${SITE_ORIGIN}/products/${encodeURIComponent(p.slug)}`, formatLastmod(p.published_at)),
       );

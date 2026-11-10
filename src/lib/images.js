@@ -36,6 +36,12 @@ export function hasMultiRealPhotos(p, { min = 2 } = {}) {
   return productImages(p, { max: 12, allowStock: false }).length >= min;
 }
 
+/** Storefront listing gate: price + multi real photos (no empty/stock-only). */
+export function isStorefrontListable(p, { minPhotos = 2 } = {}) {
+  if (!(Number(p?.retail_price_eur || 0) > 0)) return false;
+  return hasMultiRealPhotos(p, { min: minPhotos });
+}
+
 export function galleryValidationError(p, { min = 2 } = {}) {
   const imgs = productImages(p, { max: 12, allowStock: false });
   if (imgs.length < min) {

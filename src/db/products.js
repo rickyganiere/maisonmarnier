@@ -4,6 +4,7 @@ import { safeUrl } from '../lib/escape.js';
 import {
   galleryValidationError,
   hasMultiRealPhotos,
+  isStorefrontListable,
   productImages,
   serializeImageUrls,
 } from '../lib/images.js';
@@ -76,7 +77,7 @@ export async function listPublishedProducts(env, { q = '', limit = 48 } = {}) {
         .all();
     }
     const products = (r.results || [])
-      .filter((p) => hasMultiRealPhotos(p, { min: 2 }))
+      .filter((p) => isStorefrontListable(p, { minPhotos: 2 }))
       .slice(0, lim)
       .map(withGalleryMeta);
     return json({ ok: true, products, q: query || undefined });
@@ -354,7 +355,7 @@ export async function getLiveProducts(env, limit = 100) {
     .bind(Math.min(600, lim * 4))
     .all();
   return (r.results || [])
-    .filter((p) => hasMultiRealPhotos(p, { min: 2 }))
+    .filter((p) => isStorefrontListable(p, { minPhotos: 2 }))
     .slice(0, lim)
     .map(withGalleryMeta);
 }
@@ -367,6 +368,6 @@ export async function getLiveProductBySlug(env, slug) {
     .bind(slug)
     .first();
   if (!row) return null;
-  if (!hasMultiRealPhotos(row, { min: 2 })) return null;
+  if (!isStorefrontListable(row, { minPhotos: 2 })) return null;
   return withGalleryMeta(row);
 }
