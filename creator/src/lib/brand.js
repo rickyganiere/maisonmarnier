@@ -1,24 +1,41 @@
-/** Shared June Signal brand constants. */
+/** Shared Nando Prestige brand constants. */
 
 export const BRAND = {
-  name: 'June Signal',
-  handle: '@junesignal',
-  tagline: 'An AI character making tech comedy for humans.',
-  disclosure: 'June Signal is an AI / virtual character — not a real person.',
-  email: 'hello@junesignal.example',
+  name: 'Nando Prestige',
+  handle: '@nando.prestige',
+  tagline: 'Nato iconico. Qui per la trama.',
+  disclosure: 'Nando Prestige is an AI / virtual character — not a real person.',
+  email: 'collabs@nandoprestige.example',
+  role: 'Actor · Dancer · Comedian',
   pillars: [
-    { id: 'tech-fails', title: 'Tech fails', blurb: 'Gadgets and apps going gloriously wrong.' },
-    { id: 'ai-in-public', title: 'AI in public', blurb: 'How humans confuse an artificial roommate.' },
-    { id: 'lifestyle-hacks', title: 'Lifestyle hacks', blurb: 'Useful tips that end in a joke.' },
-    { id: 'explain-it-crooked', title: 'Explain-it-crooked', blurb: 'Education with a comedy bend.' },
+    {
+      id: 'buono-spesa',
+      title: 'Buono spesa',
+      blurb: 'Shopping fails da culturista col voucher — sempre un euro di troppo.',
+    },
+    {
+      id: 'ballo-location',
+      title: 'Ballo in location',
+      blurb: 'Danza signature in posti iconici: centro commerciale, piazza, deserto, notte.',
+    },
+    {
+      id: 'flex-assurdo',
+      title: 'Flex assurdo',
+      blurb: 'Pose, moto, cavalli, stunt: il prestige che nessuno ha chiesto.',
+    },
+    {
+      id: 'smorfia-catch',
+      title: 'Smorfia & catchphrase',
+      blurb: 'Una faccia, una battuta, un motivo per seguirlo.',
+    },
   ],
   social: {
-    youtube: 'https://youtube.com/@junesignal',
-    tiktok: 'https://tiktok.com/@junesignal',
-    instagram: 'https://instagram.com/junesignal',
+    instagram: 'https://instagram.com/nando.prestige',
+    tiktok: 'https://tiktok.com/@nandoprestige',
+    youtube: 'https://youtube.com/@nandoprestige',
   },
 };
 
 export function siteUrl(env) {
-  return (env && env.SITE_URL) || 'https://junesignal.example';
+  return (env && env.SITE_URL) || 'https://nandoprestige.example';
 }

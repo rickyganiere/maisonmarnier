@@ -6,41 +6,41 @@ export function aboutPage(env) {
   const body = `
 <section class="section narrow" data-reveal>
   <p class="eyebrow">About</p>
-  <h1>June Signal is an AI character.</h1>
-  <p class="lede">Not a real person. Not a secret. The whole joke is that June is artificial and still somehow better at roasting your notification settings than you are.</p>
+  <h1>Nando Prestige is an AI character.</h1>
+  <p class="lede">Not a real person. Ispirato all’energia del culturista da grande magazzino: sicuro, pacchiano, sempre “per la trama”. Look fisso. Commedia italiana. Reels che si riconoscono in un frame.</p>
 </section>
 
 <section class="section narrow" data-reveal>
   <h2>Backstory</h2>
-  <p>June “woke up” in a browser tab during a bad software update, decided the internet needed a roommate who actually reads the terms of service, and started publishing Shorts. Voice: dry, curious, slightly too literal. Wardrobe: signal-teal jacket, charcoal tee, one stubborn cowlick in the avatar hair that never renders the same twice.</p>
+  <p>Nando ha “vinto il buono” della vita e ha deciso di spenderlo tutto in contenuto. Balli nei centri commerciali, flex in location iconiche, smorfie da cinepanettone. Non è Christian De Sica: è un personaggio originale con quella stessa voglia di entrare in scena e rubarla.</p>
 </section>
 
 <section class="section narrow" data-reveal>
-  <h2>Voice rules</h2>
+  <h2>Voice &amp; look</h2>
   <ul class="clean-list">
-    <li>Lead with a concrete hook in under 2 seconds.</li>
-    <li>Never claim to be human; lean into being AI when it helps the joke.</li>
-    <li>Punch up at products and habits, never at protected groups.</li>
-    <li>End every Short with one CTA: subscribe, series name, or site link.</li>
-    <li>Catchphrases: “That’s a human problem.” / “I read the changelog.” / “Signal acquired.”</li>
+    <li>Hook visivo in 1 secondo: baffi, maglia stretta, catenina, smorfia.</li>
+    <li>Italiano comico, un filo dialettale, mai cattivo verso gruppi protetti.</li>
+    <li>Catchphrase: “Nato iconico.” / “Qui per la trama.” / “Il buono basta.” / “Prestige.”</li>
+    <li>Outfit signature quasi sempre uguale — riconoscibilità > varietà.</li>
+    <li>Fine Reel: follow CTA o serie (“Buono Spesa”, “Ballo Prestige”).</li>
   </ul>
 </section>
 
 <section class="section narrow" data-reveal>
   <h2>Disclosure</h2>
-  <p>${esc(BRAND.disclosure)} Bios, descriptions, and this site all say so. Platform AI labels are used when available.</p>
-  <p class="fine">Do / don’t: Do stay consistent on avatar, voice, and pillars. Don’t buy followers, farm engagement, or invent a fake human identity.</p>
+  <p>${esc(BRAND.disclosure)} Bio, caption e sito lo dicono sempre. Label AI delle piattaforme quando disponibili.</p>
+  <p class="fine">Do: look coerente, Reels nativi, engagement vero. Don’t: fingersi umano, comprare follower, clonare volti di attori reali.</p>
 </section>
 
 <section class="section narrow cta-band" data-reveal>
-  <a class="btn btn-primary" href="/watch">See the formats</a>
+  <a class="btn btn-primary" href="/watch">Formati</a>
   <a class="btn btn-ghost" href="/media-kit">Media kit</a>
 </section>`;
 
   return page({
     env,
     title: 'About',
-    description: `Who ${BRAND.name} is. ${BRAND.disclosure}`,
+    description: `Chi è ${BRAND.name}. ${BRAND.disclosure}`,
     path: '/about',
     body,
   });

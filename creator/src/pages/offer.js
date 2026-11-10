@@ -5,8 +5,8 @@ import { stripeConfigured } from '../lib/stripe.js';
 
 export function offerPage(env, { status } = {}) {
   const priceCents = Number(env.OFFER_PRICE_CENTS || 1900);
-  const currency = String(env.OFFER_CURRENCY || 'usd').toUpperCase();
-  const priceLabel = new Intl.NumberFormat('en-US', {
+  const currency = String(env.OFFER_CURRENCY || 'eur').toUpperCase();
+  const priceLabel = new Intl.NumberFormat('it-IT', {
     style: 'currency',
     currency,
   }).format(priceCents / 100);
@@ -14,51 +14,51 @@ export function offerPage(env, { status } = {}) {
   const checkoutReady = stripeConfigured(env);
   let banner = '';
   if (status === 'success') {
-    banner = `<p class="notice" role="status">Payment received. Delivery email flow is stubbed — fulfill the script pack manually until webhooks ship files.</p>`;
+    banner = `<p class="notice" role="status">Pagamento ok. Delivery email ancora stub — fulfill manuale del pack finché non colleghi webhook + file.</p>`;
   } else if (status === 'cancel') {
-    banner = `<p class="notice notice-muted" role="status">Checkout canceled. No charge.</p>`;
+    banner = `<p class="notice notice-muted" role="status">Checkout annullato. Nessun addebito.</p>`;
   }
 
   const body = `
 <section class="section narrow" data-reveal>
   <p class="eyebrow">Digital offer</p>
-  <h1>${esc(env.OFFER_NAME || 'June Signal Shorts Script Pack')}</h1>
-  <p class="lede">Thirty production-ready Shorts scripts in June’s voice, plus upload SOP notes. Built for creators who want a disclosed-AI comedy pipeline without staring at a blank doc.</p>
+  <h1>${esc(env.OFFER_NAME || 'Nando Prestige Reels Pack')}</h1>
+  <p class="lede">Trenta script Reels nella voce di Nando: hook → gag → CTA, mappati sui quattro pilastri. Per creator che vogliono un AI character da commedia senza partire da zero.</p>
   ${banner}
   <p class="price">${esc(priceLabel)}</p>
   <ul class="clean-list">
-    <li>30 Shorts: hook → punch → CTA</li>
-    <li>Mapped to the four content pillars</li>
-    <li>Title formulas + disclosure line included</li>
+    <li>30 Reels: buono spesa, ballo, flex, smorfia</li>
+    <li>Title / caption / disclosure line</li>
+    <li>SOP upload Instagram → TikTok → Shorts</li>
   </ul>
   ${
     checkoutReady
       ? `<form method="post" action="/api/checkout">
-          <label class="email-inline">Email for receipt
+          <label class="email-inline">Email per ricevuta
             <input name="email" type="email" required maxlength="200" autocomplete="email" />
           </label>
-          <button class="btn btn-primary" type="submit">Buy with Stripe</button>
+          <button class="btn btn-primary" type="submit">Compra con Stripe</button>
         </form>`
-      : `<p class="notice notice-muted">Stripe is not configured yet. Set <code>STRIPE_SECRET_KEY</code> (and optionally <code>STRIPE_PRICE_ID</code>) to enable checkout. Scripts are also free in the repo under <code>creator/content/</code> for the brand owner.</p>
-         <a class="btn btn-ghost" href="/media-kit">See sponsorships instead</a>`
+      : `<p class="notice notice-muted">Stripe non configurato. Imposta <code>STRIPE_SECRET_KEY</code> (e opzionale <code>STRIPE_PRICE_ID</code>). Gli script sono anche in <code>creator/content/</code> per il brand owner.</p>
+         <a class="btn btn-ghost" href="/media-kit">Vedi sponsorship</a>`
   }
 </section>
 
 <section class="section narrow" data-reveal>
   <h2>Affiliate links</h2>
-  <p>Replace placeholders with your tracked URLs once programs are approved.</p>
+  <p>Sostituisci i placeholder quando i programmi sono approvati.</p>
   <ul class="affiliate-list">
-    <li><span>Creator toolkit</span> <code>#AFFILIATE_CREATOR_TOOLKIT</code></li>
-    <li><span>Desk gadget of the week</span> <code>#AFFILIATE_GADGET</code></li>
-    <li><span>Note-taking app</span> <code>#AFFILIATE_NOTES</code></li>
+    <li><span>Gym / protein</span> <code>#AFFILIATE_GYM</code></li>
+    <li><span>Streetwear prestige</span> <code>#AFFILIATE_FIT</code></li>
+    <li><span>Gadget flex</span> <code>#AFFILIATE_GADGET</code></li>
   </ul>
-  <p class="fine">June discloses paid relationships on camera and in descriptions.</p>
+  <p class="fine">Nando dichiara sempre i rapporti a pagamento.</p>
 </section>`;
 
   return page({
     env,
     title: 'Offer',
-    description: `Buy the ${BRAND.name} Shorts Script Pack and find affiliate links.`,
+    description: `Compra il Reels Pack di ${BRAND.name}.`,
     path: '/offer',
     body,
   });

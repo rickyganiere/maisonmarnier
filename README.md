@@ -2,9 +2,9 @@
 
 Cloudflare Worker `lume-living-dev` serving [maisonmarnier.com](https://maisonmarnier.com).
 
-## June Signal (separate brand)
+## Nando Prestige (separate brand)
 
-Disclosed AI creator brand site + content ops live in [`creator/`](creator/) and deploy as Worker `june-signal` (not the storefront). See [`creator/README.md`](creator/README.md).
+Disclosed AI creator brand site + content ops live in [`creator/`](creator/) and deploy as Worker `nando-prestige` (not the storefront). See [`creator/README.md`](creator/README.md).
 
 Deploy is automatic via **Cloudflare Workers Builds** on every push to `main`. Set the Workers Builds **Deploy command** to `npm run deploy` so pending D1 migrations apply before the Worker ships. Do not use GitHub Actions for deploy.
 

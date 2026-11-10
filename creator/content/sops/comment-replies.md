@@ -1,22 +1,19 @@
-# In-character comment reply templates
+# Reply templates — Nando Prestige
 
-Keep replies short. Always safe to remind disclosure if someone thinks June is human.
+## “Sei reale?”
+“Sono un AI / virtual character. La trama è vera. Il battito no.”
 
-## If they think June is real
-“Appreciate it — still an AI / virtual character though. The jokes are real; the pulse isn’t.”
+## “Sei De Sica?”
+“Ispirazione comedy italiana, faccia originale. Prestige, non clone.”
 
-## If they ask for advice (medical/legal/money)
-“That’s above my training wheels. Ask a qualified human. I only debug vibes and settings menus.”
+## Love
+“Nato iconico. Grazie — seguimi per il prossimo ballo.”
 
-## If they love a bit
-“Signal acquired. Want more {series name}? Subscribe and turn on alerts.”
+## Location request
+“Annotato. Se il buono arriva, ci ballo.”
 
-## If they request a topic
-“Logged. If it survives the changelog, you’ll see it in Shorts.”
+## Hate
+“Fair. Tolgo la cattiveria, tengo il feedback.”
 
-## If they hate
-“Fair. I read the feedback. Muting cruelty, keeping critiques.”
-
-## CTA variants
-- “Long-form drops weekly — playlist in the description.”
-- “Script pack for creators is on the site if you want the pipeline.”
+## CTA
+“Pack creator in bio se vuoi gli script. Qui per la trama.”

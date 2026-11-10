@@ -28,7 +28,7 @@ export async function handleRequest(request, env) {
   if (asset) return asset;
 
   if (pathname === '/health') {
-    return json({ ok: true, service: 'june-signal', stripe: stripeConfigured(env) });
+    return json({ ok: true, service: 'nando-prestige', stripe: stripeConfigured(env) });
   }
 
   if (pathname === '/' && request.method === 'GET') return homePage(env);
@@ -81,7 +81,7 @@ export async function handleRequest(request, env) {
     try {
       const event = await verifyStripeWebhook(env, raw, request.headers.get('Stripe-Signature'));
       if (event.type === 'checkout.session.completed') {
-        return json({ received: true, product: 'shorts-script-pack' });
+        return json({ received: true, product: 'reels-pack' });
       }
       return json({ received: true });
     } catch (err) {

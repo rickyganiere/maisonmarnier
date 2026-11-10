@@ -6,53 +6,52 @@ export function mediaKitPage(env) {
   const body = `
 <section class="section narrow" data-reveal>
   <p class="eyebrow">Media kit</p>
-  <h1>Sponsor an AI that discloses itself.</h1>
-  <p class="lede">June Signal is a YouTube-first tech-comedy lifestyle character. Brands that fit: developer tools, gadgets, productivity apps, creator software — anything June can “try” on camera without lying about being AI.</p>
+  <h1>Sponsor un AI character da commedia italiana.</h1>
+  <p class="lede">${esc(BRAND.name)} — ${esc(BRAND.role)}. Brand che ci stanno: fashion flashy, gym, centri commerciali, food, travel, comedy apps. Sempre con disclosure AI.</p>
 </section>
 
 <section class="section" data-reveal>
-  <div class="stat-grid" aria-label="Audience targets">
-    <div><strong>YouTube-first</strong><span>Shorts + long-form</span></div>
-    <div><strong>Niche</strong><span>Tech · comedy · lifestyle</span></div>
+  <div class="stat-grid" aria-label="Posizionamento">
+    <div><strong>IG Reels-first</strong><span>Look fisso · alto replay</span></div>
+    <div><strong>Niche</strong><span>Comedy · dance · lifestyle</span></div>
     <div><strong>Disclosure</strong><span>100% AI-labeled</span></div>
-    <div><strong>Cadence</strong><span>1 Short/day · 1 long/week</span></div>
+    <div><strong>Cadence</strong><span>1 Reel/giorno seed month</span></div>
   </div>
 </section>
 
 <section class="section narrow" data-reveal>
-  <h2>Formats &amp; starter rates</h2>
-  <p class="fine">Rates are placeholders until audience metrics are live — update before sending to brands.</p>
+  <h2>Formati &amp; rate starter</h2>
+  <p class="fine">Placeholder finché non ci sono metriche reali — aggiorna prima di mandare ai brand.</p>
   <table class="rates">
-    <thead><tr><th>Format</th><th>Includes</th><th>From</th></tr></thead>
+    <thead><tr><th>Format</th><th>Include</th><th>Da</th></tr></thead>
     <tbody>
-      <tr><td>Dedicated Short</td><td>1 × 30–45s, disclosure + verbal mention</td><td>$250</td></tr>
-      <tr><td>Short series (3)</td><td>3 Shorts over 1 week, same product story</td><td>$650</td></tr>
-      <tr><td>Long-form integration</td><td>60–90s mid-roll in 8–12 min video</td><td>$800</td></tr>
-      <tr><td>Dedicated long-form</td><td>Full episode framed around the product</td><td>$1,500</td></tr>
+      <tr><td>Reel dedicato</td><td>1 × 20–40s, disclosure + mention</td><td>€250</td></tr>
+      <tr><td>Serie 3 Reels</td><td>Story arc in una settimana</td><td>€650</td></tr>
+      <tr><td>Dance integration</td><td>Product in Ballo Prestige</td><td>€400</td></tr>
+      <tr><td>Whitelisting 30gg</td><td>Uso ads del Reel</td><td>€300</td></tr>
     </tbody>
   </table>
 </section>
 
 <section class="section narrow" data-reveal>
-  <h2>Affiliate-friendly categories</h2>
+  <h2>Affiliate-friendly</h2>
   <ul class="clean-list">
-    <li>Note-taking, AI writing, and creator tools</li>
-    <li>Budget gadgets and desk setup</li>
-    <li>VPN / password / privacy apps (honest demos only)</li>
-    <li>Online learning and course platforms</li>
+    <li>Gym / protein / streetwear pacchiano</li>
+    <li>Gadget e “prestige” low-cost</li>
+    <li>Travel / experience (zoo, mall, city nights — disclosed)</li>
   </ul>
-  <p>Tracked links live on <a href="/offer">/offer</a> and in video descriptions. Affiliate relationships are disclosed per FTC / platform rules.</p>
+  <p>Link tracciati su <a href="/offer">/offer</a>. Disclosure FTC / AGCM quando serve.</p>
 </section>
 
 <section class="section narrow cta-band" data-reveal>
-  <a class="btn btn-primary" href="/contact">Book a briefing</a>
+  <a class="btn btn-primary" href="/contact">Collabs</a>
   <a class="btn btn-ghost" href="mailto:${esc(BRAND.email)}">${esc(BRAND.email)}</a>
 </section>`;
 
   return page({
     env,
     title: 'Media Kit',
-    description: `Sponsorship formats and rates for ${BRAND.name}.`,
+    description: `Sponsorship formats for ${BRAND.name}.`,
     path: '/media-kit',
     body,
   });

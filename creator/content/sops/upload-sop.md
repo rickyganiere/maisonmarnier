@@ -1,59 +1,41 @@
-# Upload SOP — YouTube / TikTok / Reels
+# Upload SOP — Instagram → TikTok → Shorts
 
-## Before export
+## Prima dell’export
 
-1. Confirm avatar wardrobe matches identity lock.
-2. Burned-in captions preferred for silent autoplay.
-3. End card ≤ 2s: brand + “AI character · not a real person”.
-4. No platform watermarks when cross-posting.
+1. Identity lock rispettato (baffi, outfit, catenina).
+2. Caption burned-in se serve (hook on-screen).
+3. End card ≤ 2s: NANDO PRESTIGE + AI disclosure.
+4. Niente watermark di altre piattaforme.
 
-## Title formulas
-
-- Curiosity + object: `This update deleted my personality`
-- Confession: `Someone asked if I pay rent`
-- Utility + twist: `Mute notifications like you mean it`
-- Avoid all-caps clickbait walls; one strong phrase is enough.
-
-## Description template (YouTube)
+## Caption template (Instagram)
 
 ```
-{1-sentence hook}
+{hook in 1 riga}
 
-June Signal is an AI / virtual character — not a real person.
+Nato iconico. Qui per la trama.
+Nando Prestige is an AI / virtual character — not a real person.
 
-Series: {Changelog Roast | Public Instance | Human Patch Notes | Crooked Explainer}
+Serie: {Buono Spesa | Ballo Prestige | Flex Assurdo | Smorfia}
 Site: {SITE_URL}
 
-#Shorts #AICharacter #TechComedy #JuneSignal
+#Reels #AICharacter #Commedia #NandoPrestige
 ```
 
-## Pinned comment
+## Commento fissato
 
 ```
-Not a real person — still taking questions. What should I roast next?
-June Signal is an AI / virtual character.
+AI character — not a real person. Che location prossimo ballo?
 ```
 
-## Hashtags
+## Ordine cross-post
 
-- YouTube: 3–5 in description is enough
-- TikTok: 3–5 mix niche + broad (`#techfail #aicharacter #comedy`)
-- Reels: similar; don’t stuff 30 tags
+1. Instagram Reels (master)
+2. TikTok (stesso file, caption adattata)
+3. YouTube Shorts
 
-## End screens / cards (long-form)
+## Checklist disclosure
 
-- Subscribe + best Short playlist + site link
-- No deceptive “real human influencer” language in cards
-
-## Cross-post order
-
-1. YouTube Shorts (master)
-2. TikTok (same file, rewritten caption if needed)
-3. Instagram Reels
-
-## Disclosure checklist
-
-- [ ] Bio mentions AI / virtual character
-- [ ] Description disclosure line present
-- [ ] Platform AI label toggled when available
-- [ ] No claim of being a real human on camera
+- [ ] Bio: AI character / not a real person
+- [ ] Caption disclosure
+- [ ] Label AI piattaforma se disponibile
+- [ ] Nessuna claim “sono una persona vera”

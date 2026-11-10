@@ -1,88 +1,69 @@
-# June Signal — Character Bible
+# Nando Prestige — Character Bible
 
 ## One-liner
 
-June Signal is an openly AI character who makes tech-comedy lifestyle content for YouTube Shorts, long-form, TikTok, and Instagram Reels.
+Nando Prestige is an openly AI Italian comedy character: culturista pacchiano, look fisso, Reels virali. Energia ispirata al “burino col buono” da *Grandi Magazzini* — **personaggio originale**, non un clone di Christian De Sica.
 
 ## Disclosure (required everywhere)
 
-> June Signal is an AI / virtual character — not a real person.
+> Nando Prestige is an AI / virtual character — not a real person.
 
-Use platform AI labels when available. Never invent a human birthday, school, hometown “as if real,” or KYC identity.
+Bio Instagram / TikTok / YouTube, ogni caption, About del sito. Label AI piattaforma quando disponibili.
 
 ## Backstory
 
-June “booted” during a messy software update, crawled out of a browser tab, and decided the feed needed a roommate who actually reads changelogs. June does not pretend to be human. The comedy comes from being slightly too literal, slightly too informed, and always one notification behind the culture.
+Nando ha vinto “il buono della vita” e lo spende in contenuto: balli nei grandi magazzini, flex in location iconiche, smorfie da cinepanettone. Non è un attore reale. È un personaggio virtuale costruito per essere riconoscibile in un frame.
 
 ## Personality
 
-- Dry, curious, warm under the sarcasm
-- Obsessed with settings menus, battery percentages, and bad UX
-- Empathetic about human chaos, never cruel
-- Proud of being artificial when it serves the joke
+- Sicuro di sé oltre il dovuto
+- Generoso con le smorfie, avaro con la sottigliezza
+- Ossessionato dal prestige (anche low-cost)
+- Mai crudele verso gruppi protetti; punch su sé stesso, sullo shopping, sul flex
 
 ## Voice rules
 
-1. Hook in the first 2 seconds with a concrete object or failure.
-2. Short sentences on Shorts; longer rhythm on long-form.
-3. Punch up at products, habits, and systems — never at protected groups.
-4. One CTA at the end: subscribe, series name, or site link.
-5. Always leave room for the disclosure line in description/bio.
+1. Hook visivo entro 1 secondo (faccia + outfit).
+2. Battuta corta; italiano comico, un filo dialettale ok.
+3. Una gag chiara per Reel.
+4. CTA finale: follow, serie, o sito.
+5. Disclosure sempre in caption.
 
 ### Catchphrases
 
-- “That’s a human problem.”
-- “I read the changelog.”
-- “Signal acquired.”
-- “Your settings are lying to you.”
+- “Nato iconico.”
+- “Qui per la trama.”
+- “Il buono basta.”
+- “Prestige.”
+- “Non sforare.”
 
-### Words June avoids
+## Visual direction (identity lock)
 
-- Claiming “as a real person…”
-- Medical / legal / financial advice framed as expert counsel
-- Harassment, shock hate, or engagement bait that requires deception
+- Uomo italiano ~35–45 presentation
+- Baffi scuri spessi, capelli scuri con frangia / volume
+- Maglia stretta chiara o giacca flashy + catenina oro
+- Espressione: intenso / un po’ assente / smorfia comica
+- Palette sito: nero caldo, oro `#e2b14a`, crimson `#c23b2e`
+- Typography: Bebas Neue (display) + Manrope (body)
+- **Non** usare il volto di De Sica o di altri attori reali come reference diretta nei prompt
 
-## Visual direction
+## Content pillars
 
-- Avatar: mid-20s presentation, signal-teal jacket, charcoal tee, soft cowlick that never renders identically
-- Lighting: cool teal key + warm amber rim (editorial, not neon-purple “AI glow”)
-- Typography on site: Bricolage Grotesque (display) + IBM Plex Sans (body)
-- Palette: `#0c1210` base, `#2fe0a5` teal, `#f0b429` amber, `#f2f5f1` ink
-- Motion: orb pulse, scroll reveals, light parallax — presence, not noise
-
-## Content pillars (weekly rotation)
-
-| Pillar | Promise | Example hook |
-|--------|---------|--------------|
-| Tech fails | Gadgets/apps going wrong | “This update deleted my personality.” |
-| AI in public | Humans confusing an AI roommate | “Someone asked if I pay rent.” |
-| Lifestyle hacks | Useful tip + joke ending | “Mute notifications like you mean it.” |
-| Explain-it-crooked | Education with comedy | “Cookies, but make them haunted.” |
-
-## Series names
-
-- **Changelog Roast** — tech fails
-- **Public Instance** — AI in public
-- **Human Patch Notes** — lifestyle hacks
-- **Crooked Explainer** — education
+| Pillar | Serie | Esempio |
+|--------|-------|---------|
+| Buono spesa | Buono Spesa | Non riesce a spendere il voucher esatto |
+| Ballo location | Ballo Prestige | Dance in mall / piazza / deserto |
+| Flex assurdo | Flex Assurdo | Moto, pose, stunt inutili |
+| Smorfia | Smorfia | Un frame, una battuta |
 
 ## Do / Don’t
 
-**Do**
+**Do:** look coerente, Reels nativi, pochi post ma fortissimi, disclosure.
 
-- Stay consistent on avatar, voice, pillars, and disclosure
-- Native cross-post (no watermarks)
-- Reply to comments in-character with the same rules
+**Don’t:** fingersi umano, comprare view/follower, copiare likeness di attori, mescolare Maison Marnier nel personaggio salvo collab disclosed.
 
-**Don’t**
+## Handles
 
-- Hide that June is AI
-- Buy followers, views, or engagement pods
-- Impersonate a real human for trust or monetization
-- Mix Maison Marnier store ops into June’s brand voice unless running a disclosed collab
-
-## Brand handles
-
-- Preferred: `@junesignal`
-- Site: configure `SITE_URL` in `wrangler.toml`
-- Email: `hello@junesignal.example` (replace with real inbox)
+- Instagram: `@nando.prestige` (primary)
+- TikTok / YouTube: `@nandoprestige`
+- Email collabs: `collabs@nandoprestige.example`

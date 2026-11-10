@@ -33,7 +33,7 @@ async function stripeForm(env, path, params, { method = 'POST', idempotencyKey }
 }
 
 /**
- * Hosted Checkout Session for the June Signal digital script pack.
+ * Hosted Checkout Session for the Nando Prestige Reels Pack.
  * Prefer STRIPE_PRICE_ID when set; otherwise uses price_data from env vars.
  */
 export async function createDigitalOfferCheckout(env, { successUrl, cancelUrl, customerEmail }) {
@@ -42,7 +42,7 @@ export async function createDigitalOfferCheckout(env, { successUrl, cancelUrl, c
     success_url: successUrl,
     cancel_url: cancelUrl,
     billing_address_collection: 'auto',
-    'metadata[product]': 'shorts-script-pack',
+    'metadata[product]': 'reels-pack',
     allow_promotion_codes: 'true',
   };
 
@@ -53,19 +53,19 @@ export async function createDigitalOfferCheckout(env, { successUrl, cancelUrl, c
     params['line_items[0][quantity]'] = '1';
   } else {
     const cents = String(env.OFFER_PRICE_CENTS || '1900');
-    const currency = String(env.OFFER_CURRENCY || 'usd').toLowerCase();
-    const name = env.OFFER_NAME || 'June Signal Shorts Script Pack';
+    const currency = String(env.OFFER_CURRENCY || 'eur').toLowerCase();
+    const name = env.OFFER_NAME || 'Nando Prestige Reels Pack';
     params['line_items[0][quantity]'] = '1';
     params['line_items[0][price_data][currency]'] = currency;
     params['line_items[0][price_data][unit_amount]'] = cents;
     params['line_items[0][price_data][product_data][name]'] = name;
     params['line_items[0][price_data][product_data][description]'] =
-      '30 disclosed-AI Shorts scripts + upload SOP notes. Digital download delivered after purchase.';
-    params['line_items[0][price_data][product_data][metadata][product]'] = 'shorts-script-pack';
+      '30 disclosed-AI Reels scripts in Nando Prestige voice + upload SOP. Digital download after purchase.';
+    params['line_items[0][price_data][product_data][metadata][product]'] = 'reels-pack';
   }
 
   return stripeForm(env, '/checkout/sessions', params, {
-    idempotencyKey: `june-offer-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
+    idempotencyKey: `nando-offer-${Date.now()}-${Math.random().toString(36).slice(2, 8)}`,
   });
 }
 

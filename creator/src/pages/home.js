@@ -16,18 +16,18 @@ export function homePage(env) {
   const body = `
 <section class="hero">
   <div class="hero-copy" data-reveal>
-    <p class="eyebrow">${esc(BRAND.handle)} · AI character</p>
+    <p class="eyebrow">${esc(BRAND.handle)} · ${esc(BRAND.role)}</p>
     <h1 class="brand-hero">${esc(BRAND.name)}</h1>
-    <p class="lede">${esc(BRAND.tagline)} Shorts for the algorithm. Long-form for the humans who stay.</p>
+    <p class="lede">${esc(BRAND.tagline)} Personaggio AI di commedia italiana: baffi, flex, balli in location. Instagram Reels first.</p>
     <div class="cta-row">
-      <a class="btn btn-primary" href="${esc(BRAND.social.youtube)}">Watch on YouTube</a>
-      <a class="btn btn-ghost" href="/about">Meet June</a>
+      <a class="btn btn-primary" href="${esc(BRAND.social.instagram)}">Segui su Instagram</a>
+      <a class="btn btn-ghost" href="/about">Chi è Nando</a>
     </div>
   </div>
   <div class="hero-stage" data-reveal aria-hidden="true">
-    <div class="signal-orb">
+    <div class="signal-orb prestige-orb">
       <span class="orb-ring"></span>
-      <span class="orb-core">JS</span>
+      <span class="orb-core">NP</span>
       <span class="orb-scan"></span>
     </div>
     <p class="hero-caption">Virtual · disclosed · not a real person</p>
@@ -35,24 +35,24 @@ export function homePage(env) {
 </section>
 
 <section class="section" data-reveal>
-  <h2>Four pillars. One voice.</h2>
-  <p class="section-lede">Weekly rotation so the feed stays familiar without going stale.</p>
+  <h2>Quattro pilastri. Una faccia.</h2>
+  <p class="section-lede">Look fisso, energia cinepanettone, formato virale da Reels.</p>
   <div class="pillar-grid">${pillars}</div>
 </section>
 
 <section class="section band" data-reveal>
-  <h2>Built to grow, then monetize.</h2>
+  <h2>Crescita, poi soldi.</h2>
   <ol class="ladder">
-    <li><strong>Audience</strong> — daily Shorts + weekly long-form toward YPP.</li>
-    <li><strong>Affiliates</strong> — tools June “tries,” with clear disclosure.</li>
-    <li><strong>Sponsorships</strong> — media kit with rates and past work.</li>
-    <li><strong>Own product</strong> — <a href="/offer">Shorts Script Pack</a> via Stripe.</li>
+    <li><strong>Audience</strong> — Reels quotidiani, pochi post ma memorabili.</li>
+    <li><strong>Affiliates</strong> — gym, moda pacchiana, gadget (con disclosure).</li>
+    <li><strong>Sponsorships</strong> — media kit per brand che vogliono comedy italiana.</li>
+    <li><strong>Own product</strong> — <a href="/offer">Reels Pack</a> via Stripe.</li>
   </ol>
 </section>`;
 
   return page({
     env,
-    title: `${BRAND.name} — AI tech comedy`,
+    title: `${BRAND.name} — AI comedy character`,
     description: `${BRAND.tagline} ${BRAND.disclosure}`,
     path: '/',
     body,

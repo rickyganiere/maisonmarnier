@@ -1,6 +1,6 @@
-# June Signal
+# Nando Prestige
 
-Disclosed AI creator brand — YouTube-first tech comedy lifestyle. This Worker serves the public brand site and a Stripe Checkout stub for the digital Shorts Script Pack.
+Disclosed AI creator brand — Instagram Reels-first Italian comedy character (Borazzi energy, original look). This Worker serves the public brand site and a Stripe Checkout stub for the Reels Pack.
 
 Maison Marnier (repo root) is a separate storefront. Deploy this app on its own.
 
@@ -34,17 +34,15 @@ Point Stripe webhook to `https://<your-domain>/api/stripe/webhook`.
 
 ## Content ops
 
-Everything under `content/` is the production system:
-
 | Path | Purpose |
 |------|---------|
 | `content/CHARACTER_BIBLE.md` | Voice, look, disclosure, pillars |
-| `content/scripts/shorts-01-30.md` | 30 Shorts scripts |
-| `content/scripts/longform-outlines.md` | 8 long-form outlines |
+| `content/scripts/reels-01-30.md` | 30 Reels scripts |
+| `content/scripts/longform-outlines.md` | Optional longer cuts |
 | `content/prompts/` | Avatar / scene prompt packs |
 | `content/calendar-30-day.md` | First 30 days |
 | `content/sops/` | Upload + account setup checklists |
 
 ## Disclosure
 
-Every bio, description, and page must state that June Signal is an AI / virtual character — not a real person. No fake human identity, no bought engagement.
+Every bio, caption, and page must state that Nando Prestige is an AI / virtual character — not a real person. No fake human identity, no bought engagement, no cloning real actors’ faces.

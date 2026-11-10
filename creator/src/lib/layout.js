@@ -20,7 +20,7 @@ function navHtml(activePath) {
 
 export function page({ env, title, description, path, body, bodyClass = '' }) {
   const html = `<!DOCTYPE html>
-<html lang="en">
+<html lang="it">
 <head>
 <meta charset="utf-8" />
 <meta name="viewport" content="width=device-width, initial-scale=1" />
@@ -28,11 +28,11 @@ ${seoHead({ env, title, description, path })}
 <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
 <link rel="preconnect" href="https://fonts.googleapis.com" />
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
-<link href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700;12..96,800&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet" />
+<link href="https://fonts.googleapis.com/css2?family=Bebas+Neue&family=Manrope:wght@400;500;600;700&display=swap" rel="stylesheet" />
 <link rel="stylesheet" href="/styles.css" />
 </head>
 <body class="${esc(bodyClass)}">
-<a class="skip" href="#main">Skip to content</a>
+<a class="skip" href="#main">Vai al contenuto</a>
 <div class="noise" aria-hidden="true"></div>
 <header class="site-header">
   <a class="logo" href="/">
@@ -46,13 +46,14 @@ ${seoHead({ env, title, description, path })}
 <footer class="site-footer">
   <div>
     <strong>${esc(BRAND.name)}</strong>
+    <p>${esc(BRAND.role)}</p>
     <p>${esc(BRAND.tagline)}</p>
     <p class="fine">${esc(BRAND.disclosure)}</p>
   </div>
   <div class="footer-links">
-    <a href="${esc(BRAND.social.youtube)}">YouTube</a>
-    <a href="${esc(BRAND.social.tiktok)}">TikTok</a>
     <a href="${esc(BRAND.social.instagram)}">Instagram</a>
+    <a href="${esc(BRAND.social.tiktok)}">TikTok</a>
+    <a href="${esc(BRAND.social.youtube)}">YouTube</a>
     <a href="/media-kit">Media kit</a>
     <a href="/contact">Contact</a>
   </div>

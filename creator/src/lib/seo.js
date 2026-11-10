@@ -5,7 +5,7 @@ export function seoHead({ env, title, description, path = '/', type = 'website' 
   const base = siteUrl(env).replace(/\/$/, '');
   const url = `${base}${path === '/' ? '' : path}`;
   const fullTitle = title.includes(BRAND.name) ? title : `${title} · ${BRAND.name}`;
-  const desc = description || BRAND.tagline;
+  const desc = description || `${BRAND.tagline} ${BRAND.disclosure}`;
   const ogImage = `${base}/og.svg`;
 
   return `
@@ -28,10 +28,9 @@ export function seoHead({ env, title, description, path = '/', type = 'website' 
     '@type': 'Person',
     name: BRAND.name,
     alternateName: BRAND.handle,
-    description: `${BRAND.tagline} ${BRAND.disclosure}`,
+    description: `${BRAND.role}. ${BRAND.tagline} ${BRAND.disclosure}`,
     url: base,
     email: BRAND.email,
     sameAs: Object.values(BRAND.social),
-    additionalType: 'https://schema.org/VirtualLocation',
   })}</script>`;
 }
