@@ -17,7 +17,7 @@ import {
 import { collectCjProducts, refreshProductFromCJ } from '../cj.js';
 
 const PRODUCT_COLS =
-  'id,lume_sku,supplier,supplier_product_id,supplier_sku,name,image_url,image_urls,supplier_cost_usd,retail_price_eur,compare_at_price_eur,category,stock,delivery_days,status,slug,description,published_at,created_at';
+  'id,lume_sku,supplier,supplier_product_id,supplier_sku,name,image_url,image_urls,supplier_cost_usd,retail_price_eur,compare_at_price_eur,category,stock,delivery_days,status,slug,description,published_at,created_at,updated_at';
 
 function publishValidationError(row) {
   if (!row) return 'Product not found';
@@ -244,33 +244,59 @@ export async function updateLumeProduct(request, env) {
   try {
     const p = await request.json();
     const id = Number(p.id);
-    if (!id) return json({ ok: false, error: 'Missing product id' }, 400);
-    const name = String(p.name || '').trim().slice(0, 240);
-    if (!name) return json({ ok: false, error: 'Product title is required' }, 400);
-    const slug = slugify(p.slug || name);
-    const description = String(p.description || '').trim().slice(0, 5000);
-    const image = safeUrl(p.image_url, '');
-    if (p.image_url && !image) return json({ ok: false, error: 'Image URL must be http(s) or a site path' }, 400);
-    let gallery = null;
-    if (Array.isArray(p.image_urls)) {
-      gallery = serializeImageUrls(p.image_urls);
-    } else if (typeof p.image_urls === 'string' && p.image_urls.trim()) {
-      const parts = p.image_urls
-        .split(/[\n,]+/)
-        .map((s) => s.trim())
-        .filter(Boolean);
-      gallery = serializeImageUrls(parts);
+    if (!Number.isSafeInteger(id) || id <= 0) {
+      return json({ ok: false, error: 'Invalid product id' }, 400);
     }
-    const category = String(p.category || '').trim().slice(0, 160);
-    let retail = Number(p.retail_price_eur || 0) || 0;
-    let compare = Number(p.compare_at_price_eur || 0) || null;
-    if (!(compare > 0) && retail > 0) compare = suggestedCompareEur(retail);
-    await env.LUME_DB.prepare(
-      `UPDATE products SET name=?,slug=?,description=?,image_url=?,image_urls=?,category=?,retail_price_eur=?,compare_at_price_eur=?,updated_at=CURRENT_TIMESTAMP WHERE id=?`,
-    )
-      .bind(name, slug, description, image, gallery, category, retail, compare, id)
-      .run();
-    return json({ ok: true, id, slug, status: 'saved' });
+    const current = await env.LUME_DB.prepare(
+      `SELECT ${PRODUCT_COLS} FROM products WHERE id=?`,
+    ).bind(id).first();
+    if (!current) return json({ ok: false, error: 'Product not found' }, 404);
+    if (p.revision !== undefined && p.revision !== current.updated_at) {
+      return json({ ok: false, conflict: true, error: 'This product changed. Reopen the editor to load the latest values.' }, 409);
+    }
+
+    const live = current.status === 'live';
+    const name = p.name === undefined ? current.name : String(p.name ?? '').trim().slice(0, 240);
+    if (!name) return json({ ok: false, error: 'Product title is required' }, 400);
+    const slug = live ? current.slug : slugify((p.slug ?? current.slug) || name);
+    const description = p.description === undefined ? current.description : String(p.description ?? '').trim().slice(0, 5000);
+    const category = p.category === undefined ? current.category : String(p.category ?? '').trim().slice(0, 160);
+    const imageInput = p.image_url ?? current.image_url ?? '';
+    const image = safeUrl(imageInput, '');
+    if (String(imageInput).trim() && !image) {
+      return json({ ok: false, error: 'Main image URL must be http(s) or a site path' }, 400);
+    }
+    const galleryInput = Array.isArray(p.image_urls) ? p.image_urls : String(p.image_urls ?? '').split(/[\n,]+/);
+    const gallery = p.image_urls === undefined ? current.image_urls : serializeImageUrls(galleryInput);
+    const retail = Number(p.retail_price_eur ?? current.retail_price_eur);
+    const cost = p.supplier_cost_usd === undefined
+      ? current.supplier_cost_usd
+      : Number(p.supplier_cost_usd || 0);
+    let compare = p.compare_at_price_eur === undefined
+      ? current.compare_at_price_eur
+      : Number(p.compare_at_price_eur || 0);
+    if (![retail, cost, compare].every((amount) => Number.isFinite(Number(amount)) && Number(amount) >= 0)) {
+      return json({ ok: false, error: 'Enter a valid, non-negative amount for each price and cost.' }, 400);
+    }
+    if (p.compare_at_price_eur !== undefined && !compare) {
+      compare = retail > 0 ? suggestedCompareEur(retail) : null;
+    }
+    if (live) {
+      if (retail <= 0) return json({ ok: false, error: 'Published products need a retail price above zero.' }, 400);
+      const galleryError = galleryValidationError({ image_url: image, image_urls: gallery }, { min: 2 });
+      if (galleryError) return json({ ok: false, error: galleryError }, 400);
+    }
+
+    const saved = await env.LUME_DB.prepare(
+      `UPDATE products SET name=?,slug=?,description=?,image_url=?,image_urls=?,category=?,retail_price_eur=?,
+       compare_at_price_eur=?,supplier_cost_usd=?,updated_at=STRFTIME('%Y-%m-%d %H:%M:%f','now')
+       WHERE id=? AND status=? AND updated_at IS ? RETURNING ${PRODUCT_COLS}`,
+    ).bind(name, slug, description, image, gallery, category, retail, compare, cost,
+      id, current.status, current.updated_at).first();
+    if (!saved) {
+      return json({ ok: false, conflict: true, error: 'This product changed. Reopen the editor to load the latest values.' }, 409);
+    }
+    return json({ ok: true, id, slug, status: 'saved', product: withGalleryMeta(saved) });
   } catch (e) {
     return json({ ok: false, error: e.message || 'Save failed' }, 500);
   }
