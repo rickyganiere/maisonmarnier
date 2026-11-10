@@ -2,6 +2,7 @@ import { esc } from '../lib/escape.js';
 import { htmlPage, productCard } from '../lib/html.js';
 import { getLang, langHref, t, tr } from '../lib/i18n.js';
 import { productImages } from '../lib/images.js';
+import { formatEurPublic, priceWithVat } from '../lib/money.js';
 import { productJsonLd } from '../lib/seo.js';
 import { getLiveProductBySlug, getLiveProducts } from '../db/products.js';
 
@@ -23,9 +24,11 @@ export async function productPage(url, env, request) {
     const compareAt = Number(p.compare_at_price_eur || 0);
     const onSale = compareAt > retail && retail > 0;
     const savePct = onSale ? Math.round(((compareAt - retail) / compareAt) * 100) : 0;
+    const publicRetail = priceWithVat(retail);
     const priceBlock = `<div class="price-block">
-      <span class="price-now">€${retail.toFixed(2)}</span>
-      ${onSale ? `<span class="price-was">€${compareAt.toFixed(2)}</span><span class="save">${tr(lang, { es: `Ahorra ${savePct}%`, en: `Save ${savePct}%` })}</span>` : ''}
+      <span class="price-now">${formatEurPublic(retail)}</span>
+      ${onSale ? `<span class="price-was">${formatEurPublic(compareAt)}</span><span class="save">${tr(lang, { es: `Ahorra ${savePct}%`, en: `Save ${savePct}%` })}</span>` : ''}
+      <span class="vat-note">${tr(lang, { es: 'IVA incluido', en: 'VAT included' })}</span>
     </div>`;
 
     const stock = Number(p.stock || 0);
@@ -108,7 +111,7 @@ export async function productPage(url, env, request) {
                   data-id="${p.id}"
                   data-slug="${esc(p.slug || '')}"
                   data-name="${esc(p.name || '')}"
-                  data-price="${retail}"
+                  data-price="${publicRetail}"
                   data-image="${esc(mainImage)}">${tr(lang, { es: 'Añadir al carrito', en: 'Add to cart' })}</button>
                  <button class="wish-btn" type="button" id="wishBtn" data-id="${p.id}">♡ ${tr(lang, { es: 'Lista de deseos', en: 'Wishlist' })}</button>
                  <a class="btn btn-ghost" href="${esc(langHref('/cart', lang))}">${tr(lang, { es: 'Ver carrito', en: 'View cart' })}</a>`
@@ -130,10 +133,10 @@ export async function productPage(url, env, request) {
             <div><strong>${tr(lang, { es: 'Categoría', en: 'Category' })}</strong>${esc(p.category || tr(lang, { es: 'Decoración', en: 'Decor' }))}</div>
             <div><strong>${tr(lang, { es: 'Envío', en: 'Shipping' })}</strong>${tr(lang, { es: 'Europa · almacén asociado', en: 'Europe · partner warehouse' })}</div>
             <div><strong>${tr(lang, { es: 'Devoluciones', en: 'Returns' })}</strong>${tr(lang, { es: '30 días', en: '30 days' })}</div>
-            <div><strong>${tr(lang, { es: 'Pago', en: 'Payment' })}</strong>${tr(lang, { es: 'Stripe · IVA en el checkout', en: 'Stripe · VAT at checkout' })}</div>
+            <div><strong>${tr(lang, { es: 'Pago', en: 'Payment' })}</strong>${tr(lang, { es: 'Stripe · precios con IVA incluido', en: 'Stripe · prices include VAT' })}</div>
           </div>
           <div class="trust">
-            <span><i>✓</i> ${tr(lang, { es: 'Envío gratis en pedidos superiores a 100 €', en: 'Free shipping on orders over €100' })}</span>
+            <span><i>✓</i> ${tr(lang, { es: 'Envío gratis en pedidos superiores a 100 € (IVA incl.)', en: 'Free shipping on orders over €100 (VAT incl.)' })}</span>
             <span><i>✓</i> ${tr(lang, { es: 'Pago seguro con Stripe', en: 'Secure Stripe checkout' })}</span>
             <span><i>✓</i> ${tr(lang, { es: 'Cumplimiento con socios en Europa', en: 'Fulfilled with partners in Europe' })}</span>
           </div>
@@ -169,7 +172,7 @@ export async function productPage(url, env, request) {
   function load(){try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){return []}}
   if(btn){
     btn.onclick=()=>{
-      const item={id:Number(btn.dataset.id),slug:btn.dataset.slug,name:btn.dataset.name,price:Number(btn.dataset.price),image:btn.dataset.image,qty:1};
+      const item={id:Number(btn.dataset.id),slug:btn.dataset.slug,name:btn.dataset.name,price:Number(btn.dataset.price),vatIncluded:true,image:btn.dataset.image,qty:1};
       const cart=load();
       const ex=cart.find(x=>x.id===item.id);
       if(ex)ex.qty=Math.min(20,(ex.qty||1)+1); else cart.push(item);
