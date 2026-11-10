@@ -158,7 +158,7 @@ td,th{border-bottom:1px solid #e4ddd2;padding:8px;text-align:left;vertical-align
 
             <section class="panel" id="panel-finder">
         <h2>CJ Product Finder</h2>
-        <p class="catalog-intro">Browse CJ with categories, trending / best sellers, and pagination. Import any result as a draft.</p>
+        <p class="catalog-intro">Browse CJ with categories, trending / best sellers, and pagination. Products without a supplier cost are not imported.</p>
         <div class="searchbar">
           <input id="cjQ" placeholder="Search CJ products… (optional with category or shelf)">
           <button class="btn" type="button" id="cjSearchBtn">Search</button>
@@ -633,7 +633,7 @@ function renderCjResults(products){
         ${hasCost?'':`<span class="badge">needs cost refresh</span>`}
         <div class="msg">SKU ${esc(p.sku||'')} · ${costLabel} · stock ${esc(p.stock)} · ${esc(p.category||'')}${listed}${ship}</div>
         <div class="finder-thumbs">${imgs.map(u=>`<img src="${esc(u)}" alt="">`).join('')}</div>
-        <button class="btn secondary" type="button" data-import="${i}">Import draft</button>
+        <button class="btn secondary" type="button" data-import="${i}" ${hasCost?'':'disabled title="Missing supplier cost"'}>${hasCost?'Import draft':'No price — skip'}</button>
       </div></div></div>`;
   }).join('');
 }
@@ -660,8 +660,12 @@ async function searchCJ(page=1){
   finally{button.disabled=false}
 }
 function importSelectedCj(){
-  const products=selectedCjPayloads();
-  if(!products.length){msg('finderMsg','Tick at least one product.',true);return}
+  const selected=selectedCjPayloads();
+  if(!selected.length){msg('finderMsg','Tick at least one product.',true);return}
+  const products=selected.filter(p=>Number(p.costUSD)>0);
+  const skipped=selected.length-products.length;
+  if(!products.length){msg('finderMsg','None of the selected products have a supplier cost.',true);return}
+  if(skipped) msg('finderMsg','Skipping '+skipped+' without price…');
   return importCjDrafts(document.getElementById('cjImportSelectedBtn'),{products});
 }
 function importByCount(limit){
@@ -687,11 +691,11 @@ async function importCjDrafts(btn,body){
     if(!r.ok){msg('finderMsg',r.error||'Import failed',true);return}
     const error=r.errors?.[0]?.error;
     if(r.imported)await loadCatalog();
-    const costNote=r.missingCost?(' · '+r.missingCost+' still without cost'):'';
-    const enrichNote=r.enriched?(' · refreshed cost for '+r.enriched):'';
+    const skipPrice=r.skippedNoPrice?(' · skipped '+r.skippedNoPrice+' without price'):'';
+    const enrichNote=r.enriched?(' · looked up cost for '+r.enriched):'';
     msg('finderMsg',r.requested
-      ? 'Imported '+r.imported+' drafts · '+r.alreadyImported+' already in the catalog'+enrichNote+costNote+(error?' · '+error:'')
-      : 'CJ returned no products for this search.',!!error||!!r.missingCost);
+      ? 'Imported '+r.imported+' drafts · '+r.alreadyImported+' already in the catalog'+enrichNote+skipPrice+(error?' · '+error:'')
+      : 'CJ returned no products for this search.',!!error||!!r.skippedNoPrice);
   }catch(e){msg('finderMsg',e.message||'Import failed',true)
   }finally{btn.disabled=false}
 }

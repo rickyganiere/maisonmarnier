@@ -67,7 +67,8 @@ export function prepareExternalDraft(env, supplier, p) {
   let cost = Number(p.costUSD ?? p.cost_usd ?? p.supplier_cost_usd ?? 0) || 0;
   let stock = Number(p.stock ?? 0) || 0;
   let retail = Number(p.retailPriceEUR ?? p.retail_price_eur ?? 0) || 0;
-  if (!(retail > 0) && cost > 0) retail = suggestedRetailEur(cost);
+  if (!(cost > 0)) throw new Error('Missing supplier cost — not imported');
+  if (!(retail > 0)) retail = suggestedRetailEur(cost);
 
   const nameRaw = String(p.name || '').trim().slice(0, 240);
   if (!nameRaw) throw new Error('Product name is required');

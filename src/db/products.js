@@ -134,7 +134,10 @@ async function prepareCjDraft(env, p, { enrich = false } = {}) {
   cost = Number.isFinite(cost) && cost > 0 ? cost : 0;
   stock = Number.isFinite(stock) && stock > 0 ? stock : 0;
   retail = Number.isFinite(retail) && retail > 0 ? retail : 0;
-  if (!(retail > 0) && cost > 0) retail = suggestedRetailEur(cost);
+  if (!(cost > 0)) {
+    throw new Error('Missing supplier cost — not imported');
+  }
+  if (!(retail > 0)) retail = suggestedRetailEur(cost);
 
   const name = cleanProductName(nameRaw) || nameRaw || 'Untitled';
   const category = mapMaisonCategory(name, p.category);
@@ -191,7 +194,9 @@ export async function importLumeProduct(request, env) {
     const saved = await statement.first();
     return json({ ok: true, alreadyImported: !saved, ...draft });
   } catch (e) {
-    return json({ ok: false, error: e.message || 'Import failed' }, 500);
+    const message = e.message || 'Import failed';
+    const missingCost = /missing supplier cost/i.test(message);
+    return json({ ok: false, error: message }, missingCost ? 400 : 500);
   }
 }
 
@@ -228,7 +233,7 @@ export async function importLumeProductsBulk(request, env) {
     const skipped = [];
     const pending = [];
     let enriched = 0;
-    let missingCost = 0;
+    let skippedNoPrice = 0;
     for (const p of candidates.slice(0, 100)) {
       try {
         // Space out detail lookups when list rows omit cost (CJ rate limits ~1 rps).
@@ -238,7 +243,6 @@ export async function importLumeProductsBulk(request, env) {
         }
         const { statement, draft } = await prepareCjDraft(env, p);
         if (needsEnrich) enriched += 1;
-        if (!(Number(draft.costUSD) > 0)) missingCost += 1;
         pending.push({
           statement,
           item: {
@@ -249,6 +253,7 @@ export async function importLumeProductsBulk(request, env) {
           },
         });
       } catch (e) {
+        if (/missing supplier cost/i.test(e.message || '')) skippedNoPrice += 1;
         skipped.push({ id: p?.id, error: e.message || 'Import failed' });
       }
     }
@@ -266,7 +271,7 @@ export async function importLumeProductsBulk(request, env) {
       skipped: skipped.length + alreadyImported,
       alreadyImported,
       enriched,
-      missingCost,
+      skippedNoPrice,
       items: imported,
       errors: skipped.slice(0, 12),
     });
