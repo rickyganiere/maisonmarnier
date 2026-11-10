@@ -31,6 +31,7 @@ import {
 import { importChristmasCatalog } from './jobs/importChristmasCatalog.js';
 import { replaceSeedWithCj } from './jobs/replaceSeedWithCj.js';
 import { syncProductGalleries } from './jobs/syncGalleries.js';
+import { brandLogoSvgDocument } from './lib/html.js';
 import { json } from './lib/json.js';
 import { homePage } from './pages/home.js';
 import { adminPage } from './pages/admin.js';
@@ -71,8 +72,16 @@ export async function handleRequest(request, env, ctx) {
   const redirected = apexRedirect(request, url);
   if (redirected) return redirected;
 
-  // --- Technical SEO ---
+  // --- Technical SEO / brand ---
   if (pathname === '/robots.txt') return robotsTxt();
+  if (pathname === '/logo.svg' || pathname === '/favicon.svg') {
+    return new Response(brandLogoSvgDocument(), {
+      headers: {
+        'content-type': 'image/svg+xml; charset=utf-8',
+        'cache-control': 'public, max-age=86400',
+      },
+    });
+  }
   if (pathname === '/sitemap.xml' || pathname === '/sitemap_index.xml') return sitemapXml();
   if (pathname === '/sitemap-pages.xml') return sitemapPagesXml();
   if (pathname === '/sitemap-products.xml') return sitemapProductsXml(env);
