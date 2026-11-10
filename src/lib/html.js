@@ -2,6 +2,7 @@ import { BRAND_ICON_PATH, BRAND_LOGO_PATH, BRAND_LOGO_LIGHT_PATH } from './brand
 import { esc } from './escape.js';
 import { productImages } from './images.js';
 import { DEFAULT_OG_IMAGE, jsonLdScript, seoHeadHtml } from './seo.js';
+import { socialLinksHtml } from './social.js';
 
 /** Google Tag Manager — public storefront only (not admin). */
 export const GTM_ID = 'GTM-WL3RFMH4';
@@ -238,6 +239,10 @@ img:not([hidden]) + .product-image-unavailable{display:none}
 .site-footer a{display:block;color:var(--muted);margin:8px 0;font-size:14px;font-weight:600}
 .site-footer a:hover{color:var(--accent2)}
 .site-footer .brand-mark-img{width:clamp(190px,22vw,252px)}
+.site-footer .social-links{display:flex;align-items:center;gap:12px;margin-top:18px}
+.site-footer .social-link{display:inline-flex;margin:0;line-height:0;opacity:.92;transition:opacity .2s,transform .2s}
+.site-footer .social-link:hover{opacity:1;transform:translateY(-1px);color:inherit}
+.site-footer .social-logo{display:block;border-radius:6px}
 .bottom{max-width:var(--max);margin:28px auto 0;display:flex;justify-content:space-between;gap:12px;color:var(--muted);font-size:12px;font-weight:600;border-top:1px solid var(--line);padding-top:16px}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--panel2);color:#fff;border:1px solid var(--line);padding:12px 18px;border-radius:8px;opacity:0;transition:.25s;pointer-events:none;z-index:50;font:700 12px/1.3 var(--font)}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
@@ -278,9 +283,9 @@ img:not([hidden]) + .product-image-unavailable{display:none}
 export function storefrontFooterHtml() {
   return `<footer class="site-footer">
   <div class="footer-grid">
-    <div><a class="brand" href="/" aria-label="Maison Marnier">${brandLogoHtml({ light: true })}</a><p class="muted" style="margin-top:12px;max-width:34ch">Holiday edits for warm rooms — festive objects chosen with quiet care.</p></div>
+    <div><a class="brand" href="/" aria-label="Maison Marnier">${brandLogoHtml({ light: true })}</a><p class="muted" style="margin-top:12px;max-width:34ch">Holiday edits for warm rooms — festive objects chosen with quiet care.</p>${socialLinksHtml({ size: 24 })}</div>
     <div><h4>Shop</h4><a href="/collections/seasonal">Holiday</a><a href="/collections/new">New Arrivals</a><a href="/collections/lighting">Lighting</a></div>
-    <div><h4>About</h4><a href="/about">Our Story</a><a href="/journal">Journal</a><a href="/sourcing">Sourcing</a><a href="https://www.instagram.com/maison.marnier/" target="_blank" rel="noopener noreferrer">Instagram</a><a href="https://www.facebook.com/profile.php?id=61596578393485" target="_blank" rel="noopener noreferrer">Facebook</a></div>
+    <div><h4>About</h4><a href="/about">Our Story</a><a href="/journal">Journal</a><a href="/sourcing">Sourcing</a></div>
     <div><h4>Help</h4><a href="/shipping">Shipping</a><a href="/returns">Returns</a><a href="/contact">Contact</a><a href="/instagram">Link hub</a></div>
   </div>
   <div class="bottom"><span>© 2026 Maison Marnier.</span><span>Europe · EUR €</span></div>
