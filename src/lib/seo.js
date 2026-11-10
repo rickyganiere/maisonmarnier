@@ -1,6 +1,7 @@
 /** Site-wide SEO helpers for Maison Marnier (apex host). */
 
 import { BRAND_ICON_PATH } from './brandAsset.js';
+import { FACEBOOK_URL, INSTAGRAM_URL } from './social.js';
 
 export const SITE_ORIGIN = 'https://maisonmarnier.com';
 
@@ -51,7 +52,7 @@ export function organizationWebsiteJsonLd() {
         logo: absoluteUrl(BRAND_ICON_PATH),
         email: 'hello@maisonmarnier.com',
         areaServed: 'EU',
-        sameAs: ['https://www.instagram.com/maison.marnier/'],
+        sameAs: [INSTAGRAM_URL, FACEBOOK_URL],
       },
       {
         '@type': 'WebSite',

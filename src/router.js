@@ -23,6 +23,7 @@ import {
 import {
   deleteLumeDrafts,
   deleteLumeProduct,
+  importExternalProducts,
   importLumeProduct,
   importLumeProductsBulk,
   listLumeProducts,
@@ -225,6 +226,12 @@ export async function handleRequest(request, env, ctx) {
     const denied = await requireImportAuth(request, env);
     if (denied) return denied;
     return importLumeProductsBulk(request, env);
+  }
+  if (pathname === '/api/lume/import-external') {
+    if (method !== 'POST') return methodNotAllowed();
+    const denied = await requireImportAuth(request, env);
+    if (denied) return denied;
+    return importExternalProducts(request, env);
   }
   if (pathname === '/api/lume/replace-seed-cj') {
     if (method !== 'POST') return methodNotAllowed();

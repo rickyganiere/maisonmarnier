@@ -127,6 +127,31 @@ export async function fulfillOrder(env, order) {
   if (order.cj_order_id) return { already: true, cjOrderId: order.cj_order_id };
   await markOrderFulfilling(env, order.id);
   const items = await getOrderItems(env, order.id);
+
+  // Mixed / non-CJ catalogs fulfill manually (place order with that supplier outside CJ).
+  const suppliers = new Set();
+  for (const it of items) {
+    let supplier = 'CJ';
+    if (it.product_id) {
+      const row = await env.LUME_DB.prepare('SELECT supplier FROM products WHERE id=?')
+        .bind(it.product_id)
+        .first();
+      supplier = String(row?.supplier || 'CJ').toUpperCase();
+    } else if (String(it.supplier_product_id || '').includes(':')) {
+      supplier = String(it.supplier_product_id).split(':')[0].toUpperCase() || 'EXT';
+    }
+    suppliers.add(supplier);
+  }
+  const onlyCj = [...suppliers].every((s) => s === 'CJ');
+  if (!onlyCj) {
+    const manualId = `MANUAL-${order.order_number}`;
+    await markOrderFulfilled(env, order.id, {
+      cjOrderId: manualId,
+      cjStatus: `manual:${[...suppliers].join('+')}`,
+    });
+    return { manual: true, suppliers: [...suppliers], cjOrderId: manualId };
+  }
+
   const products = [];
   for (const it of items) {
     let vid = it.cj_vid;

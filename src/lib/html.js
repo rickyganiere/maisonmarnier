@@ -2,6 +2,7 @@ import { BRAND_ICON_PATH, BRAND_LOGO_PATH, BRAND_LOGO_LIGHT_PATH } from './brand
 import { esc } from './escape.js';
 import { productImages } from './images.js';
 import { DEFAULT_OG_IMAGE, jsonLdScript, seoHeadHtml } from './seo.js';
+import { socialLinksHtml } from './social.js';
 
 /** Google Tag Manager — public storefront only (not admin). */
 export const GTM_ID = 'GTM-WL3RFMH4';
@@ -103,7 +104,7 @@ export const LAYOUT_CSS = `
   --bg:#100e0c;--panel:#171411;--panel2:#211c17;--ink:#f6f0e6;--muted:#b3a89a;
   --line:#342c24;--accent:#c9a46a;--accent2:#e6c48a;--soft:#ddd3c5;
   --festive:#7a1f28;--pine:#1f3d32;--pine2:#2f5a48;
-  --pad:clamp(18px,4vw,56px);--max:1420px;--nav-h:104px;
+  --pad:clamp(18px,4vw,56px);--max:1420px;--nav-h:128px;
   --font:"Hanken Grotesk",system-ui,-apple-system,sans-serif;
 }
 *{box-sizing:border-box}
@@ -118,7 +119,7 @@ img{max-width:100%;display:block}
 .announce{background:#53262a;color:#fff2dd;text-align:center;font:800 10px/1.2 var(--font);letter-spacing:.12em;text-transform:uppercase;padding:7px 12px}
 .site-nav{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:clamp(12px,1.7vw,26px);min-height:var(--nav-h);padding:16px var(--pad) 5px;border-bottom:1px solid #d8c1a6;position:sticky;top:0;background:linear-gradient(100deg,#f5e6d3,#fff8ec 53%,#f5e6d3);color:#34231b;z-index:40}
 .brand{display:inline-flex;align-items:center;justify-self:start;max-width:100%;text-decoration:none}
-.brand-mark-img{display:block;width:clamp(238px,21vw,306px);height:auto}
+.brand-mark-img{display:block;width:clamp(300px,28vw,400px);height:auto}
 .xmas-garland{position:absolute;inset:0 var(--pad) auto;display:flex;justify-content:space-between;gap:5px;border-top:1px solid #786748;pointer-events:none}
 .xmas-garland i{position:relative;width:8px;height:11px;border-radius:3px 3px 55% 55%;margin-top:2px;background:#fff1b4;box-shadow:0 0 9px 3px #ffbe54,0 0 17px 5px #ffc778;transform:rotate(-12deg)}
 .xmas-garland i::before{content:"";position:absolute;inset:-2px 1px auto;height:3px;border-radius:2px;background:#7d5a33}
@@ -244,7 +245,11 @@ img:not([hidden]) + .product-image-unavailable{display:none}
 .site-footer h4{font:800 12px/1 var(--font);letter-spacing:.12em;text-transform:uppercase;margin:0 0 14px;color:#fff}
 .site-footer a{display:block;color:var(--muted);margin:8px 0;font-size:14px;font-weight:600}
 .site-footer a:hover{color:var(--accent2)}
-.site-footer .brand-mark-img{width:clamp(190px,22vw,252px)}
+.site-footer .brand-mark-img{width:clamp(240px,28vw,330px)}
+.site-footer .social-links{display:flex;align-items:center;gap:12px;margin-top:18px}
+.site-footer .social-link{display:inline-flex;margin:0;line-height:0;opacity:.92;transition:opacity .2s,transform .2s}
+.site-footer .social-link:hover{opacity:1;transform:translateY(-1px);color:inherit}
+.site-footer .social-logo{display:block;border-radius:6px}
 .bottom{max-width:var(--max);margin:28px auto 0;display:flex;justify-content:space-between;gap:12px;color:var(--muted);font-size:12px;font-weight:600;border-top:1px solid var(--line);padding-top:16px}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--panel2);color:#fff;border:1px solid var(--line);padding:12px 18px;border-radius:8px;opacity:0;transition:.25s;pointer-events:none;z-index:50;font:700 12px/1.3 var(--font)}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
@@ -261,7 +266,7 @@ img:not([hidden]) + .product-image-unavailable{display:none}
 @keyframes fadeRise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 @media(max-width:1200px){.grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(max-width:1100px){
-  :root{--nav-h:124px}
+  :root{--nav-h:148px}
   .site-nav{grid-template-columns:minmax(0,1fr) auto;gap:0 12px;padding:16px var(--pad) 0}
   .site-nav .links{grid-column:1/-1;grid-row:2;flex-wrap:nowrap;justify-content:flex-start;gap:22px;overflow-x:auto;scrollbar-width:thin;scrollbar-color:#c5a577 transparent;padding:1px 4px 2px}
   .site-nav .links a{padding:12px 0}
@@ -277,9 +282,9 @@ img:not([hidden]) + .product-image-unavailable{display:none}
   .journal-card{grid-template-columns:1fr}
 }
 @media(max-width:520px){
-  :root{--nav-h:108px}
+  :root{--nav-h:128px}
   .site-nav{padding-inline:14px;gap:0 7px}
-  .site-nav .brand-mark-img{width:min(218px,53vw)}
+  .site-nav .brand-mark-img{width:min(280px,72vw)}
   .xmas-garland i:nth-child(n+15){display:none}
   .site-nav .cart-wrap{gap:4px}
   .site-nav .nav-snowman{width:35px;height:43px}
@@ -296,9 +301,9 @@ img:not([hidden]) + .product-image-unavailable{display:none}
 export function storefrontFooterHtml() {
   return `<footer class="site-footer">
   <div class="footer-grid">
-    <div><a class="brand" href="/" aria-label="Maison Marnier">${brandLogoHtml({ light: true })}</a><p class="muted" style="margin-top:12px;max-width:34ch">Ediciones navideñas para hogares cálidos — objetos festivos elegidos con cuidado.</p></div>
+    <div><a class="brand" href="/" aria-label="Maison Marnier">${brandLogoHtml({ light: true })}</a><p class="muted" style="margin-top:12px;max-width:34ch">Ediciones navideñas para hogares cálidos — objetos festivos elegidos con cuidado.</p>${socialLinksHtml({ size: 24 })}</div>
     <div><h4>Tienda</h4><a href="/collections/seasonal">Navidad</a><a href="/collections/new">Novedades</a><a href="/collections/lighting">Iluminación</a><a href="/cuenta/registro">Crear cuenta</a></div>
-    <div><h4>Maison</h4><a href="/about">Nuestra historia</a><a href="/journal">Diario</a><a href="/sourcing">Selección</a><a href="https://www.instagram.com/maison.marnier/" target="_blank" rel="noopener noreferrer">Instagram</a></div>
+    <div><h4>Maison</h4><a href="/about">Nuestra historia</a><a href="/journal">Diario</a><a href="/sourcing">Selección</a></div>
     <div><h4>Ayuda</h4><a href="/shipping">Envíos</a><a href="/returns">Devoluciones</a><a href="/contact">Contacto</a><a href="/instagram">Enlaces</a><a href="/privacidad">Privacidad</a><a href="/cookies">Cookies</a><a href="/terminos">Términos</a></div>
   </div>
   <div class="bottom"><span>© 2026 Maison Marnier.</span><span>Europa · EUR €</span></div>

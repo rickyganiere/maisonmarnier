@@ -33,6 +33,7 @@ npx wrangler deploy --dry-run
 | `src/router.js` | HTTP routing |
 | `src/auth.js` | Admin / import auth |
 | `src/cj.js` | CJ Dropshipping client |
+| `src/suppliers/external.js` | Multi-supplier JSON draft import |
 | `src/stripe.js` | Stripe Checkout + webhook verify |
 | `src/commerce.js` | Cart checkout + fulfillment |
 | `src/db/*` | D1 access |
@@ -91,6 +92,8 @@ Customer accounts: register/login at `/cuenta/registro` and `/cuenta/entrar` (Ht
 Admin: `/api/cj/*`, `/api/lume/*`.
 
 Legal (ES): `/privacidad`, `/cookies`, `/terminos`. Storefront UI is Spanish (`lang="es"`).
+
+External supplier drafts: `POST /api/lume/import-external` with `{ supplier: "SPOCKET", products: [...] }` (or admin → **Other suppliers**). Non-CJ line items fulfill as manual.
 
 ## Commerce flow
 

@@ -12,7 +12,7 @@ const PAGES = {
   ],
   contact: [
     'Contacto',
-    '¿Dudas sobre una pieza, un pedido o una colaboración?\n\nEscríbenos a hello@maisonmarnier.com y te responderemos en un máximo de dos días laborables.\n\nPara redes y colaboraciones, encuéntranos en Instagram @maison.marnier.',
+    '¿Dudas sobre una pieza, un pedido o una colaboración?\n\nEscríbenos a hello@maisonmarnier.com y te responderemos en un máximo de dos días laborables.\n\nPara redes y colaboraciones, encuéntranos en Instagram @maison.marnier y en Facebook.',
   ],
   sourcing: [
     'Selección',
@@ -20,7 +20,7 @@ const PAGES = {
   ],
   about: [
     'Sobre Maison Marnier',
-    'Maison Marnier es una edición cuidada para hogares serenos — materiales naturales, luz suave y objetos que merecen quedarse.\n\nSigue la maison en Instagram @maison.marnier para ambientaciones navideñas, novedades y fiestas tranquilas.\n\nLa maison está en Europa y publica en EUR. Los pagos se procesan de forma segura con Stripe.',
+    'Maison Marnier es una edición cuidada para hogares serenos — materiales naturales, luz suave y objetos que merecen quedarse.\n\nSigue la maison en Instagram @maison.marnier y en Facebook para ambientaciones navideñas, novedades y fiestas tranquilas.\n\nLa maison está en Europa y publica en EUR. Los pagos se procesan de forma segura con Stripe.',
   ],
   privacidad: [
     'Política de privacidad',
