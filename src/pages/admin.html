@@ -57,6 +57,15 @@ td,th{border-bottom:1px solid #e4ddd2;padding:8px;text-align:left;vertical-align
 .finder-pager .meta{color:#6e665d;font-size:13px}
 .draft-selection{display:flex;align-items:center;gap:8px}
 #deleteDraftsBtn{background:#8b2e2e}
+.job-progress{margin:12px 0;padding:12px;border:1px solid #d4cec4;background:#f6f2eb;display:none}
+.job-progress.active{display:block}
+.job-progress-label{display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap;margin:0 0 8px;color:#6e665d;font-size:13px}
+.job-progress-track{height:10px;background:#e9e0d3;border:1px solid #d4cec4;overflow:hidden}
+.job-progress-fill{height:100%;width:0;background:#24211d;transition:width .25s ease}
+.job-progress.indeterminate .job-progress-fill{width:35%;animation:jobPulse 1.1s ease-in-out infinite}
+@keyframes jobPulse{0%{transform:translateX(-120%)}100%{transform:translateX(320%)}}
+.catalog-item.is-refreshing{opacity:.72}
+.catalog-item.is-refreshing .catalog-actions .btn{pointer-events:none}
 .finder-card{position:relative}
 .finder-card .check{position:absolute;top:10px;left:10px;z-index:2;width:18px;height:18px}
 .finder-thumbs{display:flex;gap:4px;margin:8px 0;flex-wrap:wrap}
@@ -281,6 +290,15 @@ td,th{border-bottom:1px solid #e4ddd2;padding:8px;text-align:left;vertical-align
           <button class="btn secondary" type="button" id="refreshCostsBtn">Refresh missing costs</button>
           <button class="btn secondary" type="button" id="refreshPicturesBtn">Refresh missing pictures</button>
           <span class="msg" style="margin:0">Publishes drafts with a title, 2+ supplier photos, positive prices and stock.</span>
+        </div>
+        <div class="job-progress" id="draftsJobProgress" aria-live="polite">
+          <div class="job-progress-label">
+            <span id="draftsJobLabel">Working…</span>
+            <span id="draftsJobCount"></span>
+          </div>
+          <div class="job-progress-track" role="progressbar" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0" id="draftsJobBar">
+            <div class="job-progress-fill" id="draftsJobFill"></div>
+          </div>
         </div>
         <div class="msg" id="draftsMsg" role="status"></div>
         <div id="drafts"></div>
@@ -743,35 +761,102 @@ async function publishAllDrafts(){
   }catch(e){msg('draftsMsg',e.message||'Publish all failed',true)}
   finally{btn.disabled=false}
 }
+function setDraftJobBusy(busy){
+  ['publishAllBtn','refreshCostsBtn','refreshPicturesBtn','deleteDraftsBtn'].forEach(id=>{
+    const el=document.getElementById(id);
+    if(el) el.disabled=busy || (id==='deleteDraftsBtn' && !selectedDrafts.size);
+  });
+}
+function showDraftJobProgress({label, done=0, total=0, indeterminate=false}={}){
+  const box=document.getElementById('draftsJobProgress');
+  const fill=document.getElementById('draftsJobFill');
+  const bar=document.getElementById('draftsJobBar');
+  box.classList.add('active');
+  box.classList.toggle('indeterminate', !!indeterminate || !(total>0));
+  document.getElementById('draftsJobLabel').textContent=label||'Working…';
+  if(total>0){
+    const pct=Math.max(0,Math.min(100,Math.round((done/total)*100)));
+    document.getElementById('draftsJobCount').textContent=done+' / '+total+' · '+pct+'%';
+    fill.style.width=pct+'%';
+    bar.setAttribute('aria-valuenow',String(pct));
+  }else{
+    document.getElementById('draftsJobCount').textContent='';
+    fill.style.width='';
+    bar.setAttribute('aria-valuenow','0');
+  }
+}
+function hideDraftJobProgress(){
+  const box=document.getElementById('draftsJobProgress');
+  box.classList.remove('active','indeterminate');
+  document.getElementById('draftsJobFill').style.width='0%';
+}
+async function runChunkedDraftRefresh({
+  endpoint,
+  label,
+  total,
+  body={},
+  successText,
+}){
+  const planned=Math.max(1,Math.min(25,Number(total)||25));
+  setDraftJobBusy(true);
+  showDraftJobProgress({label:label+'…',done:0,total:planned});
+  msg('draftsMsg',label+'… page stays responsive while this runs.');
+  let updated=0, stillMissing=0, remaining=0, scanned=0, lastError='';
+  try{
+    for(let i=0;i<planned;i+=1){
+      showDraftJobProgress({label:label+'…',done:i,total:planned});
+      const r=await api(endpoint,{method:'POST',body:JSON.stringify({...body,limit:1})});
+      if(!r.ok){
+        msg('draftsMsg',r.error||(label+' failed'),true);
+        return null;
+      }
+      scanned+=Number(r.scanned||0);
+      updated+=Number(r.updated||0);
+      stillMissing+=Number(r.stillMissing||0);
+      remaining=Number(r.remaining||0);
+      if(r.errors?.[0]?.error) lastError=r.errors[0].error;
+      showDraftJobProgress({label:label+'…',done:i+1,total:planned});
+      if(!(Number(r.scanned)>0)) break;
+      if(remaining<=0 && i+1>=scanned) break;
+    }
+    await loadCatalog();
+    const summary=typeof successText==='function'
+      ? successText({updated,stillMissing,remaining,scanned,lastError})
+      : (label+' done.');
+    msg('draftsMsg',summary+(lastError?' · '+lastError:''),!!stillMissing||!!lastError);
+    return {updated,stillMissing,remaining,scanned};
+  }catch(e){
+    msg('draftsMsg',e.message||(label+' failed'),true);
+    return null;
+  }finally{
+    hideDraftJobProgress();
+    setDraftJobBusy(false);
+  }
+}
 async function refreshMissingCosts(){
   const missing=catalog.filter(p=>p.status!=='live'&&p.supplier==='CJ'&&!(Number(p.supplier_cost_usd)>0)).length;
   if(!missing){msg('draftsMsg','All CJ drafts already have a supplier cost.');return}
   if(!confirm('Refresh supplier cost for up to 25 CJ drafts missing cost? Suggested retail is filled when retail is €0.'))return;
-  const btn=document.getElementById('refreshCostsBtn');
-  btn.disabled=true;
-  msg('draftsMsg','Refreshing missing CJ costs… this can take ~30s.');
-  try{
-    const r=await api('/api/lume/refresh-costs',{method:'POST',body:JSON.stringify({limit:25})});
-    if(!r.ok){msg('draftsMsg',r.error||'Cost refresh failed',true);return}
-    await loadCatalog();
-    msg('draftsMsg','Updated '+r.updated+' · still missing '+r.stillMissing+' · remaining '+r.remaining+(r.errors?.[0]?.error?' · '+r.errors[0].error:''),!!r.stillMissing);
-  }catch(e){msg('draftsMsg',e.message||'Cost refresh failed',true)}
-  finally{btn.disabled=false}
+  await runChunkedDraftRefresh({
+    endpoint:'/api/lume/refresh-costs',
+    label:'Refreshing missing costs',
+    total:missing,
+    successText:({updated,stillMissing,remaining})=>
+      'Updated '+updated+' · still missing '+stillMissing+' · remaining '+remaining,
+  });
 }
 async function refreshMissingPictures(){
   const missing=catalog.filter(p=>p.status!=='live'&&p.supplier==='CJ'&&!(Number(p.image_count)>=2)).length;
   if(!missing){msg('draftsMsg','All CJ drafts already have at least 2 photos.');return}
   if(!confirm('Refresh galleries for up to 25 CJ drafts with fewer than 2 photos?'))return;
-  const btn=document.getElementById('refreshPicturesBtn');
-  btn.disabled=true;
-  msg('draftsMsg','Refreshing missing CJ pictures… this can take ~30s.');
-  try{
-    const r=await api('/api/lume/refresh-pictures',{method:'POST',body:JSON.stringify({limit:25,minPhotos:2})});
-    if(!r.ok){msg('draftsMsg',r.error||'Picture refresh failed',true);return}
-    await loadCatalog();
-    msg('draftsMsg','Galleries filled '+r.updated+' · still thin '+r.stillMissing+' · remaining '+r.remaining+(r.errors?.[0]?.error?' · '+r.errors[0].error:''),!!r.stillMissing);
-  }catch(e){msg('draftsMsg',e.message||'Picture refresh failed',true)}
-  finally{btn.disabled=false}
+  await runChunkedDraftRefresh({
+    endpoint:'/api/lume/refresh-pictures',
+    label:'Refreshing missing pictures',
+    total:missing,
+    body:{minPhotos:2},
+    successText:({updated,stillMissing,remaining})=>
+      'Galleries filled '+updated+' · still thin '+stillMissing+' · remaining '+remaining,
+  });
 }
 
 const catalogPanels = {
@@ -1028,8 +1113,14 @@ for (const { list, message } of Object.values(catalogPanels)) {
     }
     const operation = catalogActions[action];
     if (operation.confirm && !confirm(operation.confirm)) return;
+    const item = button.closest('[data-product-id]');
     const controls = button.closest('.catalog-actions');
     controls.querySelectorAll('button').forEach(b => b.disabled = true);
+    if (action === 'refresh') {
+      item?.classList.add('is-refreshing');
+      showDraftJobProgress({label:'Refreshing CJ for this product…', indeterminate:true});
+      msg(message, 'Refreshing CJ…');
+    }
     try {
       const r = await api('/api/lume/' + action, { method: 'POST', body: JSON.stringify({ id }) });
       if (!r.ok) {
@@ -1042,6 +1133,8 @@ for (const { list, message } of Object.values(catalogPanels)) {
     } catch (error) {
       msg(message, error.message || 'Product action failed.', true);
     } finally {
+      item?.classList.remove('is-refreshing');
+      if (action === 'refresh') hideDraftJobProgress();
       controls.querySelectorAll('button').forEach(b => b.disabled = false);
     }
   });
