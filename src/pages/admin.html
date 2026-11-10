@@ -618,6 +618,8 @@ function renderCjResults(products){
     const imgs=(p.images&&p.images.length?p.images:[p.image]).filter(Boolean).slice(0,6);
     const listed=p.listedNum!=null?` · listed ${esc(p.listedNum)}`:'';
     const ship=p.freeShipping?' · free ship':'';
+    const hasCost=Number(p.costUSD)>0;
+    const costLabel=hasCost?`cost $${Number(p.costUSD).toFixed(2)}`:'cost missing';
     return `<div class="card finder-card"><div class="cols">
       <div>
         <input class="check" type="checkbox" data-cj="${i}" aria-label="Select ${esc(p.name)}">
@@ -626,7 +628,8 @@ function renderCjResults(products){
       <div>
         <strong>${esc(p.name||'')}</strong>
         <span class="badge">${esc(p.imageCount||imgs.length)} photos</span>
-        <div class="msg">SKU ${esc(p.sku||'')} · cost $${Number(p.costUSD||0).toFixed(2)} · stock ${esc(p.stock)} · ${esc(p.category||'')}${listed}${ship}</div>
+        ${hasCost?'':`<span class="badge">needs cost refresh</span>`}
+        <div class="msg">SKU ${esc(p.sku||'')} · ${costLabel} · stock ${esc(p.stock)} · ${esc(p.category||'')}${listed}${ship}</div>
         <div class="finder-thumbs">${imgs.map(u=>`<img src="${esc(u)}" alt="">`).join('')}</div>
         <button class="btn secondary" type="button" data-import="${i}">Import draft</button>
       </div></div></div>`;
@@ -682,9 +685,11 @@ async function importCjDrafts(btn,body){
     if(!r.ok){msg('finderMsg',r.error||'Import failed',true);return}
     const error=r.errors?.[0]?.error;
     if(r.imported)await loadCatalog();
+    const costNote=r.missingCost?(' · '+r.missingCost+' still without cost'):'';
+    const enrichNote=r.enriched?(' · refreshed cost for '+r.enriched):'';
     msg('finderMsg',r.requested
-      ? 'Imported '+r.imported+' drafts · '+r.alreadyImported+' already in the catalog'+(error?' · '+error:'')
-      : 'CJ returned no products for this search.',!!error);
+      ? 'Imported '+r.imported+' drafts · '+r.alreadyImported+' already in the catalog'+enrichNote+costNote+(error?' · '+error:'')
+      : 'CJ returned no products for this search.',!!error||!!r.missingCost);
   }catch(e){msg('finderMsg',e.message||'Import failed',true)
   }finally{btn.disabled=false}
 }

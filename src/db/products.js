@@ -14,7 +14,7 @@ import {
   suggestedCompareEur,
   suggestedRetailEur,
 } from '../lib/merch.js';
-import { collectCjProducts, refreshProductFromCJ } from '../cj.js';
+import { collectCjProducts, lookupCjCostUsd, refreshProductFromCJ } from '../cj.js';
 import {
   exampleExternalProducts,
   normalizeSupplierCode,
@@ -101,7 +101,8 @@ async function prepareCjDraft(env, p, { enrich = false } = {}) {
   let skuRaw = String(p.sku || '');
   let image = safeUrl(p.image || images[0] || '', '');
 
-  // Finder imports use the data already returned by search. Legacy single imports can fill missing data from CJ.
+  // ListV2 often omits prices or returns ranges like "1.20-3.50".
+  // Full enrich when asked; otherwise only resolve missing cost via a light CJ lookup.
   if (enrich) {
     try {
       const fresh = await refreshProductFromCJ(env, p.id);
@@ -116,6 +117,13 @@ async function prepareCjDraft(env, p, { enrich = false } = {}) {
       }
     } catch {
       /* keep payload images if detail fetch fails */
+    }
+  } else if (!(cost > 0)) {
+    try {
+      const lookedUp = await lookupCjCostUsd(env, p.id);
+      if (lookedUp > 0) cost = lookedUp;
+    } catch {
+      /* leave cost at 0 if CJ detail is unavailable */
     }
   }
 
@@ -162,7 +170,16 @@ async function prepareCjDraft(env, p, { enrich = false } = {}) {
 
   return {
     statement,
-    draft: { lumeSku: sku, status: 'draft', name, category, slug, imageCount: images.length },
+    draft: {
+      lumeSku: sku,
+      status: 'draft',
+      name,
+      category,
+      slug,
+      imageCount: images.length,
+      costUSD: cost,
+      retailPriceEUR: retail,
+    },
   };
 }
 
@@ -210,10 +227,27 @@ export async function importLumeProductsBulk(request, env) {
     const imported = [];
     const skipped = [];
     const pending = [];
+    let enriched = 0;
+    let missingCost = 0;
     for (const p of candidates.slice(0, 100)) {
       try {
+        // Space out detail lookups when list rows omit cost (CJ rate limits ~1 rps).
+        const needsEnrich = !(Number(p.costUSD) > 0);
+        if (needsEnrich && enriched > 0) {
+          await new Promise((resolve) => setTimeout(resolve, 1100));
+        }
         const { statement, draft } = await prepareCjDraft(env, p);
-        pending.push({ statement, item: { id: p.id, lumeSku: draft.lumeSku, imageCount: draft.imageCount } });
+        if (needsEnrich) enriched += 1;
+        if (!(Number(draft.costUSD) > 0)) missingCost += 1;
+        pending.push({
+          statement,
+          item: {
+            id: p.id,
+            lumeSku: draft.lumeSku,
+            imageCount: draft.imageCount,
+            costUSD: draft.costUSD,
+          },
+        });
       } catch (e) {
         skipped.push({ id: p?.id, error: e.message || 'Import failed' });
       }
@@ -231,6 +265,8 @@ export async function importLumeProductsBulk(request, env) {
       imported: imported.length,
       skipped: skipped.length + alreadyImported,
       alreadyImported,
+      enriched,
+      missingCost,
       items: imported,
       errors: skipped.slice(0, 12),
     });

@@ -1,5 +1,5 @@
 import { json } from '../lib/json.js';
-import { extractCjImages, getCJToken, refreshProductFromCJ } from '../cj.js';
+import { extractCjCostUsd, extractCjImages, getCJToken, refreshProductFromCJ } from '../cj.js';
 import {
   cleanProductName,
   mapMaisonCategory,
@@ -91,7 +91,7 @@ function normalizeCj(x, { minImages = 1, requireFestive = true } = {}) {
   if (!rawName || JUNK.test(rawName)) return null;
   const blob = `${rawName} ${x.threeCategoryName || ''} ${x.twoCategoryName || ''} ${x.oneCategoryName || ''}`;
   if (requireFestive && !FESTIVE.test(blob)) return null;
-  const cost = Number(x.nowPrice || x.sellPrice || x.discountPrice || 0) || 0;
+  const cost = extractCjCostUsd(x);
   if (!(cost > 0)) return null;
   // List rows sometimes omit inventory — keep candidates; enrichment refreshes stock.
   const stock = Number(x.warehouseInventoryNum || x.totalVerifiedInventory || x.stockNum || 0) || 0;
