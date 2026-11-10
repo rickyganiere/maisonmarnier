@@ -6,12 +6,12 @@ export function makeOrderNumber() {
   return `MM-${t}-${r}`;
 }
 
-export async function createPendingOrder(env, { orderNumber, items, subtotal, shipping, total }) {
+export async function createPendingOrder(env, { orderNumber, items, subtotal, shipping, total, customerId = null, email = null }) {
   const ins = await env.LUME_DB.prepare(
-    `INSERT INTO orders (order_number,status,currency,subtotal_eur,shipping_eur,total_eur,updated_at)
-     VALUES (?,'pending_payment','eur',?,?,?,CURRENT_TIMESTAMP)`,
+    `INSERT INTO orders (order_number,status,currency,subtotal_eur,shipping_eur,total_eur,customer_id,email,updated_at)
+     VALUES (?,'pending_payment','eur',?,?,?,?,?,CURRENT_TIMESTAMP)`,
   )
-    .bind(orderNumber, subtotal, shipping, total)
+    .bind(orderNumber, subtotal, shipping, total, customerId || null, email || null)
     .run();
   const orderId = ins.meta.last_row_id;
   const stmts = items.map((it) =>
@@ -59,7 +59,7 @@ export async function getOrderItems(env, orderId) {
   return r.results || [];
 }
 
-export async function markOrderPaid(env, orderId, { email, customerName, shipping, paymentIntent }) {
+export async function markOrderPaid(env, orderId, { email, customerName, shipping, paymentIntent, customerId = null }) {
   await env.LUME_DB.prepare(
     `UPDATE orders SET
       status='paid',
@@ -74,6 +74,7 @@ export async function markOrderPaid(env, orderId, { email, customerName, shippin
       shipping_country=?,
       shipping_country_code=?,
       stripe_payment_intent=?,
+      customer_id=COALESCE(?, customer_id),
       updated_at=CURRENT_TIMESTAMP
      WHERE id=? AND status IN ('pending_payment','paid')`,
   )
@@ -89,9 +90,23 @@ export async function markOrderPaid(env, orderId, { email, customerName, shippin
       shipping.country || '',
       shipping.countryCode || '',
       paymentIntent || '',
+      customerId || null,
       orderId,
     )
     .run();
+
+  // Link guest order to an existing account with the same email when possible.
+  if (email) {
+    await env.LUME_DB.prepare(
+      `UPDATE orders
+       SET customer_id = (
+         SELECT id FROM customers WHERE lower(email)=lower(?) LIMIT 1
+       )
+       WHERE id=? AND (customer_id IS NULL OR customer_id=0)`,
+    )
+      .bind(email, orderId)
+      .run();
+  }
 }
 
 export async function markOrderFulfilling(env, orderId) {

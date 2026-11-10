@@ -27,11 +27,12 @@ const PAGE_CSS = `
 `;
 
 const LINKS = [
-  { href: '/collections/seasonal', label: 'Shop Holiday', primary: true },
-  { href: '/collections/new', label: 'New arrivals' },
-  { href: '/journal', label: 'Journal' },
-  { href: '/contact', label: 'Contact' },
-  { href: '/', label: 'Full site' },
+  { href: '/collections/seasonal', label: 'Comprar Navidad', primary: true },
+  { href: '/collections/new', label: 'Novedades' },
+  { href: '/cuenta/registro', label: 'Crear cuenta' },
+  { href: '/journal', label: 'Diario' },
+  { href: '/contact', label: 'Contacto' },
+  { href: '/', label: 'Sitio completo' },
 ];
 
 export function instagramPage() {
@@ -45,19 +46,19 @@ export function instagramPage() {
   <div class="ig-hero">
     ${brandLogoHtml({ light: true })}
     <h1>Maison Marnier</h1>
-    <p>Holiday home edit for warm, quieter rooms — ornaments, light and objects worth keeping.</p>
+    <p>Edición hogar de Navidad para habitaciones cálidas y serenas — ornamentos, luz y objetos que merecen quedarse.</p>
   </div>
   <ul class="ig-links">
     ${linksHtml}
-    <li><a class="ig-external" href="${INSTAGRAM_URL}" target="_blank" rel="noopener noreferrer">${instagramLogoSvg({ size: 20 })}<span>@maison.marnier on Instagram</span></a></li>
-    <li><a class="ig-external" href="${FACEBOOK_URL}" target="_blank" rel="noopener noreferrer">${facebookLogoSvg({ size: 20 })}<span>Maison Marnier on Facebook</span></a></li>
+    <li><a class="ig-external" href="${INSTAGRAM_URL}" target="_blank" rel="noopener noreferrer">${instagramLogoSvg({ size: 20 })}<span>@maison.marnier en Instagram</span></a></li>
+    <li><a class="ig-external" href="${FACEBOOK_URL}" target="_blank" rel="noopener noreferrer">${facebookLogoSvg({ size: 20 })}<span>Maison Marnier en Facebook</span></a></li>
   </ul>
-  <p class="ig-note">Europe · EUR · Free shipping over €100</p>
+  <p class="ig-note">Europa · EUR · Envío gratis desde 100 €</p>
 </section>`;
 
   return htmlPage('Instagram', body, {
     description:
-      'Maison Marnier on Instagram — shop the holiday home edit, new arrivals, journal and contact.',
+      'Maison Marnier en Instagram — compra la edición hogar de Navidad, novedades, diario y contacto.',
     canonical: '/instagram',
     cache: 'public, max-age=3600',
   });

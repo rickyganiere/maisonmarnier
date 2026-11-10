@@ -30,8 +30,8 @@ export function facebookLogoSvg({ size = 22 } = {}) {
 }
 
 export function socialLinksHtml({ size = 22, className = 'social-links' } = {}) {
-  return `<nav class="${className}" aria-label="Social">
-  <a class="social-link" href="${INSTAGRAM_URL}" target="_blank" rel="noopener noreferrer" aria-label="Maison Marnier on Instagram">${instagramLogoSvg({ size })}</a>
-  <a class="social-link" href="${FACEBOOK_URL}" target="_blank" rel="noopener noreferrer" aria-label="Maison Marnier on Facebook">${facebookLogoSvg({ size })}</a>
+  return `<nav class="${className}" aria-label="Redes sociales">
+  <a class="social-link" href="${INSTAGRAM_URL}" target="_blank" rel="noopener noreferrer" aria-label="Maison Marnier en Instagram">${instagramLogoSvg({ size })}</a>
+  <a class="social-link" href="${FACEBOOK_URL}" target="_blank" rel="noopener noreferrer" aria-label="Maison Marnier en Facebook">${facebookLogoSvg({ size })}</a>
 </nav>`;
 }

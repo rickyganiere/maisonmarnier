@@ -5,57 +5,69 @@ import { getLiveProducts } from '../db/products.js';
 
 /** Exact Maison category labels preferred; keyword fallbacks for older rows. */
 export const COLLECTION_RULES = {
-  new: { categories: [], keywords: [], blurb: 'Fresh arrivals for calm, considered rooms.' },
+  new: { categories: [], keywords: [], blurb: 'Novedades para hogares serenos y cuidados.' },
   decor: {
     categories: ['Decor', 'Objects', 'Wall Decor', 'Candles', 'Lighting', 'Textiles', 'Seasonal'],
     keywords: ['decor', 'ornament', 'home'],
-    blurb: 'The broader edit — objects, light, and quiet detail.',
+    blurb: 'La edición ampliada — objetos, luz y detalle silencioso.',
   },
   textiles: {
     categories: ['Textiles'],
     keywords: ['pillow', 'cushion', 'textile', 'throw', 'blanket', 'linen'],
-    blurb: 'Soft layers for sofas, beds, and reading corners.',
+    blurb: 'Capas suaves para sofás, camas y rincones de lectura.',
   },
   objects: {
     categories: ['Objects'],
     keywords: ['vase', 'ornament', 'sculpture', 'tray', 'object', 'statue'],
-    blurb: 'Small sculptural pieces that settle a shelf.',
+    blurb: 'Pequeñas piezas escultóricas que asientan una estantería.',
   },
   candles: {
     categories: ['Candles'],
     keywords: ['candle', 'diffuser', 'fragrance', 'incense', 'candlestick'],
-    blurb: 'Warm light and quiet fragrance for evening rooms.',
+    blurb: 'Luz cálida y fragancia serena para las noches.',
   },
   'wall-decor': {
     categories: ['Wall Decor'],
     keywords: ['wall', 'tapestry', 'poster', 'mirror', 'frame', 'decal'],
-    blurb: 'Wall stories — tapestries, decals, and hangings.',
+    blurb: 'Historias en la pared — tapices, vinilos y colgantes.',
   },
   seasonal: {
     categories: ['Seasonal'],
     keywords: ['christmas', 'seasonal', 'holiday', 'xmas', 'santa'],
-    blurb: 'Seasonal accents without the visual noise.',
+    blurb: 'Acentos de temporada sin ruido visual.',
   },
   lighting: {
     categories: ['Lighting'],
     keywords: ['lamp', 'light', 'lantern', 'led', 'projector'],
-    blurb: 'Soft glow for desks, windows, and night tables.',
+    blurb: 'Brillo suave para escritorios, ventanas y mesitas.',
   },
   furniture: {
     categories: ['Furniture'],
     keywords: ['table', 'chair', 'shelf', 'stool', 'cabinet', 'furniture'],
-    blurb: 'Useful forms for slower living.',
+    blurb: 'Formas útiles para un ritmo más pausado.',
   },
 };
 
+const COLLECTION_TITLES = {
+  new: 'Novedades',
+  decor: 'Decoración',
+  textiles: 'Textiles',
+  objects: 'Objetos',
+  candles: 'Velas',
+  'wall-decor': 'Decoración de pared',
+  seasonal: 'Navidad',
+  lighting: 'Iluminación',
+  furniture: 'Mobiliario',
+};
+
 const CHIP_LINKS = [
-  ['New', '/collections/new'],
-  ['Decor', '/collections/decor'],
-  ['Lighting', '/collections/lighting'],
-  ['Holiday', '/collections/seasonal'],
-  ['Objects', '/collections/objects'],
-  ['Candles', '/collections/candles'],
-  ['Wall Decor', '/collections/wall-decor'],
+  ['Novedades', '/collections/new'],
+  ['Decoración', '/collections/decor'],
+  ['Iluminación', '/collections/lighting'],
+  ['Navidad', '/collections/seasonal'],
+  ['Objetos', '/collections/objects'],
+  ['Velas', '/collections/candles'],
+  ['Pared', '/collections/wall-decor'],
   ['Textiles', '/collections/textiles'],
 ];
 
@@ -76,9 +88,9 @@ export async function collectionPage(url, env) {
 
     if (!slug || !(slug in COLLECTION_RULES)) {
       return htmlPage(
-        'Collection not found',
-        `<div class="head"><h1>Collection not found</h1></div>
-         <p class="empty">This collection does not exist. <a href="/collections/decor">Browse decor →</a></p>`,
+        'Colección no encontrada',
+        `<div class="head"><h1>Colección no encontrada</h1></div>
+         <p class="empty">Esta colección no existe. <a href="/collections/decor">Ver decoración →</a></p>`,
         { status: 404 },
       );
     }
@@ -98,12 +110,10 @@ export async function collectionPage(url, env) {
         ? all
         : all.filter((p) => matchesCollection(p, rule));
 
-    const title = q
-      ? `Search: ${q}`
-      : slug.replace(/-/g, ' ').replace(/\b\w/g, (c) => c.toUpperCase());
+    const title = q ? `Búsqueda: ${q}` : COLLECTION_TITLES[slug] || slug;
     const lead = q
-      ? `${ps.length} result${ps.length === 1 ? '' : 's'} for “${esc(q)}”`
-      : rule.blurb || 'An edited selection for calm, considered rooms.';
+      ? `${ps.length} resultado${ps.length === 1 ? '' : 's'} para “${esc(q)}”`
+      : rule.blurb || 'Una selección cuidada para hogares serenos.';
 
     const chips = CHIP_LINKS.map(
       ([label, href]) =>
@@ -112,23 +122,23 @@ export async function collectionPage(url, env) {
 
     const cards =
       ps.map(productCard).join('') ||
-      `<p class="empty">${q ? 'No products match this search.' : 'No published products in this collection yet.'}</p>`;
+      `<p class="empty">${q ? 'Ningún producto coincide con esta búsqueda.' : 'Aún no hay productos publicados en esta colección.'}</p>`;
 
     const collectionPath = `/collections/${slug}`;
     const description = q
-      ? `Search results for “${q}” at Maison Marnier.`
-      : `${rule.blurb || 'An edited selection for calm, considered rooms.'} Shop ${title} at Maison Marnier.`;
+      ? `Resultados de búsqueda para “${q}” en Maison Marnier.`
+      : `${rule.blurb || 'Una selección cuidada para hogares serenos.'} Compra ${title} en Maison Marnier.`;
     const jsonLd = breadcrumbJsonLd([
-      { name: 'Home', path: '/' },
-      { name: 'Shop', path: '/collections/new' },
+      { name: 'Inicio', path: '/' },
+      { name: 'Tienda', path: '/collections/new' },
       { name: title, path: collectionPath },
     ]);
 
     return htmlPage(
       title,
-      `<nav class="crumbs" aria-label="Breadcrumb">
-         <a href="/">Home</a><span class="sep">/</span>
-         <a href="/collections/new">Shop</a><span class="sep">/</span>
+      `<nav class="crumbs" aria-label="Miga de pan">
+         <a href="/">Inicio</a><span class="sep">/</span>
+         <a href="/collections/new">Tienda</a><span class="sep">/</span>
          <span>${esc(title)}</span>
        </nav>
        <section class="collection-top">
@@ -137,11 +147,11 @@ export async function collectionPage(url, env) {
              <h1>${esc(title)}</h1>
              <p class="lead">${lead}</p>
            </div>
-           <div class="head-meta">${ps.length} piece${ps.length === 1 ? '' : 's'}</div>
+           <div class="head-meta">${ps.length} pieza${ps.length === 1 ? '' : 's'}</div>
          </div>
        </section>
        <div class="toolbar">
-         <div class="chips" role="navigation" aria-label="Collections">${chips}</div>
+         <div class="chips" role="navigation" aria-label="Colecciones">${chips}</div>
        </div>
        <div class="grid">${cards}</div>`,
       {
@@ -153,7 +163,7 @@ export async function collectionPage(url, env) {
       },
     );
   } catch {
-    return htmlPage('Collection', '<h1>Collection</h1><p class="empty">Could not load this collection.</p>', {
+    return htmlPage('Colección', '<h1>Colección</h1><p class="empty">No se pudo cargar esta colección.</p>', {
       status: 500,
     });
   }
