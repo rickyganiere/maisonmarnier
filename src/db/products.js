@@ -487,7 +487,8 @@ export async function refreshLumeProduct(request, env) {
     const id = Number(p.id);
     if (!id) return json({ ok: false, error: 'Missing product id' }, 400);
     const row = await env.LUME_DB.prepare(
-      'SELECT id,supplier,supplier_product_id,supplier_cost_usd,retail_price_eur,compare_at_price_eur FROM products WHERE id=?',
+      `SELECT id,supplier,supplier_product_id,supplier_cost_usd,retail_price_eur,compare_at_price_eur,
+              image_url,image_urls FROM products WHERE id=?`,
     )
       .bind(id)
       .first();
@@ -496,7 +497,9 @@ export async function refreshLumeProduct(request, env) {
       return json({ ok: false, error: 'Only CJ products can be refreshed' }, 400);
     }
     const fresh = await refreshProductFromCJ(env, row.supplier_product_id);
-    const gallery = serializeImageUrls(fresh.images || []);
+    const images = mergeProductGallery(row, fresh.images || []);
+    const gallery = serializeImageUrls(images);
+    const image = images[0] || fresh.image || row.image_url || '';
     const nextCost =
       fresh.costUSD > 0 ? Number(fresh.costUSD) : Number(row.supplier_cost_usd || 0) || 0;
     let nextRetail = Number(row.retail_price_eur || 0) || 0;
@@ -518,8 +521,8 @@ export async function refreshLumeProduct(request, env) {
         nextCompare,
         fresh.stock,
         fresh.deliveryDays,
-        fresh.image,
-        fresh.image,
+        image,
+        image,
         gallery,
         gallery,
         fresh.sku,
@@ -535,7 +538,8 @@ export async function refreshLumeProduct(request, env) {
       compare_at_price_eur: nextCompare,
       stock: fresh.stock,
       delivery_days: fresh.deliveryDays,
-      images: fresh.images || [],
+      images,
+      image_count: images.length,
     });
   } catch (e) {
     return json({ ok: false, error: e.message || 'Refresh failed' }, 502);
@@ -612,6 +616,116 @@ export async function refreshMissingCjCosts(request, env) {
     });
   } catch (e) {
     return json({ ok: false, error: e.message || 'Cost refresh failed' }, 500);
+  }
+}
+
+function mergeProductGallery(row, freshImages = []) {
+  const existing = productImages(row, { max: 12, allowStock: false });
+  const fresh = (Array.isArray(freshImages) ? freshImages : []).filter(Boolean);
+  return productImages(
+    {
+      image_url: fresh[0] || existing[0] || '',
+      image_urls: [...fresh, ...existing],
+    },
+    { max: 12, allowStock: false },
+  );
+}
+
+/**
+ * Backfill galleries for CJ drafts with fewer than `minPhotos` real supplier photos.
+ * Also fills missing cost/retail when the same CJ detail payload includes them.
+ */
+export async function refreshMissingCjPictures(request, env) {
+  try {
+    const body = await request.json().catch(() => ({}));
+    const limit = Math.max(1, Math.min(40, Number(body?.limit || 25) || 25));
+    const minPhotos = Math.max(2, Math.min(8, Number(body?.minPhotos || 2) || 2));
+    const candidates = (
+      await env.LUME_DB.prepare(
+        `SELECT id,supplier_product_id,supplier_cost_usd,retail_price_eur,compare_at_price_eur,
+                image_url,image_urls,stock,delivery_days,supplier_sku
+         FROM products
+         WHERE status='draft' AND supplier='CJ' AND supplier_product_id IS NOT NULL
+         ORDER BY id DESC
+         LIMIT 250`,
+      ).all()
+    ).results || [];
+
+    const rows = candidates
+      .filter((row) => !hasMultiRealPhotos(row, { min: minPhotos }))
+      .slice(0, limit);
+
+    let updated = 0;
+    let stillMissing = 0;
+    const errors = [];
+    for (const [index, row] of rows.entries()) {
+      if (index > 0) await new Promise((resolve) => setTimeout(resolve, 1100));
+      try {
+        const fresh = await refreshProductFromCJ(env, row.supplier_product_id);
+        const images = mergeProductGallery(row, fresh?.images || []);
+        const gallery = serializeImageUrls(images);
+        const image = images[0] || row.image_url || '';
+        const nextCost =
+          Number(fresh?.costUSD || 0) > 0
+            ? Number(fresh.costUSD)
+            : Number(row.supplier_cost_usd || 0) || 0;
+        let nextRetail = Number(row.retail_price_eur || 0) || 0;
+        let nextCompare = row.compare_at_price_eur == null ? null : Number(row.compare_at_price_eur);
+        if (!(nextRetail > 0) && nextCost > 0) {
+          nextRetail = suggestedRetailEur(nextCost);
+          nextCompare = suggestedCompareEur(nextRetail);
+        }
+        const nextStock =
+          Number(fresh?.stock || 0) > 0 ? Number(fresh.stock) : Number(row.stock || 0) || 0;
+        const nextDelivery = String(fresh?.deliveryDays || row.delivery_days || '');
+        const nextSku = String(fresh?.sku || row.supplier_sku || '');
+        await env.LUME_DB.prepare(
+          `UPDATE products SET image_url=?,image_urls=?,supplier_cost_usd=?,retail_price_eur=?,
+           compare_at_price_eur=?,stock=?,delivery_days=?,
+           supplier_sku=CASE WHEN ?!='' THEN ? ELSE supplier_sku END,
+           updated_at=CURRENT_TIMESTAMP WHERE id=?`,
+        )
+          .bind(
+            image,
+            gallery,
+            nextCost,
+            nextRetail,
+            nextCompare,
+            nextStock,
+            nextDelivery,
+            nextSku,
+            nextSku,
+            row.id,
+          )
+          .run();
+        if (images.length >= minPhotos) updated += 1;
+        else stillMissing += 1;
+      } catch (e) {
+        stillMissing += 1;
+        errors.push({ id: row.id, error: e.message || 'Refresh failed' });
+      }
+    }
+
+    const remainingPool = (
+      await env.LUME_DB.prepare(
+        `SELECT id,image_url,image_urls FROM products
+         WHERE status='draft' AND supplier='CJ' AND supplier_product_id IS NOT NULL
+         ORDER BY id DESC LIMIT 500`,
+      ).all()
+    ).results || [];
+    const remaining = remainingPool.filter((row) => !hasMultiRealPhotos(row, { min: minPhotos })).length;
+
+    return json({
+      ok: true,
+      scanned: rows.length,
+      updated,
+      stillMissing,
+      remaining,
+      minPhotos,
+      errors: errors.slice(0, 12),
+    });
+  } catch (e) {
+    return json({ ok: false, error: e.message || 'Picture refresh failed' }, 500);
   }
 }
 

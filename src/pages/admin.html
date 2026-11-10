@@ -279,6 +279,7 @@ td,th{border-bottom:1px solid #e4ddd2;padding:8px;text-align:left;vertical-align
         <div class="row">
           <button class="btn" type="button" id="publishAllBtn">Publish all</button>
           <button class="btn secondary" type="button" id="refreshCostsBtn">Refresh missing costs</button>
+          <button class="btn secondary" type="button" id="refreshPicturesBtn">Refresh missing pictures</button>
           <span class="msg" style="margin:0">Publishes drafts with a title, 2+ supplier photos, positive prices and stock.</span>
         </div>
         <div class="msg" id="draftsMsg" role="status"></div>
@@ -496,6 +497,7 @@ document.getElementById('probeCJBtn').onclick=()=>checkCJStatus(true);
 document.getElementById('reloadOrdersBtn').onclick=()=>loadOrders();
 document.getElementById('publishAllBtn').onclick=()=>publishAllDrafts();
 document.getElementById('refreshCostsBtn').onclick=()=>refreshMissingCosts();
+document.getElementById('refreshPicturesBtn').onclick=()=>refreshMissingPictures();
 
 async function checkCJStatus(show){
   try{
@@ -754,6 +756,21 @@ async function refreshMissingCosts(){
     await loadCatalog();
     msg('draftsMsg','Updated '+r.updated+' · still missing '+r.stillMissing+' · remaining '+r.remaining+(r.errors?.[0]?.error?' · '+r.errors[0].error:''),!!r.stillMissing);
   }catch(e){msg('draftsMsg',e.message||'Cost refresh failed',true)}
+  finally{btn.disabled=false}
+}
+async function refreshMissingPictures(){
+  const missing=catalog.filter(p=>p.status!=='live'&&p.supplier==='CJ'&&!(Number(p.image_count)>=2)).length;
+  if(!missing){msg('draftsMsg','All CJ drafts already have at least 2 photos.');return}
+  if(!confirm('Refresh galleries for up to 25 CJ drafts with fewer than 2 photos?'))return;
+  const btn=document.getElementById('refreshPicturesBtn');
+  btn.disabled=true;
+  msg('draftsMsg','Refreshing missing CJ pictures… this can take ~30s.');
+  try{
+    const r=await api('/api/lume/refresh-pictures',{method:'POST',body:JSON.stringify({limit:25,minPhotos:2})});
+    if(!r.ok){msg('draftsMsg',r.error||'Picture refresh failed',true);return}
+    await loadCatalog();
+    msg('draftsMsg','Galleries filled '+r.updated+' · still thin '+r.stillMissing+' · remaining '+r.remaining+(r.errors?.[0]?.error?' · '+r.errors[0].error:''),!!r.stillMissing);
+  }catch(e){msg('draftsMsg',e.message||'Picture refresh failed',true)}
   finally{btn.disabled=false}
 }
 
