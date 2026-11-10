@@ -1,5 +1,5 @@
 import { json } from '../lib/json.js';
-import { extractCjImages, getCJToken } from '../cj.js';
+import { extractCjImages, getCJToken, refreshProductFromCJ } from '../cj.js';
 import {
   cleanProductName,
   mapMaisonCategory,
@@ -37,11 +37,34 @@ const SEARCHES = [
   'festive home decor',
 ];
 
+// Word-boundary junk so "sock" does not kill "stocking", "ring" does not kill "string lights".
 const JUNK =
-  /slipper|sock|earring|ring|necklace|bracelet|wig|phone case|cable|charger|underwear|bra|tattoo|sex|adult/i;
+  /\b(slippers?|socks?|earrings?|rings?|necklaces?|bracelets?|wigs?|phone cases?|cables?|chargers?|underwear|bras?|tattoos?|sex|adult)\b/i;
 
 const FESTIVE =
   /christmas|xmas|santa|noel|holiday|festive|snow|snowflake|reindeer|wreath|stocking|ornament|garland|advent|nativity|gingerbread|mistletoe|pine cone|tree topper|bauble|elf|nutcracker|hanukkah|new year/i;
+
+function flattenCjListPayload(d) {
+  const data = d?.data;
+  if (!data || typeof data !== 'object') return { items: [], shape: 'no-data' };
+  if (Array.isArray(data.content)) {
+    const items = data.content.flatMap((g) =>
+      Array.isArray(g?.productList) ? g.productList : Array.isArray(g) ? g : [],
+    );
+    if (items.length) return { items, shape: 'content.productList' };
+    const direct = data.content.filter((x) => x && (x.id || x.pid || x.nameEn));
+    if (direct.length) return { items: direct, shape: 'content[]' };
+    return { items: [], shape: 'content-empty', total: data.totalRecords };
+  }
+  if (Array.isArray(data.list)) return { items: data.list, shape: 'list' };
+  if (Array.isArray(data.productList)) return { items: data.productList, shape: 'productList' };
+  if (Array.isArray(data)) return { items: data, shape: 'data[]' };
+  return {
+    items: [],
+    shape: `keys:${Object.keys(data).slice(0, 8).join(',')}`,
+    total: data.totalRecords,
+  };
+}
 
 async function searchCj(token, q, page = 1, size = 20) {
   const p = new URLSearchParams({
@@ -56,26 +79,26 @@ async function searchCj(token, q, page = 1, size = 20) {
   );
   const d = await r.json();
   if (!r.ok || d.code !== 200) {
-    throw new Error(d.message || `CJ search failed for ${q}`);
+    throw new Error(d.message || `CJ search failed for ${q} (http ${r.status} code ${d.code})`);
   }
-  const groups = Array.isArray(d.data?.content) ? d.data.content : [];
-  return groups.flatMap((g) => (Array.isArray(g.productList) ? g.productList : []));
+  const flat = flattenCjListPayload(d);
+  flat.meta = { q, page, code: d.code, result: !!d.result, message: d.message || null };
+  return flat;
 }
 
-function normalizeCj(x, { minImages = 1 } = {}) {
-  const rawName = String(x.nameEn || x.name || '').slice(0, 240);
+function normalizeCj(x, { minImages = 1, requireFestive = true } = {}) {
+  const rawName = String(x.nameEn || x.name || x.productNameEn || '').slice(0, 240);
   if (!rawName || JUNK.test(rawName)) return null;
   const blob = `${rawName} ${x.threeCategoryName || ''} ${x.twoCategoryName || ''} ${x.oneCategoryName || ''}`;
-  if (!FESTIVE.test(blob)) return null;
-  const cost = Number(x.nowPrice || x.sellPrice || 0) || 0;
+  if (requireFestive && !FESTIVE.test(blob)) return null;
+  const cost = Number(x.nowPrice || x.sellPrice || x.discountPrice || 0) || 0;
   if (!(cost > 0)) return null;
-  const stock = Number(x.warehouseInventoryNum || x.totalVerifiedInventory || 0) || 0;
-  if (stock <= 0) return null;
+  // List rows sometimes omit inventory — keep candidates; enrichment refreshes stock.
+  const stock = Number(x.warehouseInventoryNum || x.totalVerifiedInventory || x.stockNum || 0) || 0;
   const images = extractCjImages(x);
   const image = safeUrl(images[0] || x.bigImage || x.productImage || '', '');
   if (!image) return null;
   if (images.length < minImages) return null;
-  // Reject Unsplash / stock filler hosts if somehow present
   if (/unsplash\.com|pexels\.com|picsum\.photos/i.test(image)) return null;
   const name = cleanProductName(rawName) || rawName;
   let category = mapMaisonCategory(name, x.threeCategoryName || x.twoCategoryName || x.oneCategoryName || '');
@@ -199,16 +222,23 @@ export async function importChristmasCatalog(request, env) {
     const cjToken = await getCJToken(env);
     const byId = new Map();
     const errors = [];
+    let scanned = 0;
+    let listShape = null;
 
-    // Only multi-image festive SKUs (never Unsplash / single-photo)
+    // List payloads often expose only bigImage — accept 1 photo here, enrich below.
     for (const q of SEARCHES) {
       if (byId.size >= target * 1.5) break;
       for (const page of [1, 2, 3]) {
         if (byId.size >= target * 1.5) break;
         try {
-          const items = await searchCj(cjToken, q, page, 20);
+          const flat = await searchCj(cjToken, q, page, 20);
+          if (!listShape) {
+            listShape = { ...flat.meta, shape: flat.shape, total: flat.total, n: flat.items.length };
+          }
+          const items = flat.items || [];
+          scanned += items.length;
           for (const raw of items) {
-            const n = normalizeCj(raw, { minImages: 2 });
+            const n = normalizeCj(raw, { minImages: 1 });
             if (!n) continue;
             if (!byId.has(n.id)) byId.set(n.id, n);
           }
@@ -220,8 +250,33 @@ export async function importChristmasCatalog(request, env) {
       }
     }
 
-    // Prefer richer galleries when selecting
-    const selected = [...byId.values()]
+    // Enrich from CJ detail/variants so every live SKU has ≥2 real supplier photos.
+    const enriched = [];
+    for (const p of byId.values()) {
+      if (enriched.length >= target) break;
+      try {
+        let images = Array.isArray(p.images) ? p.images.slice() : [];
+        if (images.length < 2) {
+          const fresh = await refreshProductFromCJ(env, p.id);
+          if (fresh?.images?.length) images = fresh.images;
+          if (fresh?.image) p.image = fresh.image;
+          if (fresh?.costUSD > 0) p.cost = fresh.costUSD;
+          if (fresh?.stock > 0) p.stock = fresh.stock;
+          if (fresh?.deliveryDays) p.deliveryDays = fresh.deliveryDays;
+          await new Promise((r) => setTimeout(r, 120));
+        }
+        images = images.filter((u) => u && !/unsplash\.com|pexels\.com|picsum\.photos/i.test(u));
+        if (images.length < 2) continue;
+        if (!(p.stock > 0)) continue;
+        p.images = images.slice(0, 12);
+        p.image = images[0];
+        enriched.push(p);
+      } catch (e) {
+        errors.push({ id: p.id, error: e.message || String(e) });
+      }
+    }
+
+    const selected = enriched
       .sort((a, b) => (b.images?.length || 0) - (a.images?.length || 0))
       .slice(0, target);
 
@@ -257,7 +312,10 @@ export async function importChristmasCatalog(request, env) {
       target,
       demoted,
       found: byId.size,
+      enriched: enriched.length,
       upserted,
+      scanned,
+      listShape,
       cjLive: Number(cjLive?.c || 0),
       multiApprox: Number(multi?.c || 0),
       counts: counts.results || [],
