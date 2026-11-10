@@ -65,6 +65,7 @@ ${LAYOUT_CSS}
 }
 @media (prefers-reduced-motion:reduce){
   .mm-snow{display:none}
+  .mm-products > .p{animation:none}
 }
 .mm-section{padding:14px var(--pad) 28px;scroll-margin-top:var(--nav-h)}
 .mm-section-inner{width:min(1420px,100%);margin:0 auto}
@@ -106,7 +107,10 @@ ${LAYOUT_CSS}
 .mm-form{display:flex;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--line)}
 .mm-form input{flex:1;border:0;padding:14px 16px;background:var(--bg);color:var(--ink);font:600 14px var(--font)}
 .mm-form button{border:0;background:linear-gradient(90deg,var(--accent2),var(--accent));color:#12100e;padding:0 20px;font:900 12px/1 var(--font);letter-spacing:.06em;text-transform:uppercase;cursor:pointer}
-@media(min-width:981px) and (max-height:800px){.mm-carousel{height:clamp(200px,23vw,250px)}}
+@media(min-width:981px) and (max-height:800px){
+  .mm-hero h1{font-size:clamp(2.2rem,4vw,3.25rem)}
+  .mm-carousel{height:clamp(200px,23vw,230px)}
+}
 @media(max-width:1100px){.mm-products{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(max-width:980px){
   .mm-products{grid-template-columns:repeat(3,minmax(0,1fr))}
