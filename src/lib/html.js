@@ -32,10 +32,16 @@ function navHtml() {
 
 /** Maison Marnier wordmark + mark — used in header/footer on every storefront page. */
 export function brandLogoHtml({ compact = false } = {}) {
-  const mark = `<svg class="brand-mark" viewBox="0 0 40 40" width="34" height="34" aria-hidden="true" focusable="false">
-  <circle cx="20" cy="20" r="18.5" fill="none" stroke="currentColor" stroke-width="1.4"/>
-  <path d="M11 27.5V13.2l9 11.2 9-11.2V27.5" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/>
-  <path d="M20 8.2c1.2 1.6 1.2 3.2 0 4.4-1.2-1.2-1.2-2.8 0-4.4Z" fill="currentColor" opacity=".9"/>
+  // Circle monogram + seasonal Santa hat perched on top
+  const mark = `<svg class="brand-mark" viewBox="0 0 44 52" width="36" height="42" aria-hidden="true" focusable="false">
+  <g class="santa-hat">
+    <path d="M8.5 14.5c2.2-7.8 10.2-12.2 17.8-9.4 3.4 1.2 6.2 3.6 7.4 6.6l1.2 3.2-8.6-1.6c-4.2-.8-8.2.2-11.4 2.4L8.5 14.5Z" fill="#9a2430"/>
+    <path d="M7.2 16.8c4.6-3.4 11.4-4.6 17.6-3.2 4.2.9 7.8 2.8 10.2 5.2.4.4.2 1.1-.4 1.2-5.8.8-12.2.6-18.2-1.2-3-.9-5.8-2.2-8.2-3.6-.5-.3-.6-1-.1-1.4Z" fill="#f4efe6"/>
+    <circle cx="33.8" cy="10.2" r="3.35" fill="#f4efe6"/>
+    <circle cx="33.8" cy="10.2" r="1.35" fill="#c9a46a" opacity=".55"/>
+  </g>
+  <circle cx="22" cy="30" r="17.2" fill="none" stroke="currentColor" stroke-width="1.45"/>
+  <path d="M13.2 37.2V23.6l8.8 10.6 8.8-10.6v13.6" fill="none" stroke="currentColor" stroke-width="2.05" stroke-linecap="round" stroke-linejoin="round"/>
 </svg>`;
   return `<span class="brand-lockup${compact ? ' is-compact' : ''}">${mark}<span class="brand-text">MAISON <span>MARNIER</span></span></span>`;
 }
@@ -61,10 +67,16 @@ img{max-width:100%;display:block}
 .announce{background:linear-gradient(90deg,#1a0f10,#0c0b0a 40%,#122019);color:var(--soft);text-align:center;font:700 11px/1 var(--font);letter-spacing:.14em;text-transform:uppercase;padding:12px 16px;border-bottom:1px solid var(--line)}
 .site-nav{display:grid;grid-template-columns:minmax(200px,280px) 1fr auto;align-items:center;gap:24px;min-height:var(--nav-h);padding:0 var(--pad);border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(16,14,12,.94);backdrop-filter:blur(14px);z-index:40}
 .brand,.brand-lockup{display:inline-flex;align-items:center;gap:12px;color:#fff;text-decoration:none}
-.brand-mark{color:var(--accent2);flex:0 0 auto;filter:drop-shadow(0 0 10px rgba(201,164,106,.18))}
+.brand-mark{color:var(--accent2);flex:0 0 auto;overflow:visible;filter:drop-shadow(0 0 10px rgba(201,164,106,.18))}
+.brand-mark .santa-hat{transform-origin:28px 12px;animation:hatTip 4.8s ease-in-out infinite}
+@keyframes hatTip{0%,100%{transform:rotate(0deg)}45%{transform:rotate(-4deg)}70%{transform:rotate(2deg)}}
 .brand-text{font:900 14px/1 var(--font);letter-spacing:.2em;text-transform:uppercase;color:#fff}
 .brand-text span,.brand span{color:var(--accent)}
 .brand-lockup.is-compact .brand-text{font-size:13px;letter-spacing:.16em}
+.xmas-garland{display:flex;justify-content:center;gap:10px;padding:6px var(--pad) 2px;pointer-events:none}
+.xmas-garland span{width:7px;height:7px;border-radius:50%;background:var(--accent2);box-shadow:0 0 0 2px rgba(31,61,50,.55);opacity:.85;position:relative}
+.xmas-garland span:nth-child(odd){background:#9a2430;box-shadow:0 0 0 2px rgba(154,36,48,.35);transform:translateY(3px)}
+.xmas-garland span::after{content:"";position:absolute;left:50%;top:-5px;width:1px;height:5px;background:rgba(47,90,72,.7);transform:translateX(-50%)}
 .site-nav .links{display:flex;flex-wrap:wrap;justify-content:center;gap:22px}
 .site-nav .links a{color:var(--soft);font:700 13px/1 var(--font);letter-spacing:.02em;opacity:.9;transition:color .2s}
 .site-nav .links a:hover{color:var(--accent2)}
@@ -262,6 +274,7 @@ ${fontLinksHtml()}
 <body>
 ${gtmNoscriptHtml()}
 <div class="announce">Holiday edit · Free shipping over €100 · Europe</div>
+<div class="xmas-garland" aria-hidden="true"><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span><span></span></div>
 <header class="site-nav">
   <a class="brand" href="/" aria-label="Maison Marnier home">${brandLogoHtml()}</a>
   <nav class="links">${navHtml()}</nav>
