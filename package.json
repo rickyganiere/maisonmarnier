@@ -1,0 +1,14 @@
+{
+  "name": "maisonmarnier",
+  "private": true,
+  "scripts": {
+    "dev": "wrangler dev",
+    "deploy": "wrangler d1 migrations apply LUME_DB --remote && wrangler deploy",
+    "deploy:dry-run": "wrangler deploy --dry-run",
+    "db:migrations:local": "wrangler d1 migrations apply LUME_DB --local",
+    "db:migrations:remote": "wrangler d1 migrations apply LUME_DB --remote"
+  },
+  "devDependencies": {
+    "wrangler": "^4.159.0"
+  }
+}
