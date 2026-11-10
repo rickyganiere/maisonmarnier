@@ -18,11 +18,11 @@ export function gtmNoscriptHtml() {
 }
 
 const NAV = [
+  ['Fêtes', '/collections/seasonal'],
   ['New', '/collections/new'],
-  ['Decor', '/collections/decor'],
   ['Lighting', '/collections/lighting'],
-  ['Seasonal', '/collections/seasonal'],
   ['Objects', '/collections/objects'],
+  ['Candles', '/collections/candles'],
   ['Journal', '/journal'],
 ];
 
@@ -30,30 +30,48 @@ function navHtml() {
   return NAV.map(([label, href]) => `<a href="${href}">${esc(label)}</a>`).join('');
 }
 
-/** Shared premium cozy design system (CarLux-inspired, warmer for home). */
+/** Maison Marnier wordmark + mark — used in header/footer on every storefront page. */
+export function brandLogoHtml({ compact = false } = {}) {
+  const mark = `<svg class="brand-mark" viewBox="0 0 40 40" width="34" height="34" aria-hidden="true" focusable="false">
+  <circle cx="20" cy="20" r="18.5" fill="none" stroke="currentColor" stroke-width="1.4"/>
+  <path d="M11 27.5V13.2l9 11.2 9-11.2V27.5" fill="none" stroke="currentColor" stroke-width="2.1" stroke-linecap="round" stroke-linejoin="round"/>
+  <path d="M20 8.2c1.2 1.6 1.2 3.2 0 4.4-1.2-1.2-1.2-2.8 0-4.4Z" fill="currentColor" opacity=".9"/>
+</svg>`;
+  return `<span class="brand-lockup${compact ? ' is-compact' : ''}">${mark}<span class="brand-text">MAISON <span>MARNIER</span></span></span>`;
+}
+
+/** Shared premium cozy design system — Christmas seasonal overlay (same structure). */
 export const LAYOUT_CSS = `
 :root{
-  --bg:#12100e;--panel:#1a1714;--panel2:#221e1a;--ink:#f3eee6;--muted:#a89f94;
-  --line:#2e2924;--accent:#c4a574;--accent2:#e0c08a;--soft:#d8cfc3;
+  --bg:#100e0c;--panel:#171411;--panel2:#211c17;--ink:#f6f0e6;--muted:#b3a89a;
+  --line:#342c24;--accent:#c9a46a;--accent2:#e6c48a;--soft:#ddd3c5;
+  --festive:#7a1f28;--pine:#1f3d32;--pine2:#2f5a48;
   --pad:clamp(18px,4vw,56px);--max:1420px;--nav-h:78px;
   --font:"Hanken Grotesk",system-ui,-apple-system,sans-serif;
 }
 *{box-sizing:border-box}
 html{scroll-behavior:smooth}
-body{margin:0;background:var(--bg);color:var(--ink);font:400 15px/1.55 var(--font);-webkit-font-smoothing:antialiased}
+body{margin:0;background:
+  radial-gradient(1200px 520px at 8% -10%, rgba(122,31,40,.18), transparent 55%),
+  radial-gradient(900px 420px at 92% 0%, rgba(31,61,50,.22), transparent 50%),
+  var(--bg);
+  color:var(--ink);font:400 15px/1.55 var(--font);-webkit-font-smoothing:antialiased}
 a{color:inherit;text-decoration:none}
 img{max-width:100%;display:block}
-.announce{background:#0c0b0a;color:var(--soft);text-align:center;font:700 11px/1 var(--font);letter-spacing:.16em;text-transform:uppercase;padding:12px 16px;border-bottom:1px solid var(--line)}
-.site-nav{display:grid;grid-template-columns:240px 1fr auto;align-items:center;gap:24px;min-height:var(--nav-h);padding:0 var(--pad);border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(18,16,14,.94);backdrop-filter:blur(14px);z-index:40}
-.brand{display:flex;align-items:center;gap:0;font:900 15px/1 var(--font);letter-spacing:.2em;text-transform:uppercase;color:#fff}
-.brand span{color:var(--accent)}
+.announce{background:linear-gradient(90deg,#1a0f10,#0c0b0a 40%,#122019);color:var(--soft);text-align:center;font:700 11px/1 var(--font);letter-spacing:.14em;text-transform:uppercase;padding:12px 16px;border-bottom:1px solid var(--line)}
+.site-nav{display:grid;grid-template-columns:minmax(200px,280px) 1fr auto;align-items:center;gap:24px;min-height:var(--nav-h);padding:0 var(--pad);border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(16,14,12,.94);backdrop-filter:blur(14px);z-index:40}
+.brand,.brand-lockup{display:inline-flex;align-items:center;gap:12px;color:#fff;text-decoration:none}
+.brand-mark{color:var(--accent2);flex:0 0 auto;filter:drop-shadow(0 0 10px rgba(201,164,106,.18))}
+.brand-text{font:900 14px/1 var(--font);letter-spacing:.2em;text-transform:uppercase;color:#fff}
+.brand-text span,.brand span{color:var(--accent)}
+.brand-lockup.is-compact .brand-text{font-size:13px;letter-spacing:.16em}
 .site-nav .links{display:flex;flex-wrap:wrap;justify-content:center;gap:22px}
 .site-nav .links a{color:var(--soft);font:700 13px/1 var(--font);letter-spacing:.02em;opacity:.9;transition:color .2s}
 .site-nav .links a:hover{color:var(--accent2)}
 .tools{display:flex;gap:10px;align-items:center;justify-content:flex-end}
 .tools .search{width:150px;padding:11px 12px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:600 12px/1.2 var(--font);border-radius:6px}
 .cart-link{display:inline-flex;align-items:center;gap:6px;padding:11px 14px;border:1px solid var(--accent);border-radius:6px;font:800 11px/1 var(--font);letter-spacing:.08em;text-transform:uppercase;color:#fff;background:transparent}
-.cart-link:hover{background:rgba(196,165,116,.12)}
+.cart-link:hover{background:rgba(201,164,106,.12)}
 .wrap{max-width:var(--max);margin:auto;padding:0 var(--pad) 56px}
 .crumbs{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:22px 0 0;font:700 11px/1 var(--font);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
 .crumbs a:hover{color:var(--accent2)}
@@ -180,8 +198,8 @@ h1{font:900 clamp(34px,4.6vw,56px)/.98 var(--font);margin:0;letter-spacing:-.045
 function footerHtml() {
   return `<footer class="site-footer">
   <div class="footer-grid">
-    <div><div class="brand">MAISON <span>MARNIER</span></div><p class="muted" style="margin-top:12px;max-width:34ch">Curated home objects for quieter rooms and slower evenings.</p></div>
-    <div><h4>Shop</h4><a href="/collections/new">New Arrivals</a><a href="/collections/decor">Decor</a><a href="/collections/seasonal">Seasonal</a></div>
+    <div><a class="brand" href="/" aria-label="Maison Marnier">${brandLogoHtml()}</a><p class="muted" style="margin-top:12px;max-width:34ch">Holiday edits for warm rooms — festive objects chosen with quiet care.</p></div>
+    <div><h4>Shop</h4><a href="/collections/seasonal">Fêtes</a><a href="/collections/new">New Arrivals</a><a href="/collections/lighting">Lighting</a></div>
     <div><h4>About</h4><a href="/about">Our Story</a><a href="/journal">Journal</a><a href="/sourcing">Sourcing</a></div>
     <div><h4>Help</h4><a href="/shipping">Shipping</a><a href="/returns">Returns</a><a href="/contact">Contact</a></div>
   </div>
@@ -243,9 +261,9 @@ ${fontLinksHtml()}
 </head>
 <body>
 ${gtmNoscriptHtml()}
-<div class="announce">Free shipping on orders over €100 · Europe</div>
+<div class="announce">Holiday edit · Free shipping over €100 · Europe</div>
 <header class="site-nav">
-  <a class="brand" href="/">MAISON <span>MARNIER</span></a>
+  <a class="brand" href="/" aria-label="Maison Marnier home">${brandLogoHtml()}</a>
   <nav class="links">${navHtml()}</nav>
   <div class="tools">
     <form action="/collections/new" method="get" role="search">
