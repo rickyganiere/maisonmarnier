@@ -255,8 +255,8 @@ function footerHtml() {
   <div class="footer-grid">
     <div><a class="brand" href="/" aria-label="Maison Marnier">${brandLogoHtml()}</a><p class="muted" style="margin-top:12px;max-width:34ch">Holiday edits for warm rooms — festive objects chosen with quiet care.</p></div>
     <div><h4>Shop</h4><a href="/collections/seasonal">Holiday</a><a href="/collections/new">New Arrivals</a><a href="/collections/lighting">Lighting</a></div>
-    <div><h4>About</h4><a href="/about">Our Story</a><a href="/journal">Journal</a><a href="/sourcing">Sourcing</a></div>
-    <div><h4>Help</h4><a href="/shipping">Shipping</a><a href="/returns">Returns</a><a href="/contact">Contact</a></div>
+    <div><h4>About</h4><a href="/about">Our Story</a><a href="/journal">Journal</a><a href="/sourcing">Sourcing</a><a href="https://www.instagram.com/maison.marnier/" target="_blank" rel="noopener noreferrer">Instagram</a></div>
+    <div><h4>Help</h4><a href="/shipping">Shipping</a><a href="/returns">Returns</a><a href="/contact">Contact</a><a href="/instagram">Link hub</a></div>
   </div>
   <div class="bottom"><span>© 2026 Maison Marnier.</span><span>Europe · EUR €</span></div>
 </footer>

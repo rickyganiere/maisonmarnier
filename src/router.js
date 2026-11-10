@@ -39,6 +39,7 @@ import { collectionPage } from './pages/collection.js';
 import { productPage } from './pages/product.js';
 import { journalPage } from './pages/journal.js';
 import { infoPage } from './pages/info.js';
+import { instagramPage } from './pages/instagram.js';
 import {
   robotsTxt,
   sitemapJournalXml,
@@ -246,6 +247,7 @@ export async function handleRequest(request, env, ctx) {
   if (['/shipping', '/returns', '/contact', '/sourcing', '/about'].includes(pathname)) {
     return infoPage(pathname);
   }
+  if (pathname === '/instagram') return instagramPage();
   if (pathname === '/admin') return adminPage();
 
   if (pathname === '/' || pathname === '') return homePage(env);
