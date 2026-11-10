@@ -21,12 +21,12 @@ export function gtmNoscriptHtml() {
 }
 
 const NAV = [
-  ['Christmas Shop', '/collections/seasonal'],
-  ['New Arrivals', '/collections/new'],
-  ['Lighting', '/collections/lighting'],
-  ['Home Décor', '/collections/decor'],
-  ['Candles', '/collections/candles'],
-  ['Journal', '/journal'],
+  ['Tienda Navidad', '/collections/seasonal'],
+  ['Novedades', '/collections/new'],
+  ['Iluminación', '/collections/lighting'],
+  ['Decoración', '/collections/decor'],
+  ['Velas', '/collections/candles'],
+  ['Diario', '/journal'],
 ];
 
 function navHtml() {
@@ -66,10 +66,14 @@ export function snowmanHtml() {
 }
 
 export function cartControlHtml() {
-  return `<span class="cart-wrap" title="Holiday cart">
+  return `<span class="cart-wrap" title="Carrito">
   ${snowmanHtml()}
-  <a href="/cart" id="cartBtn" class="cart-link">Cart <span id="cartCount"></span></a>
+  <a href="/cart" id="cartBtn" class="cart-link">Carrito <span id="cartCount"></span></a>
 </span>`;
+}
+
+export function accountControlHtml() {
+  return `<a class="account-link" href="/cuenta" id="accountBtn" title="Mi cuenta">Cuenta</a>`;
 }
 
 /** Approved horizontal Christmas branding on a light background. */
@@ -79,15 +83,16 @@ export function brandLogoHtml({ light = false } = {}) {
 }
 
 export function storefrontHeaderHtml({ search = true } = {}) {
-  return `<div class="announce">Christmas Edit · Free shipping over €100 · Europe</div>
+  return `<div class="announce">Edición Navidad · Envío gratis desde 100 € · Europa</div>
 <header class="site-nav">
   <div class="xmas-garland" aria-hidden="true">${'<i></i>'.repeat(24)}</div>
-  <a class="brand" href="/" aria-label="Maison Marnier home">${brandLogoHtml()}</a>
-  <nav class="links" aria-label="Shop navigation">${navHtml()}</nav>
+  <a class="brand" href="/" aria-label="Maison Marnier inicio">${brandLogoHtml()}</a>
+  <nav class="links" aria-label="Navegación de tienda">${navHtml()}</nav>
   <div class="tools">
     ${search ? `<form action="/collections/new" method="get" role="search">
-      <input class="search" type="search" name="q" placeholder="Search…" aria-label="Search products">
+      <input class="search" type="search" name="q" placeholder="Buscar…" aria-label="Buscar productos">
     </form>` : ''}
+    ${accountControlHtml()}
     ${cartControlHtml()}
   </div>
 </header>`;
@@ -127,6 +132,8 @@ img{max-width:100%;display:block}
 .site-nav a:focus-visible,.site-nav input:focus-visible{outline:2px solid #852731;outline-offset:3px}
 .tools{display:flex;gap:10px;align-items:center;justify-content:flex-end}
 .tools .search{width:clamp(105px,9vw,138px);padding:9px 10px;border:1px solid #d8c1a6;background:#fffbf6;color:#34231b;font:600 13px/1.2 var(--font);border-radius:6px}
+.account-link{display:inline-flex;align-items:center;min-height:44px;padding:10px 12px;border:1px solid #d8c1a6;border-radius:8px;font:800 13px/1 var(--font);color:#34231b;background:#fffbf6;white-space:nowrap}
+.account-link:hover{border-color:#a97343;color:#852731}
 .cart-wrap{display:inline-flex;align-items:center;gap:8px}
 .nav-snowman{width:58px;height:69px;flex:0 0 auto;filter:drop-shadow(0 2px 4px rgba(75,41,24,.25));animation:snowmanBob 3.2s ease-in-out infinite;transform-origin:50% 100%}
 .nav-snowman .santa-hat{transform-origin:36px 18px;animation:hatTip 4.2s ease-in-out infinite}
@@ -246,6 +253,16 @@ img:not([hidden]) + .product-image-unavailable{display:none}
 .bottom{max-width:var(--max);margin:28px auto 0;display:flex;justify-content:space-between;gap:12px;color:var(--muted);font-size:12px;font-weight:600;border-top:1px solid var(--line);padding-top:16px}
 .toast{position:fixed;left:50%;bottom:24px;transform:translateX(-50%) translateY(20px);background:var(--panel2);color:#fff;border:1px solid var(--line);padding:12px 18px;border-radius:8px;opacity:0;transition:.25s;pointer-events:none;z-index:50;font:700 12px/1.3 var(--font)}
 .toast.show{opacity:1;transform:translateX(-50%) translateY(0)}
+.cookie-banner{position:fixed;left:16px;right:16px;bottom:16px;z-index:60;max-width:720px;margin:0 auto;padding:18px 18px 16px;border:1px solid var(--line);border-radius:12px;background:linear-gradient(145deg,#221914,#171310 70%);box-shadow:0 18px 48px rgba(0,0,0,.45);display:none}
+.cookie-banner.is-open{display:block;animation:fadeRise .35s ease both}
+.cookie-banner p{margin:0 0 14px;color:var(--soft);font:500 13px/1.5 var(--font)}
+.cookie-banner a{color:var(--accent2);text-decoration:underline;font-weight:700}
+.cookie-actions{display:flex;flex-wrap:wrap;gap:8px}
+.wish-btn{appearance:none;border:1px solid var(--line);background:transparent;color:var(--ink);border-radius:6px;padding:14px 16px;font:800 11px/1 var(--font);letter-spacing:.08em;text-transform:uppercase;cursor:pointer;transition:.2s}
+.wish-btn:hover,.wish-btn.is-on{border-color:var(--accent);color:var(--accent2)}
+.register-buy{margin-top:18px;padding:16px;border:1px dashed #5a4a3c;border-radius:10px;background:rgba(201,164,106,.06)}
+.register-buy strong{display:block;font:800 14px/1.3 var(--font);margin-bottom:6px;color:#fff}
+.register-buy p{margin:0 0 12px;color:var(--muted);font:500 13px/1.45 var(--font)}
 @keyframes fadeRise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 @media(max-width:1200px){.grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(max-width:1100px){
@@ -272,6 +289,7 @@ img:not([hidden]) + .product-image-unavailable{display:none}
   .site-nav .cart-wrap{gap:4px}
   .site-nav .nav-snowman{width:35px;height:43px}
   .site-nav .cart-link{min-height:44px;padding:9px 12px;font-size:15px}
+  .site-nav .account-link{min-height:40px;padding:8px 10px;font-size:12px}
   .site-nav .links{gap:16px;margin-right:-14px;padding-right:14px}
   .site-nav .links a{font-size:14px}
   .tools .search{display:none}
@@ -283,14 +301,21 @@ img:not([hidden]) + .product-image-unavailable{display:none}
 export function storefrontFooterHtml() {
   return `<footer class="site-footer">
   <div class="footer-grid">
-    <div><a class="brand" href="/" aria-label="Maison Marnier">${brandLogoHtml({ light: true })}</a><p class="muted" style="margin-top:12px;max-width:34ch">Holiday edits for warm rooms — festive objects chosen with quiet care.</p>${socialLinksHtml({ size: 24 })}</div>
-    <div><h4>Shop</h4><a href="/collections/seasonal">Holiday</a><a href="/collections/new">New Arrivals</a><a href="/collections/lighting">Lighting</a></div>
-    <div><h4>About</h4><a href="/about">Our Story</a><a href="/journal">Journal</a><a href="/sourcing">Sourcing</a></div>
-    <div><h4>Help</h4><a href="/shipping">Shipping</a><a href="/returns">Returns</a><a href="/contact">Contact</a><a href="/instagram">Link hub</a></div>
+    <div><a class="brand" href="/" aria-label="Maison Marnier">${brandLogoHtml({ light: true })}</a><p class="muted" style="margin-top:12px;max-width:34ch">Ediciones navideñas para hogares cálidos — objetos festivos elegidos con cuidado.</p>${socialLinksHtml({ size: 24 })}</div>
+    <div><h4>Tienda</h4><a href="/collections/seasonal">Navidad</a><a href="/collections/new">Novedades</a><a href="/collections/lighting">Iluminación</a><a href="/cuenta/registro">Crear cuenta</a></div>
+    <div><h4>Maison</h4><a href="/about">Nuestra historia</a><a href="/journal">Diario</a><a href="/sourcing">Selección</a></div>
+    <div><h4>Ayuda</h4><a href="/shipping">Envíos</a><a href="/returns">Devoluciones</a><a href="/contact">Contacto</a><a href="/instagram">Enlaces</a><a href="/privacidad">Privacidad</a><a href="/cookies">Cookies</a><a href="/terminos">Términos</a></div>
   </div>
-  <div class="bottom"><span>© 2026 Maison Marnier.</span><span>Europe · EUR €</span></div>
+  <div class="bottom"><span>© 2026 Maison Marnier.</span><span>Europa · EUR €</span></div>
 </footer>
 <div class="toast" id="toast"></div>
+<div class="cookie-banner" id="cookieBanner" role="dialog" aria-live="polite" aria-label="Consentimiento de cookies">
+  <p>Usamos cookies esenciales para la tienda y, si lo aceptas, cookies de medición. Más info en la <a href="/cookies">política de cookies</a> y la <a href="/privacidad">privacidad</a>.</p>
+  <div class="cookie-actions">
+    <button type="button" class="btn" id="cookieAccept">Aceptar</button>
+    <button type="button" class="btn btn-ghost" id="cookieEssential">Solo esenciales</button>
+  </div>
+</div>
 <script>
 const t=document.getElementById('toast');
 function toast(m){if(!t)return;t.textContent=m;t.classList.add('show');setTimeout(()=>t.classList.remove('show'),1800)}
@@ -301,6 +326,15 @@ function saveWish(ids){localStorage.setItem(WISH_KEY,JSON.stringify(ids))}
   function count(){try{return (JSON.parse(localStorage.getItem('mm_cart')||'[]')||[]).reduce((s,i)=>s+Number(i.qty||1),0)}catch(e){return 0}}
   function paint(){const el=document.getElementById('cartCount'); if(!el)return; const n=count(); el.textContent=n?('('+n+')'):'';}
   paint(); window.addEventListener('mm-cart',paint); window.addEventListener('storage',paint);
+})();
+(function(){
+  const KEY='mm_cookie_consent';
+  const banner=document.getElementById('cookieBanner');
+  if(!banner)return;
+  function setConsent(v){try{localStorage.setItem(KEY,v)}catch(e){} banner.classList.remove('is-open')}
+  try{if(!localStorage.getItem(KEY)) banner.classList.add('is-open')}catch(e){banner.classList.add('is-open')}
+  document.getElementById('cookieAccept')?.addEventListener('click',()=>setConsent('all'));
+  document.getElementById('cookieEssential')?.addEventListener('click',()=>setConsent('essential'));
 })();
 </script>`;
 }
@@ -331,7 +365,7 @@ export function htmlPage(
   const pageTitle = `${title} — Maison Marnier`;
   const canonPath = canonical || '/';
   const html = `<!doctype html>
-<html lang="en">
+<html lang="es">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -371,7 +405,7 @@ ${storefrontFooterHtml()}
 /** Prefer a second supplier photo if the lead image fails to load. */
 export function storefrontProductImage(p, { featured = false, decorative = false } = {}) {
   const [primary, backup] = productImages(p, { max: 2 });
-  const unavailable = '<span class="product-image-unavailable">Photo unavailable</span>';
+  const unavailable = '<span class="product-image-unavailable">Foto no disponible</span>';
   if (!primary) return unavailable;
   return `<img src="${esc(primary)}" data-backup="${esc(backup || '')}" alt="${decorative ? '' : esc(p.name || '')}" decoding="async"
     ${featured ? 'fetchpriority="high"' : 'loading="lazy"'}
@@ -384,7 +418,7 @@ export function productCard(p) {
   const compareAt = Number(p.compare_at_price_eur || 0);
   const onSale = compareAt > retail && retail > 0;
   const compare = onSale ? `<span class="compare">€${compareAt.toFixed(2)}</span>` : '';
-  const badge = onSale ? `<span class="badge">Edit</span>` : '';
+  const badge = onSale ? `<span class="badge">Edición</span>` : '';
   return `<a class="p" href="${href}">
     <div class="media">${badge}${storefrontProductImage(p)}</div>
     <div class="meta">
@@ -392,7 +426,7 @@ export function productCard(p) {
       <h3>${esc(p.name || '')}</h3>
       <div class="price-row">
         <span class="price">€${retail.toFixed(2)}${compare}</span>
-        <span class="cta-hint">View →</span>
+        <span class="cta-hint">Ver →</span>
       </div>
     </div>
   </a>`;
@@ -408,22 +442,22 @@ export function homeProductCard(p, { featured = false } = {}) {
   const retail = Number(p.retail_price_eur || 0);
   const compareAt = Number(p.compare_at_price_eur || 0);
   const onSale = compareAt > retail && retail > 0;
-  const category = String(p.category || 'Home décor').trim() || 'Home décor';
+  const category = String(p.category || 'Decoración').trim() || 'Decoración';
   const stock = Number(p.stock || 0);
   const metaParts = [category];
-  if (stock > 0 && stock <= 8) metaParts.push(`${stock} left`);
-  else if (stock > 8) metaParts.push('In stock');
-  metaParts.push('EU ship');
+  if (stock > 0 && stock <= 8) metaParts.push(`${stock} restantes`);
+  else if (stock > 8) metaParts.push('En stock');
+  metaParts.push('Envío UE');
   const was = onSale
     ? `<s class="mm-card-was">€${compareAt.toFixed(2)}</s>`
     : '';
-  const drop = onSale ? `<span class="mm-card-drop">Edit</span>` : '';
+  const drop = onSale ? `<span class="mm-card-drop">Edición</span>` : '';
   return `<a class="mm-card" href="${href}" aria-label="${esc(name)}">
     <span class="mm-card-media">${storefrontProductImage(p, { featured })}${drop}</span>
     <span class="mm-card-body">
       <span class="mm-card-name">${esc(name)}</span>
       <span class="mm-card-meta">${esc(metaParts.join(' · '))}</span>
-      <strong class="mm-card-price">${retail > 0 ? `€${retail.toFixed(2)}` : 'View'}${was}</strong>
+      <strong class="mm-card-price">${retail > 0 ? `€${retail.toFixed(2)}` : 'Ver'}${was}</strong>
     </span>
   </a>`;
 }

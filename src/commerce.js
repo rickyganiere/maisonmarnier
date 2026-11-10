@@ -1,5 +1,6 @@
 import { json } from './lib/json.js';
 import { createCJOrder, resolveCJVariantId } from './cj.js';
+import { getCustomerFromRequest } from './db/customers.js';
 import {
   attachStripeSession,
   createPendingOrder,
@@ -35,17 +36,17 @@ function shippingFor(subtotal) {
 export async function checkout(request, env) {
   try {
     if (!stripeConfigured(env)) {
-      return json({ ok: false, error: 'Checkout is not configured yet (missing STRIPE_SECRET_KEY).' }, 503);
+      return json({ ok: false, error: 'El pago aún no está configurado.' }, 503);
     }
     const body = await request.json();
     const rawItems = Array.isArray(body.items) ? body.items : [];
-    if (!rawItems.length) return json({ ok: false, error: 'Cart is empty' }, 400);
+    if (!rawItems.length) return json({ ok: false, error: 'El carrito está vacío' }, 400);
 
     const normalized = [];
     for (const it of rawItems.slice(0, 30)) {
       const productId = Number(it.productId || it.id);
       const quantity = Math.max(1, Math.min(20, Number(it.quantity || 1) || 1));
-      if (!productId) return json({ ok: false, error: 'Invalid product in cart' }, 400);
+      if (!productId) return json({ ok: false, error: 'Producto no válido en el carrito' }, 400);
       normalized.push({ productId, quantity });
     }
 
@@ -58,13 +59,13 @@ export async function checkout(request, env) {
         .bind(it.productId)
         .first();
       if (!p || p.status !== 'live') {
-        return json({ ok: false, error: 'A product in your cart is no longer available' }, 400);
+        return json({ ok: false, error: 'Un producto de tu carrito ya no está disponible' }, 400);
       }
       if (!(Number(p.retail_price_eur) > 0)) {
-        return json({ ok: false, error: 'A product has an invalid price' }, 400);
+        return json({ ok: false, error: 'Un producto tiene un precio no válido' }, 400);
       }
       if (Number(p.stock) < it.quantity) {
-        return json({ ok: false, error: `Insufficient stock for ${p.name}` }, 400);
+        return json({ ok: false, error: `Stock insuficiente para ${p.name}` }, 400);
       }
       lines.push({
         product_id: p.id,
@@ -85,12 +86,16 @@ export async function checkout(request, env) {
     const shipping = shippingFor(subtotal);
     const total = Math.round((subtotal + shipping) * 100) / 100;
     const orderNumber = makeOrderNumber();
+    const customer = await getCustomerFromRequest(request, env);
+    const customerEmail = customer?.email || body.email || undefined;
     await createPendingOrder(env, {
       orderNumber,
       items: lines,
       subtotal: Math.round(subtotal * 100) / 100,
       shipping,
       total,
+      customerId: customer?.id || null,
+      email: customerEmail || null,
     });
 
     const origin = new URL(request.url).origin;
@@ -107,13 +112,13 @@ export async function checkout(request, env) {
       shippingCents: Math.round(shipping * 100),
       successUrl: origin + '/checkout/success?session_id={CHECKOUT_SESSION_ID}',
       cancelUrl: origin + '/cart?cancelled=1',
-      customerEmail: body.email || undefined,
+      customerEmail,
     });
 
     await attachStripeSession(env, orderNumber, session.id);
     return json({ ok: true, orderNumber, url: session.url, sessionId: session.id });
   } catch (e) {
-    return json({ ok: false, error: e.message || 'Checkout failed' }, e.status || 500);
+    return json({ ok: false, error: e.message || 'El pago ha fallado' }, e.status || 500);
   }
 }
 

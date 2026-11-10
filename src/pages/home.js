@@ -71,8 +71,10 @@ ${LAYOUT_CSS}
 }
 @media (prefers-reduced-motion:reduce){
   .mm-snow{display:none}
-  .mm-card,.mm-card .mm-card-media img,.mm-story img{animation:none;transition:none}
+  .mm-card,.mm-card .mm-card-media img,.mm-story img,.mm-cat,.mm-cat-media,.mm-cat-glow,.mm-cat-hint::after{animation:none;transition:none}
   .mm-card:hover{transform:none}
+  .mm-cat:hover,.mm-cat:focus-visible{transform:none}
+  .mm-cat:hover .mm-cat-media,.mm-cat:hover .mm-cat-glow,.mm-cat:focus-visible .mm-cat-media,.mm-cat:focus-visible .mm-cat-glow{transform:none}
 }
 .mm-section{padding:14px var(--pad) 28px;scroll-margin-top:var(--nav-h)}
 .mm-section-inner{width:min(1420px,100%);margin:0 auto}
@@ -96,13 +98,31 @@ ${LAYOUT_CSS}
 .mm-card-meta{margin-top:2px;color:#b3a89a;font:600 .72rem/1.3 var(--font)}
 .mm-card-price{grid-column:2;grid-row:1 / span 3;align-self:end;margin:0;color:#fff8ec;font:900 1.12rem/1.3 var(--font);white-space:nowrap;text-align:right}
 .mm-card-was{display:block;margin-top:1px;color:#8a7d70;font:600 .72rem/1 var(--font);text-decoration:line-through;text-align:right}
-.mm-cats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:8px}
-.mm-cat{min-height:76px;border-radius:10px;border:1px solid #74563c;display:flex;align-items:flex-end;padding:16px;background:linear-gradient(160deg, #2e4736,#1c2923);transition:border-color .25s,transform .25s}
-.mm-cat:nth-child(2){background:linear-gradient(160deg, #652f33,#3b2421)}
-.mm-cat:nth-child(3){background:linear-gradient(160deg, #61492e,#352720)}
-.mm-cat:nth-child(4){background:linear-gradient(160deg, #394337,#28251e)}
-.mm-cat:hover{border-color:var(--accent);transform:translateY(-2px)}
-.mm-cat span{font:900 .95rem/1.1 var(--font);letter-spacing:-.02em;color:#fff}
+.mm-cats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:8px}
+.mm-cat{position:relative;isolation:isolate;overflow:hidden;min-height:132px;border-radius:14px;border:1px solid #8a6848;display:flex;align-items:flex-end;padding:18px 16px 16px;background:#241812;box-shadow:inset 0 1px 0 rgba(255,232,196,.12);transition:border-color .3s ease,transform .35s cubic-bezier(.2,.7,.2,1),box-shadow .35s ease}
+.mm-cat-media,.mm-cat-glow{position:absolute;inset:0;z-index:-2;width:100%;height:100%;object-fit:cover;object-position:center 42%;transform:scale(1.02);transition:transform .55s cubic-bezier(.2,.7,.2,1),filter .35s ease;pointer-events:none}
+.mm-cat::after{content:"";position:absolute;inset:0;z-index:-1;background:
+  linear-gradient(180deg,rgba(22,12,10,.12) 0%,rgba(18,10,8,.36) 34%,rgba(12,7,5,.94) 100%),
+  radial-gradient(120% 80% at 85% 0%,rgba(255,210,140,.16),transparent 55%);
+  pointer-events:none}
+.mm-cat-glow{background:
+  radial-gradient(ellipse 58% 48% at 70% 26%,rgba(255,220,150,.62),transparent 64%),
+  radial-gradient(ellipse 42% 38% at 24% 72%,rgba(255,150,80,.32),transparent 72%),
+  radial-gradient(circle at 48% 58%,rgba(255,190,110,.18),transparent 45%),
+  linear-gradient(145deg,#5c2c2a 0%,#3b201c 42%,#1f1410 100%)}
+.mm-cat-glow::before,.mm-cat-glow::after{content:"";position:absolute;border-radius:50%;filter:blur(1px)}
+.mm-cat-glow::before{width:14px;height:14px;top:22%;left:58%;background:#ffe7b0;box-shadow:0 0 18px 8px rgba(255,210,130,.55),0 0 42px 16px rgba(255,170,80,.22)}
+.mm-cat-glow::after{width:8px;height:8px;top:48%;left:30%;background:#ffd89a;box-shadow:0 0 12px 6px rgba(255,200,120,.4),0 0 28px 12px rgba(255,150,70,.16);opacity:.85}
+.mm-cat--holiday .mm-cat-media{object-position:center 38%;filter:saturate(1.05) brightness(.92)}
+.mm-cat--candles .mm-cat-media{object-position:center 55%;filter:saturate(1.08) brightness(.9)}
+.mm-cat--objects .mm-cat-media{object-position:center 48%;filter:saturate(1.02) brightness(.88)}
+.mm-cat-copy{position:relative;z-index:1;display:flex;flex-direction:column;gap:5px;min-width:0}
+.mm-cat-name{font:700 clamp(1.05rem,1.6vw,1.28rem)/1.05 Georgia,serif;letter-spacing:-.03em;color:#fff7ea;text-shadow:0 1px 10px rgba(0,0,0,.45)}
+.mm-cat-hint{display:inline-flex;align-items:center;gap:6px;font:800 10px/1 var(--font);letter-spacing:.12em;text-transform:uppercase;color:#f0c987}
+.mm-cat-hint::after{content:"→";font-size:11px;transition:transform .28s ease}
+.mm-cat:hover,.mm-cat:focus-visible{border-color:#e6c48a;transform:translateY(-3px);box-shadow:0 16px 28px rgba(0,0,0,.34),inset 0 1px 0 rgba(255,232,196,.2);outline:none}
+.mm-cat:hover .mm-cat-media,.mm-cat:hover .mm-cat-glow,.mm-cat:focus-visible .mm-cat-media,.mm-cat:focus-visible .mm-cat-glow{transform:scale(1.08);filter:saturate(1.12) brightness(1)}
+.mm-cat:hover .mm-cat-hint::after,.mm-cat:focus-visible .mm-cat-hint::after{transform:translateX(3px)}
 .mm-band{margin-block:8px 0;border-radius:12px;overflow:hidden;border:1px solid #70513d;display:grid;grid-template-columns:.85fr 1.15fr;min-height:282px;background:linear-gradient(135deg,#592b31,#35211e 74%)}
 .mm-band-copy{padding:27px clamp(20px,3.2vw,46px);display:flex;flex-direction:column;justify-content:center}
 .mm-band-copy h2{margin:6px 0 10px;font:700 clamp(1.65rem,3vw,2.65rem)/1.03 Georgia,serif;letter-spacing:-.035em;color:#fff4e4;max-width:15ch}
@@ -134,7 +154,8 @@ ${LAYOUT_CSS}
 @media(max-width:980px){
   .mm-products{grid-template-columns:repeat(2,minmax(0,1fr))}
   .mm-card-media{height:180px}
-  .mm-cats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .mm-cats{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .mm-cat{min-height:118px}
   .mm-band,.mm-stories,.mm-news{grid-template-columns:1fr}
   .mm-benefits{grid-template-columns:1fr 1fr}
 }
@@ -157,6 +178,8 @@ ${LAYOUT_CSS}
   .mm-card-body{padding:10px 11px 12px}
   .mm-card-name{font-size:.86rem}
   .mm-card-price{font-size:1rem}
+  .mm-cat{min-height:108px;padding:14px 13px 13px;border-radius:12px}
+  .mm-cat-name{font-size:1.05rem}
 }
 @media(max-width:359px){
   .mm-hero .lead{display:none}
@@ -171,24 +194,24 @@ ${LAYOUT_CSS}
 function heroCarouselHtml(products) {
   const slides = products.filter((p) => p.slug && (p.image_url || p.images?.[0])).slice(0, 5);
   if (!slides.length) {
-    return `<div class="mm-carousel"><div class="mm-carousel-empty"><strong>Holiday arrivals</strong></div></div>`;
+    return `<div class="mm-carousel"><div class="mm-carousel-empty"><strong>Novedades navideñas</strong></div></div>`;
   }
   const track = slides.map((p, i) => {
-    const name = esc(p.name || 'Holiday piece');
+    const name = esc(p.name || 'Pieza de temporada');
     const price = Number(p.retail_price_eur || 0);
     return `<a class="mm-carousel-slide" href="/products/${encodeURIComponent(p.slug)}">
       ${storefrontProductImage(p, { featured: i === 0, decorative: true })}
       <div class="mm-carousel-meta">
-        <span>${price > 0 ? `€${price.toFixed(2)}` : 'Shop now'}</span>
+        <span>${price > 0 ? `€${price.toFixed(2)}` : 'Comprar'}</span>
         <strong>${name}</strong>
       </div>
     </a>`;
   }).join('');
   const controls = slides.length > 1 ? `<div class="mm-carousel-controls">
-    <button type="button" data-step="-1" aria-label="Previous featured product" aria-controls="heroTrack">‹</button>
-    <button type="button" data-step="1" aria-label="Next featured product" aria-controls="heroTrack">›</button>
+    <button type="button" data-step="-1" aria-label="Producto destacado anterior" aria-controls="heroTrack">‹</button>
+    <button type="button" data-step="1" aria-label="Siguiente producto destacado" aria-controls="heroTrack">›</button>
   </div>` : '';
-  return `<section class="mm-carousel" id="heroCarousel" aria-roledescription="carousel" aria-label="Featured Christmas products">
+  return `<section class="mm-carousel" id="heroCarousel" aria-roledescription="carousel" aria-label="Productos navideños destacados">
     <div class="mm-carousel-track" id="heroTrack">${track}</div>
     ${controls}
   </section>`;
@@ -213,15 +236,15 @@ export async function homePage(env) {
   const products = [...new Map([...curated, ...latest].map((p) => [p.slug, p])).values()];
   const featuredHtml = products.length
     ? products.slice(0, 8).map((p, i) => homeProductCard(p, { featured: i === 0 })).join('')
-    : `<p class="empty">Holiday pieces are arriving.</p>`;
+    : `<p class="empty">Las piezas navideñas van llegando.</p>`;
   const carouselHtml = heroCarouselHtml(curated.length ? curated : products);
 
-  const homeTitle = 'Maison Marnier — Holiday Home Edit';
+  const homeTitle = 'Maison Marnier — Edición hogar de Navidad';
   const homeDescription =
-    'Festive home decor for European interiors — ornaments, lights, candles and holiday objects curated by Maison Marnier.';
+    'Decoración festiva para interiores europeos — ornamentos, luces, velas y objetos de temporada seleccionados por Maison Marnier.';
 
   const html = `<!doctype html>
-<html lang="en">
+<html lang="es">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -249,11 +272,12 @@ ${storefrontHeaderHtml({ search: false })}
   <section class="mm-hero">
     <div class="mm-hero-inner">
       <div>
-        <span class="mm-kicker">The Christmas Edit</span>
-        <h1>Bring <em>Christmas</em> home</h1>
-        <p class="lead">Warm lights, festive décor and thoughtful details for Christmas at home.</p>
+        <span class="mm-kicker">La edición de Navidad</span>
+        <h1>Trae la <em>Navidad</em> a casa</h1>
+        <p class="lead">Luces cálidas, decoración festiva y detalles pensados para la Navidad en casa.</p>
         <div class="mm-actions">
-          <a class="btn" href="/collections/seasonal">Shop Christmas</a>
+          <a class="btn" href="/collections/seasonal">Comprar Navidad</a>
+          <a class="btn btn-ghost" href="/cuenta/registro">Crear cuenta</a>
         </div>
       </div>
       ${carouselHtml}
@@ -263,64 +287,76 @@ ${storefrontHeaderHtml({ search: false })}
   <section class="mm-section" id="featured">
     <div class="mm-section-inner">
       <div class="mm-section-head">
-        <h2>Holiday arrivals</h2>
-        <a href="/collections/new">View all arrivals →</a>
+        <h2>Novedades de temporada</h2>
+        <a href="/collections/new">Ver todas →</a>
       </div>
       <div class="mm-products" data-home-listings>${featuredHtml}</div>
-      <div class="mm-cats" style="margin-top:22px">
-        <a class="mm-cat" href="/collections/seasonal"><span>Holiday</span></a>
-        <a class="mm-cat" href="/collections/lighting"><span>Glow &amp; lights</span></a>
-        <a class="mm-cat" href="/collections/candles"><span>Candles</span></a>
-        <a class="mm-cat" href="/collections/objects"><span>Objects</span></a>
-      </div>
+      <nav class="mm-cats" style="margin-top:22px" aria-label="Comprar por categoría">
+        <a class="mm-cat mm-cat--holiday" href="/collections/seasonal">
+          <img class="mm-cat-media" src="${CHRISTMAS_SCENES.living}" alt="" width="640" height="400" loading="lazy" decoding="async">
+          <span class="mm-cat-copy"><span class="mm-cat-name">Navidad</span><span class="mm-cat-hint">Edición de temporada</span></span>
+        </a>
+        <a class="mm-cat mm-cat--glow" href="/collections/lighting">
+          <span class="mm-cat-glow" aria-hidden="true"></span>
+          <span class="mm-cat-copy"><span class="mm-cat-name">Luz y brillo</span><span class="mm-cat-hint">Iluminación cálida</span></span>
+        </a>
+        <a class="mm-cat mm-cat--candles" href="/collections/candles">
+          <img class="mm-cat-media" src="${CHRISTMAS_SCENES.candlelight}" alt="" width="640" height="400" loading="lazy" decoding="async">
+          <span class="mm-cat-copy"><span class="mm-cat-name">Velas</span><span class="mm-cat-hint">Noches suaves</span></span>
+        </a>
+        <a class="mm-cat mm-cat--objects" href="/collections/objects">
+          <img class="mm-cat-media" src="${CHRISTMAS_SCENES.table}" alt="" width="640" height="400" loading="lazy" decoding="async">
+          <span class="mm-cat-copy"><span class="mm-cat-name">Objetos</span><span class="mm-cat-hint">Mesa y decoración</span></span>
+        </a>
+      </nav>
     </div>
   </section>
 
   <section class="mm-band" id="seasonal">
     <div class="mm-band-copy">
-      <span class="mm-kicker">Seasonal edit</span>
-      <h2>Warm rooms for the holidays</h2>
-      <p>Garlands, stockings, table light and small festive objects — collected, not cluttered.</p>
-      <div class="mm-actions"><a class="btn" href="/collections/seasonal">Shop holiday</a></div>
+      <span class="mm-kicker">Edición de temporada</span>
+      <h2>Hogares cálidos para las fiestas</h2>
+      <p>Guirnaldas, calcetines, luz de mesa y pequeños objetos festivos — reunidos, sin ruido visual.</p>
+      <div class="mm-actions"><a class="btn" href="/collections/seasonal">Comprar temporada</a></div>
     </div>
     <div class="mm-band-img">
-      <img src="${CHRISTMAS_SCENES.living}" alt="A Christmas living room with a lit tree, candles and a fireplace" width="900" height="606" loading="lazy" decoding="async">
+      <img src="${CHRISTMAS_SCENES.living}" alt="Salón navideño con árbol iluminado, velas y chimenea" width="900" height="606" loading="lazy" decoding="async">
     </div>
   </section>
 
   <div class="mm-benefits">
-    <div class="mm-benefit"><strong>EU shipping</strong><span>Partner fulfilment across Europe.</span></div>
-    <div class="mm-benefit"><strong>30-day returns</strong><span>Clear, simple and fair.</span></div>
-    <div class="mm-benefit"><strong>Real product photos</strong><span>Supplier galleries — not stock fillers.</span></div>
-    <div class="mm-benefit"><strong>Secure checkout</strong><span>Stripe · VAT calculated at payment.</span></div>
+    <div class="mm-benefit"><strong>Envíos UE</strong><span>Cumplimiento con socios en Europa.</span></div>
+    <div class="mm-benefit"><strong>Devoluciones 30 días</strong><span>Claras, sencillas y justas.</span></div>
+    <div class="mm-benefit"><strong>Fotos reales</strong><span>Galerías del proveedor, no relleno genérico.</span></div>
+    <div class="mm-benefit"><strong>Pago seguro</strong><span>Stripe · IVA calculado en el pago.</span></div>
   </div>
 
   <section class="mm-stories" id="journal">
     <a class="mm-story" href="/journal">
       <img src="${CHRISTMAS_SCENES.table}" alt="" width="900" height="606" loading="lazy" decoding="async">
-      <div><span class="mm-kicker">Journal</span><h3>A quieter Christmas table</h3><p>Light, linen and a few festive objects.</p></div>
+      <div><span class="mm-kicker">Diario</span><h3>Una mesa de Navidad más serena</h3><p>Luz, lino y unos pocos objetos festivos.</p></div>
     </a>
     <a class="mm-story" href="/collections/candles">
       <img src="${CHRISTMAS_SCENES.candlelight}" alt="" width="900" height="606" loading="lazy" decoding="async">
-      <div><span class="mm-kicker">Edit</span><h3>Glow for long evenings</h3><p>Candles and warm lamps after dinner.</p></div>
+      <div><span class="mm-kicker">Edición</span><h3>Brillo para noches largas</h3><p>Velas y lámparas cálidas después de cenar.</p></div>
     </a>
   </section>
 
   <section class="mm-news">
     <div>
-      <h2>Stay close to Maison Marnier</h2>
-      <p>Holiday drops and seasonal notes — occasionally, not constantly.</p>
+      <h2>Quédate cerca de Maison Marnier</h2>
+      <p>Novedades de temporada y notas ocasionales — sin ruido constante.</p>
     </div>
     <form class="mm-form" id="form">
-      <input required type="email" placeholder="Your email" aria-label="Email">
-      <button type="submit">Subscribe</button>
+      <input required type="email" placeholder="Tu correo" aria-label="Correo electrónico">
+      <button type="submit">Suscribirme</button>
     </form>
   </section>
 </main>
 
 ${storefrontFooterHtml()}
 <script>
-document.getElementById('form').onsubmit=e=>{e.preventDefault();toast('Thanks — welcome to Maison Marnier.');e.target.reset()};
+document.getElementById('form').onsubmit=e=>{e.preventDefault();toast('Gracias — bienvenida a Maison Marnier.');e.target.reset()};
 (function(){
   const carousel = document.getElementById('heroCarousel');
   const track = document.getElementById('heroTrack');

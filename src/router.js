@@ -10,6 +10,17 @@ import {
   retryFulfill,
 } from './commerce.js';
 import {
+  addWishlist,
+  getCustomerOrder,
+  listCustomerOrders,
+  listWishlist,
+  loginCustomer,
+  logoutCustomer,
+  meCustomer,
+  registerCustomer,
+  removeWishlist,
+} from './db/customers.js';
+import {
   deleteLumeDrafts,
   deleteLumeProduct,
   importExternalProducts,
@@ -36,6 +47,7 @@ import { syncProductGalleries } from './jobs/syncGalleries.js';
 import { BRAND_ICON_PATH, BRAND_LOGO_PATH, BRAND_LOGO_LIGHT_PATH, brandImageResponse, brandLockupResponse } from './lib/brandAsset.js';
 import { json } from './lib/json.js';
 import { seasonalImageResponse } from './lib/seasonalAssets.js';
+import { accountRoute } from './pages/account.js';
 import { homePage } from './pages/home.js';
 import { adminPage } from './pages/admin.js';
 import { cartPage, checkoutSuccessPageHtml } from './pages/cart.js';
@@ -104,6 +116,36 @@ export async function handleRequest(request, env, ctx) {
   if (pathname === '/api/stripe/webhook') {
     if (method !== 'POST') return methodNotAllowed();
     return handleStripeWebhook(request, env, ctx);
+  }
+
+  // --- Customer account APIs ---
+  if (pathname === '/api/account/register') {
+    if (method !== 'POST') return methodNotAllowed();
+    return registerCustomer(request, env);
+  }
+  if (pathname === '/api/account/login') {
+    if (method !== 'POST') return methodNotAllowed();
+    return loginCustomer(request, env);
+  }
+  if (pathname === '/api/account/logout') {
+    if (method !== 'POST') return methodNotAllowed();
+    return logoutCustomer(request, env);
+  }
+  if (pathname === '/api/account/me') {
+    if (method !== 'GET') return methodNotAllowed();
+    return meCustomer(request, env);
+  }
+  if (pathname === '/api/account/orders') {
+    if (method !== 'GET') return methodNotAllowed();
+    const orderNumber = url.searchParams.get('number');
+    if (orderNumber) return getCustomerOrder(request, env, orderNumber);
+    return listCustomerOrders(request, env);
+  }
+  if (pathname === '/api/account/wishlist') {
+    if (method === 'GET') return listWishlist(request, env);
+    if (method === 'POST') return addWishlist(request, env);
+    if (method === 'DELETE') return removeWishlist(request, env);
+    return methodNotAllowed();
   }
 
   // --- CJ APIs (admin) ---
@@ -263,10 +305,18 @@ export async function handleRequest(request, env, ctx) {
     const info = await checkoutSuccessPage(url, env);
     return checkoutSuccessPageHtml(info);
   }
+  if (pathname.startsWith('/cuenta')) {
+    const accountPage = await accountRoute(request, env, pathname);
+    if (accountPage) return accountPage;
+  }
   if (pathname.startsWith('/collections/')) return collectionPage(url, env);
   if (pathname.startsWith('/products/')) return productPage(url, env);
   if (pathname === '/journal' || pathname.startsWith('/journal/')) return journalPage(url, env);
-  if (['/shipping', '/returns', '/contact', '/sourcing', '/about'].includes(pathname)) {
+  if (
+    ['/shipping', '/returns', '/contact', '/sourcing', '/about', '/privacidad', '/cookies', '/terminos'].includes(
+      pathname,
+    )
+  ) {
     return infoPage(pathname);
   }
   if (pathname === '/instagram') return instagramPage();
@@ -279,7 +329,7 @@ export async function handleRequest(request, env, ctx) {
 
 function htmlNotFound() {
   return new Response(
-    '<!doctype html><html><body><h1>Not found</h1><p><a href="/">Maison Marnier</a></p></body></html>',
+    '<!doctype html><html lang="es"><body><h1>No encontrado</h1><p><a href="/">Maison Marnier</a></p></body></html>',
     {
       status: 404,
       headers: { 'content-type': 'text/html; charset=UTF-8', 'cache-control': 'no-store' },

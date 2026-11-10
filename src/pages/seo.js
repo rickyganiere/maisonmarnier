@@ -8,8 +8,12 @@ const INFO_PATHS = [
   '/returns',
   '/contact',
   '/sourcing',
+  '/privacidad',
+  '/cookies',
+  '/terminos',
   '/journal',
   '/instagram',
+  '/cuenta/registro',
 ];
 const PRODUCT_CAP = 4500;
 const JOURNAL_CAP = 200;
@@ -44,6 +48,8 @@ Allow: /
 Disallow: /admin
 Disallow: /api/
 Disallow: /cart
+Disallow: /cuenta
+Disallow: /cuenta/entrar
 
 Sitemap: ${SITE_ORIGIN}/sitemap.xml
 Sitemap: ${SITE_ORIGIN}/sitemap_index.xml
@@ -98,8 +104,9 @@ export async function sitemapProductsXml(env) {
   const entries = [];
   try {
     const r = await env.LUME_DB.prepare(
-      `SELECT slug, published_at, image_url, image_urls FROM products
+      `SELECT slug, published_at, retail_price_eur, image_url, image_urls FROM products
        WHERE status='live' AND slug IS NOT NULL AND slug!=''
+         AND retail_price_eur > 0
        ORDER BY published_at DESC, id DESC LIMIT ?`,
     )
       .bind(PRODUCT_CAP * 3)

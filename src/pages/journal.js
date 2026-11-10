@@ -9,11 +9,11 @@ export async function journalPage(url, env) {
       const articles = await listPublishedArticles(env);
       if (!articles.length) {
         return htmlPage(
-          'Maison Journal',
-          `<div class="head"><h1>Maison Journal</h1><p class="lead">Stories and notes from the maison.</p></div>
-           <p class="empty">No journal pieces published yet.</p>`,
+          'Diario de la maison',
+          `<div class="head"><h1>Diario de la maison</h1><p class="lead">Historias y notas desde Maison Marnier.</p></div>
+           <p class="empty">Aún no hay piezas publicadas en el diario.</p>`,
           {
-            description: 'Stories and notes from Maison Marnier.',
+            description: 'Historias y notas desde Maison Marnier.',
             canonical: '/journal',
             cache: 'public, max-age=300',
           },
@@ -31,11 +31,11 @@ export async function journalPage(url, env) {
         )
         .join('');
       return htmlPage(
-        'Maison Journal',
-        `<div class="head"><h1>Maison Journal</h1><p class="lead">Stories and notes from the maison.</p></div>
+        'Diario de la maison',
+        `<div class="head"><h1>Diario de la maison</h1><p class="lead">Historias y notas desde Maison Marnier.</p></div>
          <div class="journal-list">${list}</div>`,
         {
-          description: 'Stories and notes from Maison Marnier.',
+          description: 'Historias y notas desde Maison Marnier.',
           canonical: '/journal',
           cache: 'public, max-age=300',
         },
@@ -45,9 +45,9 @@ export async function journalPage(url, env) {
     const a = await getArticleBySlug(env, slug);
     if (!a || a.status !== 'live') {
       return htmlPage(
-        'Article not found',
-        `<div class="head"><h1>Article not found</h1></div>
-         <p class="empty"><a href="/journal">Back to journal →</a></p>`,
+        'Artículo no encontrado',
+        `<div class="head"><h1>Artículo no encontrado</h1></div>
+         <p class="empty"><a href="/journal">Volver al diario →</a></p>`,
         { status: 404, noindex: true },
       );
     }
@@ -59,7 +59,7 @@ export async function journalPage(url, env) {
        <div class="head"><h1>${esc(a.title)}</h1></div>
        ${a.excerpt ? `<p class="lead">${esc(a.excerpt)}</p>` : ''}
        <div class="desc">${esc(a.body || '')}</div>
-       <p style="margin-top:28px"><a class="btn" href="/collections/decor">Shop the edit</a></p>`,
+       <p style="margin-top:28px"><a class="btn" href="/collections/decor">Comprar la edición</a></p>`,
       {
         description: String(a.excerpt || a.title).slice(0, 160),
         canonical: articlePath,
@@ -69,6 +69,6 @@ export async function journalPage(url, env) {
       },
     );
   } catch {
-    return htmlPage('Maison Journal', '<p class="empty">Could not load the journal.</p>', { status: 500 });
+    return htmlPage('Diario de la maison', '<p class="empty">No se pudo cargar el diario.</p>', { status: 500 });
   }
 }

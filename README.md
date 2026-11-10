@@ -85,9 +85,13 @@ Use Stripe Dashboard to create/send invoices (branding + Hosted Invoice Page). N
 
 ## Auth
 
-Public: `/api/store/*`, `/api/checkout`, storefront HTML, `/api/stripe/webhook` (Stripe signature).
+Public: `/api/store/*`, `/api/checkout`, `/api/account/*`, storefront HTML, `/api/stripe/webhook` (Stripe signature).
+
+Customer accounts: register/login at `/cuenta/registro` and `/cuenta/entrar` (HttpOnly `mm_session` cookie). Account hub `/cuenta` shows orders + wishlist. Guest checkout still works; paid orders link to an account when the email matches.
 
 Admin: `/api/cj/*`, `/api/lume/*`.
+
+Legal (ES): `/privacidad`, `/cookies`, `/terminos`. Storefront UI is Spanish (`lang="es"`).
 
 External supplier drafts: `POST /api/lume/import-external` with `{ supplier: "SPOCKET", products: [...] }` (or admin → **Other suppliers**). Non-CJ line items fulfill as manual.
 
@@ -102,8 +106,10 @@ Shipping: €6.90 flat, free from €100.
 ## Main routes
 
 - Store: `/`, `/cart`, `/checkout/success`, `/collections/:slug`, `/products/:slug`, `/journal`, info pages
+- Account: `/cuenta`, `/cuenta/registro`, `/cuenta/entrar`
+- Legal: `/privacidad`, `/cookies`, `/terminos`
 - Admin UI: `/admin`
-- APIs: `/api/checkout`, `/api/stripe/webhook`, `/api/lume/orders`, `/api/lume/orders/fulfill`, `/api/lume/orders/refresh`
+- APIs: `/api/checkout`, `/api/account/*`, `/api/stripe/webhook`, `/api/lume/orders`, `/api/lume/orders/fulfill`, `/api/lume/orders/refresh`
 
 ## Notes
 
