@@ -134,6 +134,14 @@ ${LAYOUT_CSS}
   .mm-benefits{grid-template-columns:1fr}
   .mm-products{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
 }
+@media(max-width:359px){
+  .mm-hero .lead{display:none}
+  .mm-carousel{height:156px}
+  .mm-section-head h2{font-size:1.2rem}
+  .mm-section-head a{font-size:10px;white-space:nowrap}
+  .mm-products .p h3{font-size:14px}
+  .mm-products .p .catline{margin-bottom:4px}
+}
 `;
 
 function heroCarouselHtml(products) {
@@ -290,17 +298,15 @@ document.getElementById('form').onsubmit=e=>{e.preventDefault();toast('Thanks â€
   const carousel = document.getElementById('heroCarousel');
   const track = document.getElementById('heroTrack');
   if (!carousel || track.children.length < 2) return;
-  let current = 0;
-  track.addEventListener('scroll', () => {
-    current = Math.round(track.scrollLeft / track.clientWidth);
-  }, { passive: true });
+  const slides = [...track.children];
   carousel.addEventListener('click', (event) => {
     const button = event.target.closest('[data-step]');
     if (!button) return;
-    const count = track.children.length;
-    const next = (current + Number(button.dataset.step) + count) % count;
+    const current = Math.round(track.scrollLeft / track.getBoundingClientRect().width);
+    const next = (current + Number(button.dataset.step) + slides.length) % slides.length;
+    const left = slides[next].offsetLeft - slides[0].offsetLeft;
     const reduceMotion = matchMedia('(prefers-reduced-motion: reduce)').matches;
-    track.scrollTo({ left: next * track.clientWidth, behavior: reduceMotion ? 'instant' : 'smooth' });
+    track.scrollTo({ left, behavior: reduceMotion ? 'instant' : 'smooth' });
   });
 })();
 </script>
