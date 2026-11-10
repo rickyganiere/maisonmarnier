@@ -1,7 +1,11 @@
 /** Link-in-bio hub for Instagram → maisonmarnier.com/instagram */
 import { brandLogoHtml, htmlPage } from '../lib/html.js';
-
-const IG_URL = 'https://www.instagram.com/maison.marnier/';
+import {
+  FACEBOOK_URL,
+  INSTAGRAM_URL,
+  facebookLogoSvg,
+  instagramLogoSvg,
+} from '../lib/social.js';
 
 const PAGE_CSS = `
 .ig-hub{max-width:420px;margin:0 auto;padding:28px 0 48px;text-align:center}
@@ -17,7 +21,8 @@ const PAGE_CSS = `
   transition:border-color .2s,background .2s,transform .2s}
 .ig-links a:hover{border-color:var(--accent);background:rgba(201,164,106,.1);transform:translateY(-1px)}
 .ig-links a.ig-primary{border-color:var(--accent);background:linear-gradient(90deg,rgba(201,164,106,.18),rgba(154,36,48,.12))}
-.ig-links a.ig-external{font-size:12px;letter-spacing:.08em;color:var(--soft);background:transparent}
+.ig-links a.ig-external{display:flex;align-items:center;justify-content:center;gap:10px;font-size:12px;letter-spacing:.08em;color:var(--soft);background:transparent}
+.ig-links a.ig-external .social-logo{flex:0 0 auto;border-radius:6px}
 .ig-note{margin:22px 0 0;color:var(--muted);font:600 12px/1.45 var(--font)}
 `;
 
@@ -44,7 +49,8 @@ export function instagramPage() {
   </div>
   <ul class="ig-links">
     ${linksHtml}
-    <li><a class="ig-external" href="${IG_URL}" target="_blank" rel="noopener noreferrer">@maison.marnier on Instagram</a></li>
+    <li><a class="ig-external" href="${INSTAGRAM_URL}" target="_blank" rel="noopener noreferrer">${instagramLogoSvg({ size: 20 })}<span>@maison.marnier on Instagram</span></a></li>
+    <li><a class="ig-external" href="${FACEBOOK_URL}" target="_blank" rel="noopener noreferrer">${facebookLogoSvg({ size: 20 })}<span>Maison Marnier on Facebook</span></a></li>
   </ul>
   <p class="ig-note">Europe · EUR · Free shipping over €100</p>
 </section>`;
