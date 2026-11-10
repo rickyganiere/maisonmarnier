@@ -31,7 +31,7 @@ import {
 import { importChristmasCatalog } from './jobs/importChristmasCatalog.js';
 import { replaceSeedWithCj } from './jobs/replaceSeedWithCj.js';
 import { syncProductGalleries } from './jobs/syncGalleries.js';
-import { brandLogoSvgDocument } from './lib/html.js';
+import { logoJpegResponse } from './lib/brandAsset.js';
 import { json } from './lib/json.js';
 import { homePage } from './pages/home.js';
 import { adminPage } from './pages/admin.js';
@@ -74,13 +74,8 @@ export async function handleRequest(request, env, ctx) {
 
   // --- Technical SEO / brand ---
   if (pathname === '/robots.txt') return robotsTxt();
-  if (pathname === '/logo.svg' || pathname === '/favicon.svg') {
-    return new Response(brandLogoSvgDocument(), {
-      headers: {
-        'content-type': 'image/svg+xml; charset=utf-8',
-        'cache-control': 'public, max-age=86400',
-      },
-    });
+  if (pathname === '/logo.jpg' || pathname === '/logo.png' || pathname === '/favicon.ico' || pathname === '/favicon.svg' || pathname === '/logo.svg') {
+    return logoJpegResponse();
   }
   if (pathname === '/sitemap.xml' || pathname === '/sitemap_index.xml') return sitemapXml();
   if (pathname === '/sitemap-pages.xml') return sitemapPagesXml();
