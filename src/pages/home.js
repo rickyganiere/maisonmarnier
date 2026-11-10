@@ -8,8 +8,10 @@ import {
   productCard,
   storefrontFooterHtml,
   storefrontHeaderHtml,
+  storefrontProductImage,
 } from '../lib/html.js';
 import { getLiveProducts, getLiveProductsBySlugs } from '../db/products.js';
+import { CHRISTMAS_SCENES } from '../lib/seasonalAssets.js';
 import {
   DEFAULT_OG_IMAGE,
   jsonLdScript,
@@ -27,11 +29,15 @@ const CHRISTMAS_HOME_EDIT = [
 
 const HOME_CSS = `
 ${LAYOUT_CSS}
-.home-main{overflow:hidden}
+.home-main{overflow:hidden;background:
+  radial-gradient(850px 460px at 95% 70%,#35271a44,transparent 82%),
+  radial-gradient(900px 520px at 0 44%,#3c1b254f,transparent 80%),
+  #1b1512}
+.mm-band,.mm-stories,.mm-news{width:min(var(--max),calc(100% - 2 * var(--pad)));margin-inline:auto}
 .mm-hero{position:relative;isolation:isolate;padding:14px var(--pad);border-bottom:1px solid #573534;background:
   radial-gradient(580px 290px at 15% 0%,#6b3431,transparent 82%),
   radial-gradient(660px 320px at 92% 85%,#644426,transparent 75%),
-  linear-gradient(110deg,#412021,#261614 65%,#3b2820)}
+  linear-gradient(110deg,#492227,#2d1916 65%,#442e20)}
 .mm-hero-inner{width:min(1420px,100%);margin:0 auto;display:grid;grid-template-columns:minmax(0,.9fr) minmax(0,1.1fr);gap:clamp(14px,4vw,64px);align-items:center}
 .mm-kicker{display:inline-flex;align-items:center;gap:7px;margin-bottom:9px;color:#f0c987;font:800 11px/1.2 var(--font);letter-spacing:.13em;text-transform:uppercase}
 .mm-kicker::before{content:"✦";color:#ffe4a9;text-shadow:0 0 10px #ffad52}
@@ -51,7 +57,7 @@ ${LAYOUT_CSS}
 .mm-carousel-controls{position:absolute;bottom:12px;right:12px;z-index:2;display:flex;gap:5px}
 .mm-carousel-controls button{display:grid;place-items:center;width:36px;height:36px;padding:0;border:1px solid #f0ce9d;border-radius:50%;background:#2d1816;color:#fff4dd;font:700 18px/1 var(--font);cursor:pointer}
 .mm-carousel-controls button:hover,.mm-carousel-controls button:focus-visible{background:#724339}
-.mm-carousel-empty{display:grid;align-content:end;height:100%;padding:18px;background:radial-gradient(circle at 40% 30%,#845733,transparent 60%),#36241e}
+.mm-carousel-empty{display:grid;align-content:end;height:100%;padding:18px;background:linear-gradient(0deg,#251411dc,transparent 70%),url("${CHRISTMAS_SCENES.living}") center 42%/cover,#36241e}
 .mm-carousel-empty strong{font:700 1.4rem/1.1 Georgia,serif;color:#fff8ec}
 .mm-snow{position:fixed;inset:0;pointer-events:none;z-index:35;overflow:hidden}
 .mm-snow i{position:absolute;top:-10%;border-radius:50%;background:#fff;box-shadow:0 0 8px rgba(255,255,255,.55);animation:snowFall linear infinite;opacity:.55}
@@ -65,44 +71,43 @@ ${LAYOUT_CSS}
 }
 @media (prefers-reduced-motion:reduce){
   .mm-snow{display:none}
-  .mm-products > .p{animation:none}
+  .mm-products > .p,.mm-story img{animation:none;transition:none}
 }
 .mm-section{padding:14px var(--pad) 28px;scroll-margin-top:var(--nav-h)}
 .mm-section-inner{width:min(1420px,100%);margin:0 auto}
 .mm-section-head{display:flex;justify-content:space-between;align-items:end;gap:12px;margin-bottom:9px}
-.mm-section-head h2{margin:0;font:900 clamp(1.35rem,2.4vw,1.85rem)/1.05 var(--font);letter-spacing:-.03em;color:#fff}
+.mm-section-head h2{margin:0;font:700 clamp(1.35rem,2.4vw,1.85rem)/1.05 Georgia,serif;letter-spacing:-.025em;color:#fff3e0}
 .mm-section-head a{font:800 12px/1 var(--font);letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
 .mm-products{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:16px;padding-top:0}
-.mm-products .media{aspect-ratio:4/3}
+.mm-products .media{aspect-ratio:4/3;border-color:#574033}
 .mm-products .p .meta{padding-top:9px}
 .mm-products .p .price-row{margin-top:6px}
 .mm-cats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:8px}
-.mm-cat{min-height:84px;border-radius:10px;border:1px solid var(--line);display:flex;align-items:flex-end;padding:16px;background:linear-gradient(160deg, rgba(31,61,50,.55), rgba(16,14,12,.92));transition:border-color .25s,transform .25s}
-.mm-cat:nth-child(2){background:linear-gradient(160deg, rgba(154,36,48,.42), rgba(16,14,12,.92))}
-.mm-cat:nth-child(3){background:linear-gradient(160deg, rgba(201,164,106,.28), rgba(16,14,12,.92))}
-.mm-cat:nth-child(4){background:linear-gradient(160deg, rgba(47,90,72,.5), rgba(16,14,12,.92))}
+.mm-cat{min-height:76px;border-radius:10px;border:1px solid #74563c;display:flex;align-items:flex-end;padding:16px;background:linear-gradient(160deg, #2e4736,#1c2923);transition:border-color .25s,transform .25s}
+.mm-cat:nth-child(2){background:linear-gradient(160deg, #652f33,#3b2421)}
+.mm-cat:nth-child(3){background:linear-gradient(160deg, #61492e,#352720)}
+.mm-cat:nth-child(4){background:linear-gradient(160deg, #394337,#28251e)}
 .mm-cat:hover{border-color:var(--accent);transform:translateY(-2px)}
 .mm-cat span{font:900 .95rem/1.1 var(--font);letter-spacing:-.02em;color:#fff}
-.mm-band{margin:8px var(--pad) 0;border-radius:12px;overflow:hidden;border:1px solid var(--line);display:grid;grid-template-columns:1fr 1.1fr;min-height:240px;background:var(--panel)}
-.mm-band-copy{padding:28px clamp(18px,3vw,36px);display:flex;flex-direction:column;justify-content:center}
-.mm-band-copy h2{margin:8px 0 10px;font:900 clamp(1.5rem,2.8vw,2.2rem)/1.05 var(--font);letter-spacing:-.035em;color:#fff;max-width:13ch}
-.mm-band-copy p{margin:0;color:var(--muted);max-width:36ch;font-weight:500;line-height:1.5}
-.mm-band-img{position:relative;min-height:200px;background:
-  radial-gradient(circle at 30% 40%, rgba(230,196,138,.22), transparent 42%),
-  radial-gradient(circle at 70% 60%, rgba(154,36,48,.35), transparent 45%),
-  linear-gradient(145deg,#1a221c,#140f0e 55%,#1f1412)}
-.mm-band-img::before{content:"";position:absolute;inset:18px auto auto 18px;width:54px;height:54px;border-radius:50%;border:2px solid rgba(230,196,138,.35);box-shadow:inset 0 0 0 8px rgba(31,61,50,.35)}
-.mm-band-img::after{content:"✦  Holiday";position:absolute;inset:auto 22px 22px auto;font:900 1.5rem/1 var(--font);letter-spacing:-.03em;color:rgba(246,240,230,.22)}
-.mm-benefits{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;padding:22px var(--pad);border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:#0c0b0a;margin-top:28px}
+.mm-band{margin-block:8px 0;border-radius:12px;overflow:hidden;border:1px solid #70513d;display:grid;grid-template-columns:.85fr 1.15fr;min-height:282px;background:linear-gradient(135deg,#592b31,#35211e 74%)}
+.mm-band-copy{padding:27px clamp(20px,3.2vw,46px);display:flex;flex-direction:column;justify-content:center}
+.mm-band-copy h2{margin:6px 0 10px;font:700 clamp(1.65rem,3vw,2.65rem)/1.03 Georgia,serif;letter-spacing:-.035em;color:#fff4e4;max-width:15ch}
+.mm-band-copy p{margin:0;color:#e9d4bf;max-width:36ch;font-weight:500;line-height:1.5}
+.mm-band-img{position:relative;min-height:218px;background:#4b3528}
+.mm-band-img img,.mm-story img{position:absolute;inset:0;width:100%;height:100%;object-fit:cover}
+.mm-band-img img{object-position:center 44%}
+.mm-benefits{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;padding:22px var(--pad);border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:#261d17;margin-top:28px}
 .mm-benefit strong{display:block;font:800 13px/1.2 var(--font);margin-bottom:6px;color:#fff}
 .mm-benefit span{display:block;font:500 12px/1.45 var(--font);color:var(--muted)}
-.mm-stories{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:28px var(--pad)}
-.mm-story{min-height:200px;border-radius:12px;overflow:hidden;position:relative;border:1px solid var(--line);display:flex;align-items:flex-end;padding:24px;color:#fff;background:linear-gradient(180deg,transparent 20%,rgba(8,7,6,.82)),linear-gradient(135deg,#1c1713,#14201a)}
-.mm-story:nth-child(2){background:linear-gradient(180deg,transparent 20%,rgba(8,7,6,.82)),linear-gradient(135deg,#221412,#1a100f)}
-.mm-story h3{margin:8px 0;font:900 1.45rem/1.05 var(--font);letter-spacing:-.03em}
-.mm-story p{margin:0;max-width:34ch;color:#ddd5cb;font:500 13px/1.45 var(--font)}
-.mm-news{margin:0 var(--pad) 40px;padding:28px clamp(18px,3vw,36px);border-radius:12px;border:1px solid var(--line);background:linear-gradient(135deg,#221812,#12100e 55%,#152018);display:grid;grid-template-columns:1.2fr .8fr;gap:18px;align-items:center}
-.mm-news h2{margin:0 0 8px;font:900 clamp(1.4rem,2.6vw,1.9rem)/1.05 var(--font);letter-spacing:-.03em;color:#fff}
+.mm-stories{display:grid;grid-template-columns:1fr 1fr;gap:12px;padding:28px 0}
+.mm-story{min-height:clamp(210px,24vw,305px);border-radius:12px;overflow:hidden;position:relative;isolation:isolate;border:1px solid #70513d;display:flex;align-items:flex-end;padding:clamp(17px,2vw,28px);color:#fff;background:#483227}
+.mm-story img{z-index:-2;object-position:center 45%;transition:transform .45s ease}
+.mm-story:hover img{transform:scale(1.04)}
+.mm-story::after{content:"";position:absolute;inset:0;z-index:-1;background:linear-gradient(0deg,#20100df5,transparent 80%)}
+.mm-story h3{margin:4px 0 8px;font:700 clamp(1.4rem,2.2vw,1.9rem)/1.05 Georgia,serif;letter-spacing:-.025em;color:#fff4e4}
+.mm-story p{margin:0;max-width:34ch;color:#f1ddc9;font:500 14px/1.4 var(--font)}
+.mm-news{margin-block:0 38px;padding:28px clamp(18px,3vw,36px);border-radius:12px;border:1px solid #70513d;background:linear-gradient(125deg,#4c2629,#29261e 65%,#25332a);display:grid;grid-template-columns:1.2fr .8fr;gap:18px;align-items:center}
+.mm-news h2{margin:0 0 8px;font:700 clamp(1.4rem,2.6vw,1.9rem)/1.05 Georgia,serif;letter-spacing:-.025em;color:#fff4e4}
 .mm-news p{margin:0;color:var(--muted);font-weight:500}
 .mm-form{display:flex;gap:0;border-radius:8px;overflow:hidden;border:1px solid var(--line)}
 .mm-form input{flex:1;border:0;padding:14px 16px;background:var(--bg);color:var(--ink);font:600 14px var(--font)}
@@ -150,11 +155,10 @@ function heroCarouselHtml(products) {
     return `<div class="mm-carousel"><div class="mm-carousel-empty"><strong>Holiday arrivals</strong></div></div>`;
   }
   const track = slides.map((p, i) => {
-    const image = esc(p.image_url || p.images[0]);
     const name = esc(p.name || 'Holiday piece');
     const price = Number(p.retail_price_eur || 0);
     return `<a class="mm-carousel-slide" href="/products/${encodeURIComponent(p.slug)}">
-      <img src="${image}" alt="" decoding="async" ${i === 0 ? 'fetchpriority="high"' : 'loading="lazy"'}>
+      ${storefrontProductImage(p, { featured: i === 0, decorative: true })}
       <div class="mm-carousel-meta">
         <span>${price > 0 ? `€${price.toFixed(2)}` : 'Shop now'}</span>
         <strong>${name}</strong>
@@ -260,7 +264,9 @@ ${storefrontHeaderHtml({ search: false })}
       <p>Garlands, stockings, table light and small festive objects — collected, not cluttered.</p>
       <div class="mm-actions"><a class="btn" href="/collections/seasonal">Shop holiday</a></div>
     </div>
-    <div class="mm-band-img" role="img" aria-label="Holiday home atmosphere"></div>
+    <div class="mm-band-img">
+      <img src="${CHRISTMAS_SCENES.living}" alt="A Christmas living room with a lit tree, candles and a fireplace" width="900" height="606" loading="lazy" decoding="async">
+    </div>
   </section>
 
   <div class="mm-benefits">
@@ -272,9 +278,11 @@ ${storefrontHeaderHtml({ search: false })}
 
   <section class="mm-stories" id="journal">
     <a class="mm-story" href="/journal">
+      <img src="${CHRISTMAS_SCENES.table}" alt="" width="900" height="606" loading="lazy" decoding="async">
       <div><span class="mm-kicker">Journal</span><h3>A quieter Christmas table</h3><p>Light, linen and a few festive objects.</p></div>
     </a>
     <a class="mm-story" href="/collections/candles">
+      <img src="${CHRISTMAS_SCENES.candlelight}" alt="" width="900" height="606" loading="lazy" decoding="async">
       <div><span class="mm-kicker">Edit</span><h3>Glow for long evenings</h3><p>Candles and warm lamps after dinner.</p></div>
     </a>
   </section>

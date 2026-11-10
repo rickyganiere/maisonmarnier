@@ -31,8 +31,9 @@ import {
 import { importChristmasCatalog } from './jobs/importChristmasCatalog.js';
 import { replaceSeedWithCj } from './jobs/replaceSeedWithCj.js';
 import { syncProductGalleries } from './jobs/syncGalleries.js';
-import { BRAND_ICON_PATH, BRAND_LOGO_PATH, brandImageResponse } from './lib/brandAsset.js';
+import { BRAND_ICON_PATH, BRAND_LOGO_PATH, BRAND_LOGO_LIGHT_PATH, brandImageResponse, brandLockupResponse } from './lib/brandAsset.js';
 import { json } from './lib/json.js';
+import { seasonalImageResponse } from './lib/seasonalAssets.js';
 import { homePage } from './pages/home.js';
 import { adminPage } from './pages/admin.js';
 import { cartPage, checkoutSuccessPageHtml } from './pages/cart.js';
@@ -74,7 +75,11 @@ export async function handleRequest(request, env, ctx) {
 
   // --- Technical SEO / brand ---
   if (pathname === '/robots.txt') return robotsTxt();
-  if ([BRAND_LOGO_PATH, '/logo.jpg', '/logo.png', '/logo.svg'].includes(pathname)) return brandImageResponse();
+  const seasonalImage = seasonalImageResponse(pathname);
+  if (seasonalImage) return seasonalImage;
+  if (pathname === BRAND_LOGO_PATH) return brandLockupResponse();
+  if (pathname === BRAND_LOGO_LIGHT_PATH) return brandLockupResponse({ light: true });
+  if (['/brand/maison-marnier-christmas.jpg', '/logo.jpg', '/logo.png', '/logo.svg'].includes(pathname)) return brandImageResponse();
   if ([BRAND_ICON_PATH, '/favicon.ico', '/favicon.svg'].includes(pathname)) return brandImageResponse({ icon: true });
   if (pathname === '/sitemap.xml' || pathname === '/sitemap_index.xml') return sitemapXml();
   if (pathname === '/sitemap-pages.xml') return sitemapPagesXml();

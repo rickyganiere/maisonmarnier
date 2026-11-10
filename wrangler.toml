@@ -22,3 +22,8 @@ enabled = true
 #   CJ_API_KEY, LUME_ADMIN_TOKEN, LUME_IMPORT_CODE
 #   STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET
 # Optional plain vars: CJ_ORDER_SANDBOX=1, CJ_LOGISTIC_NAME, CJ_IOSS_TYPE=3, CJ_IOSS_NUMBER
+
+[[rules]]
+type = "Data"
+globs = ["**/christmas-*.webp"]
+fallthrough = true
