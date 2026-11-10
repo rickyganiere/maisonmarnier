@@ -47,13 +47,21 @@ function mergeCjPayloads(...parts) {
   const variants = [];
   for (const part of parts) {
     if (!part || typeof part !== 'object') continue;
-    Object.assign(base, part);
-    imageBag.push(...extractCjImages(part, { max: 24 }));
-    if (Array.isArray(part.variants)) variants.push(...part.variants);
-    if (Array.isArray(part.stanProducts)) variants.push(...part.stanProducts);
+    const normalized = normalizeCjProductShape(part);
+    Object.assign(base, normalized);
+    imageBag.push(...extractCjImages(normalized, { max: 24 }));
+    if (Array.isArray(normalized.variants)) variants.push(...normalized.variants);
+    if (Array.isArray(normalized.stanProducts)) variants.push(...normalized.stanProducts);
   }
-  if (variants.length) base.variants = variants;
+  if (variants.length) base.variants = variants.map(normalizeCjProductShape);
   if (imageBag.length) base.productImageSet = [...new Set(imageBag)];
+  // Prefer any positive cost found across parts; Object.assign can keep null list prices.
+  const costs = parts.map((p) => extractCjCostUsd(normalizeCjProductShape(p))).filter((n) => n > 0);
+  if (costs.length) {
+    const best = Math.min(...costs);
+    base.sellPrice = best;
+    base.nowPrice = best;
+  }
   return base;
 }
 
@@ -112,20 +120,28 @@ export function parseCjPrice(raw) {
   return Math.min(...parts);
 }
 
-/** Best-effort supplier cost from a CJ list/detail/variant payload. */
-export function extractCjCostUsd(x) {
-  if (!x || typeof x !== 'object') return 0;
-  const candidates = [
+function cjPriceCandidatesFromObject(x) {
+  if (!x || typeof x !== 'object') return [];
+  return [
     x.nowPrice,
     x.discountPrice,
     x.sellPrice,
-    x.sellprice,
+    x.sellprice, // productDetail/query uses this exact lowercase key
     x.price,
     x.productSellPrice,
     x.unsoldPrice,
     x.selfPickupPrice,
+    x.variantSellPrice,
+    x.variantSugSellPrice,
+    x.wholesalePrice?.cjWholesalePrice,
+    x.wholesalePrice?.directWholesalePrice,
   ];
-  for (const c of candidates) {
+}
+
+/** Best-effort supplier cost from a CJ list/detail/variant payload. */
+export function extractCjCostUsd(x) {
+  if (!x || typeof x !== 'object') return 0;
+  for (const c of cjPriceCandidatesFromObject(x)) {
     const n = parseCjPrice(c);
     if (n > 0) return n;
   }
@@ -136,19 +152,35 @@ export function extractCjCostUsd(x) {
   ];
   let best = 0;
   for (const v of variants) {
-    if (!v || typeof v !== 'object') continue;
-    const n = parseCjPrice(
-      v.nowPrice ||
-        v.discountPrice ||
-        v.variantSellPrice ||
-        v.sellPrice ||
-        v.sellprice ||
-        v.price ||
-        v.variantSugSellPrice,
-    );
-    if (n > 0 && (!best || n < best)) best = n;
+    for (const c of cjPriceCandidatesFromObject(v)) {
+      const n = parseCjPrice(c);
+      if (n > 0 && (!best || n < best)) best = n;
+    }
   }
   return best;
+}
+
+/** Normalize CJ detail quirks (sellprice/bigimg/…) onto listV2-style keys. */
+function normalizeCjProductShape(x) {
+  if (!x || typeof x !== 'object') return x;
+  const out = { ...x };
+  if (out.sellPrice == null && out.sellprice != null) out.sellPrice = out.sellprice;
+  if (out.nowPrice == null && out.discountPrice != null) out.nowPrice = out.discountPrice;
+  if (!out.nameEn && out.nameen) out.nameEn = out.nameen;
+  if (!out.productNameEn && out.nameEn) out.productNameEn = out.nameEn;
+  if (!out.bigImage && out.bigimg) out.bigImage = out.bigimg;
+  if (!out.sku && out.productSku) out.sku = out.productSku;
+  if (Array.isArray(out.stanProducts)) {
+    out.stanProducts = out.stanProducts.map((v) => {
+      if (!v || typeof v !== 'object') return v;
+      const nv = { ...v };
+      if (nv.sellPrice == null && nv.sellprice != null) nv.sellPrice = nv.sellprice;
+      if (nv.variantSellPrice == null && nv.sellPrice != null) nv.variantSellPrice = nv.sellPrice;
+      if (!nv.variantImage && nv.img) nv.variantImage = nv.img;
+      return nv;
+    });
+  }
+  return out;
 }
 
 function mapCjListItem(x) {

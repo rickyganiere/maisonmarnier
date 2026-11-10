@@ -979,7 +979,16 @@ async function saveProduct(event) {
 
 const catalogActions = {
   publish: { success: 'Product published.' },
-  refresh: { success: 'CJ product data refreshed.', confirm: 'Refresh from CJ? This can replace the supplier cost, stock and photos.' },
+  refresh: {
+    success: 'CJ product data refreshed.',
+    confirm: 'Refresh from CJ? This can replace the supplier cost, stock and photos.',
+    formatSuccess(r){
+      const cost=Number(r.supplier_cost_usd||0);
+      const retail=Number(r.retail_price_eur||0);
+      if(!(cost>0)) return 'CJ refreshed photos/stock, but supplier cost is still missing.';
+      return 'CJ refreshed · cost $'+cost.toFixed(2)+(retail>0?' · retail €'+retail.toFixed(2):'');
+    },
+  },
   unpublish: { success: 'Product moved to Draft Products.', confirm: 'Move this product to Draft Products and remove it from the storefront?' },
   delete: { success: 'Product deleted.', confirm: 'Permanently delete this product?' },
 };
@@ -1006,7 +1015,8 @@ for (const { list, message } of Object.values(catalogPanels)) {
         msg(message, r.error || 'Product action failed.', true);
         return;
       }
-      msg(message, operation.success);
+      const successText = typeof operation.formatSuccess === 'function' ? operation.formatSuccess(r) : operation.success;
+      msg(message, successText, action === 'refresh' && !(Number(r.supplier_cost_usd) > 0));
       await loadCatalog();
     } catch (error) {
       msg(message, error.message || 'Product action failed.', true);
