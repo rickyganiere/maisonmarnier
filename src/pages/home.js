@@ -71,7 +71,9 @@ ${LAYOUT_CSS}
 }
 @media (prefers-reduced-motion:reduce){
   .mm-snow{display:none}
-  .mm-products > .p,.mm-story img{animation:none;transition:none}
+  .mm-products > .p,.mm-story img,.mm-cat,.mm-cat-media,.mm-cat-glow,.mm-cat-hint::after{animation:none;transition:none}
+  .mm-cat:hover,.mm-cat:focus-visible{transform:none}
+  .mm-cat:hover .mm-cat-media,.mm-cat:hover .mm-cat-glow,.mm-cat:focus-visible .mm-cat-media,.mm-cat:focus-visible .mm-cat-glow{transform:none}
 }
 .mm-section{padding:14px var(--pad) 28px;scroll-margin-top:var(--nav-h)}
 .mm-section-inner{width:min(1420px,100%);margin:0 auto}
@@ -82,13 +84,31 @@ ${LAYOUT_CSS}
 .mm-products .media{aspect-ratio:4/3;border-color:#574033}
 .mm-products .p .meta{padding-top:9px}
 .mm-products .p .price-row{margin-top:6px}
-.mm-cats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:10px;margin-top:8px}
-.mm-cat{min-height:76px;border-radius:10px;border:1px solid #74563c;display:flex;align-items:flex-end;padding:16px;background:linear-gradient(160deg, #2e4736,#1c2923);transition:border-color .25s,transform .25s}
-.mm-cat:nth-child(2){background:linear-gradient(160deg, #652f33,#3b2421)}
-.mm-cat:nth-child(3){background:linear-gradient(160deg, #61492e,#352720)}
-.mm-cat:nth-child(4){background:linear-gradient(160deg, #394337,#28251e)}
-.mm-cat:hover{border-color:var(--accent);transform:translateY(-2px)}
-.mm-cat span{font:900 .95rem/1.1 var(--font);letter-spacing:-.02em;color:#fff}
+.mm-cats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:8px}
+.mm-cat{position:relative;isolation:isolate;overflow:hidden;min-height:132px;border-radius:14px;border:1px solid #8a6848;display:flex;align-items:flex-end;padding:18px 16px 16px;background:#241812;box-shadow:inset 0 1px 0 rgba(255,232,196,.12);transition:border-color .3s ease,transform .35s cubic-bezier(.2,.7,.2,1),box-shadow .35s ease}
+.mm-cat-media,.mm-cat-glow{position:absolute;inset:0;z-index:-2;width:100%;height:100%;object-fit:cover;object-position:center 42%;transform:scale(1.02);transition:transform .55s cubic-bezier(.2,.7,.2,1),filter .35s ease;pointer-events:none}
+.mm-cat::after{content:"";position:absolute;inset:0;z-index:-1;background:
+  linear-gradient(180deg,rgba(22,12,10,.12) 0%,rgba(18,10,8,.36) 34%,rgba(12,7,5,.94) 100%),
+  radial-gradient(120% 80% at 85% 0%,rgba(255,210,140,.16),transparent 55%);
+  pointer-events:none}
+.mm-cat-glow{background:
+  radial-gradient(ellipse 58% 48% at 70% 26%,rgba(255,220,150,.62),transparent 64%),
+  radial-gradient(ellipse 42% 38% at 24% 72%,rgba(255,150,80,.32),transparent 72%),
+  radial-gradient(circle at 48% 58%,rgba(255,190,110,.18),transparent 45%),
+  linear-gradient(145deg,#5c2c2a 0%,#3b201c 42%,#1f1410 100%)}
+.mm-cat-glow::before,.mm-cat-glow::after{content:"";position:absolute;border-radius:50%;filter:blur(1px)}
+.mm-cat-glow::before{width:14px;height:14px;top:22%;left:58%;background:#ffe7b0;box-shadow:0 0 18px 8px rgba(255,210,130,.55),0 0 42px 16px rgba(255,170,80,.22)}
+.mm-cat-glow::after{width:8px;height:8px;top:48%;left:30%;background:#ffd89a;box-shadow:0 0 12px 6px rgba(255,200,120,.4),0 0 28px 12px rgba(255,150,70,.16);opacity:.85}
+.mm-cat--holiday .mm-cat-media{object-position:center 38%;filter:saturate(1.05) brightness(.92)}
+.mm-cat--candles .mm-cat-media{object-position:center 55%;filter:saturate(1.08) brightness(.9)}
+.mm-cat--objects .mm-cat-media{object-position:center 48%;filter:saturate(1.02) brightness(.88)}
+.mm-cat-copy{position:relative;z-index:1;display:flex;flex-direction:column;gap:5px;min-width:0}
+.mm-cat-name{font:700 clamp(1.05rem,1.6vw,1.28rem)/1.05 Georgia,serif;letter-spacing:-.03em;color:#fff7ea;text-shadow:0 1px 10px rgba(0,0,0,.45)}
+.mm-cat-hint{display:inline-flex;align-items:center;gap:6px;font:800 10px/1 var(--font);letter-spacing:.12em;text-transform:uppercase;color:#f0c987}
+.mm-cat-hint::after{content:"→";font-size:11px;transition:transform .28s ease}
+.mm-cat:hover,.mm-cat:focus-visible{border-color:#e6c48a;transform:translateY(-3px);box-shadow:0 16px 28px rgba(0,0,0,.34),inset 0 1px 0 rgba(255,232,196,.2);outline:none}
+.mm-cat:hover .mm-cat-media,.mm-cat:hover .mm-cat-glow,.mm-cat:focus-visible .mm-cat-media,.mm-cat:focus-visible .mm-cat-glow{transform:scale(1.08);filter:saturate(1.12) brightness(1)}
+.mm-cat:hover .mm-cat-hint::after,.mm-cat:focus-visible .mm-cat-hint::after{transform:translateX(3px)}
 .mm-band{margin-block:8px 0;border-radius:12px;overflow:hidden;border:1px solid #70513d;display:grid;grid-template-columns:.85fr 1.15fr;min-height:282px;background:linear-gradient(135deg,#592b31,#35211e 74%)}
 .mm-band-copy{padding:27px clamp(20px,3.2vw,46px);display:flex;flex-direction:column;justify-content:center}
 .mm-band-copy h2{margin:6px 0 10px;font:700 clamp(1.65rem,3vw,2.65rem)/1.03 Georgia,serif;letter-spacing:-.035em;color:#fff4e4;max-width:15ch}
@@ -119,7 +139,8 @@ ${LAYOUT_CSS}
 @media(max-width:1100px){.mm-products{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(max-width:980px){
   .mm-products{grid-template-columns:repeat(3,minmax(0,1fr))}
-  .mm-cats{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .mm-cats{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
+  .mm-cat{min-height:118px}
   .mm-band,.mm-stories,.mm-news{grid-template-columns:1fr}
   .mm-benefits{grid-template-columns:1fr 1fr}
 }
@@ -138,6 +159,8 @@ ${LAYOUT_CSS}
   .mm-carousel-controls button{width:32px;height:32px}
   .mm-benefits{grid-template-columns:1fr}
   .mm-products{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .mm-cat{min-height:108px;padding:14px 13px 13px;border-radius:12px}
+  .mm-cat-name{font-size:1.05rem}
 }
 @media(max-width:359px){
   .mm-hero .lead{display:none}
@@ -248,12 +271,24 @@ ${storefrontHeaderHtml({ search: false })}
         <a href="/collections/new">View all arrivals →</a>
       </div>
       <div class="mm-products grid">${featuredHtml}</div>
-      <div class="mm-cats" style="margin-top:22px">
-        <a class="mm-cat" href="/collections/seasonal"><span>Holiday</span></a>
-        <a class="mm-cat" href="/collections/lighting"><span>Glow &amp; lights</span></a>
-        <a class="mm-cat" href="/collections/candles"><span>Candles</span></a>
-        <a class="mm-cat" href="/collections/objects"><span>Objects</span></a>
-      </div>
+      <nav class="mm-cats" style="margin-top:22px" aria-label="Shop by category">
+        <a class="mm-cat mm-cat--holiday" href="/collections/seasonal">
+          <img class="mm-cat-media" src="${CHRISTMAS_SCENES.living}" alt="" width="640" height="400" loading="lazy" decoding="async">
+          <span class="mm-cat-copy"><span class="mm-cat-name">Holiday</span><span class="mm-cat-hint">Seasonal edit</span></span>
+        </a>
+        <a class="mm-cat mm-cat--glow" href="/collections/lighting">
+          <span class="mm-cat-glow" aria-hidden="true"></span>
+          <span class="mm-cat-copy"><span class="mm-cat-name">Glow &amp; lights</span><span class="mm-cat-hint">Warm lighting</span></span>
+        </a>
+        <a class="mm-cat mm-cat--candles" href="/collections/candles">
+          <img class="mm-cat-media" src="${CHRISTMAS_SCENES.candlelight}" alt="" width="640" height="400" loading="lazy" decoding="async">
+          <span class="mm-cat-copy"><span class="mm-cat-name">Candles</span><span class="mm-cat-hint">Soft evenings</span></span>
+        </a>
+        <a class="mm-cat mm-cat--objects" href="/collections/objects">
+          <img class="mm-cat-media" src="${CHRISTMAS_SCENES.table}" alt="" width="640" height="400" loading="lazy" decoding="async">
+          <span class="mm-cat-copy"><span class="mm-cat-name">Objects</span><span class="mm-cat-hint">Table &amp; décor</span></span>
+        </a>
+      </nav>
     </div>
   </section>
 
