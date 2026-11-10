@@ -93,13 +93,56 @@ export async function cjStatus(env) {
   }
 }
 
-export async function cjSearch(url, env) {
-  try {
-    const q = (url.searchParams.get('q') || 'home decor').trim().slice(0, 100);
-    const size = Math.max(1, Math.min(24, parseInt(url.searchParams.get('size') || '24', 10) || 24));
-    const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10) || 1);
-    const token = await getCJToken(env);
-    const p = new URLSearchParams({ page: String(page), size: String(size), keyWord: q });
+function mapCjListItem(x) {
+  const images = extractCjImages(x, { max: 16 });
+  return {
+    id: x.id,
+    name: x.nameEn || x.productNameEn || '',
+    sku: x.sku || x.productSku || '',
+    image: images[0] || x.bigImage || x.productImage || '',
+    images,
+    imageCount: images.length,
+    costUSD: x.nowPrice || x.sellPrice,
+    stock: x.warehouseInventoryNum,
+    verifiedStock: x.totalVerifiedInventory,
+    deliveryDays: x.deliveryCycle,
+    category: x.threeCategoryName || x.twoCategoryName || x.oneCategoryName || null,
+    categoryId: x.categoryId || null,
+    freeShipping: x.addMarkStatus === 1,
+    supplier: x.supplierName || 'CJ',
+    suggestedRetailEUR: suggestedRetailEur(x.nowPrice || x.sellPrice),
+  };
+}
+
+/**
+ * Collect CJ products that already expose enough gallery photos.
+ * Pages through listV2 until `limit` matches or `maxPages` is exhausted.
+ */
+export async function collectCjProducts(env, {
+  q = 'home decor',
+  limit = 24,
+  minImages = 4,
+  startPage = 1,
+  maxPages = 12,
+  pageSize = 20,
+} = {}) {
+  const query = String(q || 'home decor').trim().slice(0, 100) || 'home decor';
+  const want = Math.max(1, Math.min(100, Number(limit) || 24));
+  const min = Math.max(3, Math.min(8, Number(minImages) || 4));
+  const token = await getCJToken(env);
+  const products = [];
+  const seen = new Set();
+  let page = Math.max(1, Number(startPage) || 1);
+  let scanned = 0;
+  let totalRecords = 0;
+  const pagesCap = Math.max(1, Math.min(20, Number(maxPages) || 12));
+
+  for (let i = 0; i < pagesCap && products.length < want; i += 1) {
+    const p = new URLSearchParams({
+      page: String(page),
+      size: String(Math.max(1, Math.min(50, Number(pageSize) || 20))),
+      keyWord: query,
+    });
     p.append('features', 'enable_category');
     const r = await fetch(
       'https://developers.cjdropshipping.com/api2.0/v1/product/listV2?' + p.toString(),
@@ -107,46 +150,76 @@ export async function cjSearch(url, env) {
     );
     const d = await r.json();
     if (!r.ok || d.code !== 200) {
-      return json(
-        { ok: false, error: d.message || 'CJ product search failed', code: d.code || r.status },
-        r.status || 502,
-      );
+      const err = new Error(d.message || 'CJ product search failed');
+      err.code = d.code || r.status;
+      throw err;
     }
-    const groups = Array.isArray(d.data && d.data.content) ? d.data.content : [];
-    const products = groups
-      .flatMap((g) => (Array.isArray(g.productList) ? g.productList : []))
-      .slice(0, size)
-      .map((x) => {
-        const images = extractCjImages(x);
-        return {
-          id: x.id,
-          name: x.nameEn,
-          sku: x.sku,
-          image: images[0] || x.bigImage,
-          images,
-          costUSD: x.nowPrice || x.sellPrice,
-          stock: x.warehouseInventoryNum,
-          verifiedStock: x.totalVerifiedInventory,
-          deliveryDays: x.deliveryCycle,
-          category: x.threeCategoryName || x.twoCategoryName || x.oneCategoryName || null,
-          categoryId: x.categoryId || null,
-          freeShipping: x.addMarkStatus === 1,
-          supplier: x.supplierName || 'CJ',
-          suggestedRetailEUR: suggestedRetailEur(x.nowPrice || x.sellPrice),
-        };
-      });
+    totalRecords = Number(d.data?.totalRecords || totalRecords) || totalRecords;
+    const groups = Array.isArray(d.data?.content) ? d.data.content : [];
+    const batch = groups.flatMap((g) => (Array.isArray(g.productList) ? g.productList : []));
+    if (!batch.length) break;
+    scanned += batch.length;
+    for (const raw of batch) {
+      if (products.length >= want) break;
+      const mapped = mapCjListItem(raw);
+      const id = String(mapped.id || '');
+      if (!id || seen.has(id)) continue;
+      seen.add(id);
+      if (mapped.imageCount < min) continue;
+      products.push(mapped);
+    }
+    page += 1;
+  }
+
+  return {
+    query,
+    minImages: min,
+    limit: want,
+    page,
+    scanned,
+    totalRecords,
+    products,
+  };
+}
+
+export async function cjSearch(url, env) {
+  try {
+    const q = (url.searchParams.get('q') || 'home decor').trim().slice(0, 100);
+    const size = Math.max(1, Math.min(100, parseInt(url.searchParams.get('size') || '24', 10) || 24));
+    const page = Math.max(1, parseInt(url.searchParams.get('page') || '1', 10) || 1);
+    const minImages = Math.max(
+      3,
+      Math.min(8, parseInt(url.searchParams.get('minImages') || '4', 10) || 4),
+    );
+    const collected = await collectCjProducts(env, {
+      q,
+      limit: size,
+      minImages,
+      startPage: page,
+      maxPages: Math.max(6, Math.ceil(size / 4) + 4),
+      pageSize: 20,
+    });
     return json({
       ok: true,
-      query: q,
+      query: collected.query,
       page,
       size,
-      total: (d.data && d.data.totalRecords) || products.length,
-      products,
+      minImages: collected.minImages,
+      scanned: collected.scanned,
+      total: collected.totalRecords || collected.products.length,
+      products: collected.products,
       shippingCountryChecked: false,
-      note: 'Search is global. Shipping availability and freight to Spain are checked separately before publishing.',
+      note: `Only products with ${collected.minImages}+ supplier photos are listed. Tick boxes to import selected, or import 50/100 by query.`,
     });
   } catch (e) {
-    return json({ ok: false, error: e && e.message ? e.message : 'CJ connector error' }, 502);
+    return json(
+      {
+        ok: false,
+        error: e && e.message ? e.message : 'CJ connector error',
+        code: e?.code,
+      },
+      502,
+    );
   }
 }
 

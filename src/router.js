@@ -12,6 +12,7 @@ import {
 import {
   deleteLumeProduct,
   importLumeProduct,
+  importLumeProductsBulk,
   listLumeProducts,
   listPublishedProducts,
   pruneThinLiveProducts,
@@ -160,6 +161,12 @@ export async function handleRequest(request, env, ctx) {
     const denied = await requireImportAuth(request, env);
     if (denied) return denied;
     return importLumeProduct(request, env);
+  }
+  if (pathname === '/api/lume/import-bulk') {
+    if (method !== 'POST') return methodNotAllowed();
+    const denied = await requireImportAuth(request, env);
+    if (denied) return denied;
+    return importLumeProductsBulk(request, env);
   }
   if (pathname === '/api/lume/replace-seed-cj') {
     if (method !== 'POST') return methodNotAllowed();

@@ -14,7 +14,7 @@ import {
   suggestedCompareEur,
   suggestedRetailEur,
 } from '../lib/merch.js';
-import { refreshProductFromCJ } from '../cj.js';
+import { collectCjProducts, refreshProductFromCJ } from '../cj.js';
 
 const PRODUCT_COLS =
   'id,lume_sku,supplier,supplier_product_id,supplier_sku,name,image_url,image_urls,supplier_cost_usd,retail_price_eur,compare_at_price_eur,category,stock,delivery_days,status,slug,description,published_at,created_at';
@@ -86,58 +86,157 @@ export async function listPublishedProducts(env, { q = '', limit = 48 } = {}) {
   }
 }
 
+async function upsertImportedCjProduct(env, p, { minImages = 4 } = {}) {
+  if (!p || !p.id) throw new Error('Missing product id');
+  const min = Math.max(3, Math.min(8, Number(minImages) || 4));
+  let images = Array.isArray(p.images) ? p.images : Array.isArray(p.image_urls) ? p.image_urls : [];
+  let cost = Number(p.costUSD || 0) || 0;
+  let stock = Number(p.stock || 0) || 0;
+  let deliveryDays = String(p.deliveryDays || '');
+  let nameRaw = String(p.name || '').slice(0, 240);
+  let skuRaw = String(p.sku || '');
+  let image = safeUrl(p.image || images[0] || '', '');
+
+  // Enrich from CJ detail unless bulk path already has enough photos.
+  if (!p.skipEnrich) {
+    try {
+      const fresh = await refreshProductFromCJ(env, p.id);
+      if (fresh) {
+        if (Array.isArray(fresh.images) && fresh.images.length) images = fresh.images;
+        if (fresh.image) image = safeUrl(fresh.image, image);
+        if (fresh.costUSD > 0) cost = Number(fresh.costUSD) || cost;
+        if (fresh.stock > 0) stock = Number(fresh.stock) || stock;
+        if (fresh.deliveryDays) deliveryDays = String(fresh.deliveryDays);
+        if (fresh.name) nameRaw = String(fresh.name).slice(0, 240);
+        if (fresh.sku) skuRaw = String(fresh.sku);
+      }
+    } catch {
+      /* keep payload images if detail fetch fails */
+    }
+  }
+
+  images = (images || []).map((u) => safeUrl(u, '')).filter(Boolean);
+  if (!image && images[0]) image = images[0];
+  if (images.length < min) {
+    throw new Error(`Need at least ${min} supplier photos (found ${images.length})`);
+  }
+
+  let retail = Number(p.retailPriceEUR || 0) || 0;
+  if (!(retail > 0) && cost > 0) retail = suggestedRetailEur(cost);
+  if (!(retail > 0)) throw new Error('Missing retail price');
+
+  const name = cleanProductName(nameRaw) || nameRaw || 'Untitled';
+  const category = mapMaisonCategory(name, p.category);
+  const compare = suggestedCompareEur(retail);
+  const slug = slugify(name);
+  const description = `A considered piece for calm interiors — curated for Maison Marnier.\n\n${name}`;
+  const sku = ('LL-CJ-' + String(skuRaw || p.id).replace(/[^A-Za-z0-9]/g, '').slice(-18)).toUpperCase();
+  const gallery = serializeImageUrls(images);
+
+  await env.LUME_DB.prepare(
+    `INSERT INTO products (lume_sku,supplier,supplier_product_id,supplier_sku,name,image_url,image_urls,supplier_cost_usd,retail_price_eur,compare_at_price_eur,category,stock,delivery_days,status,slug,description,updated_at)
+     VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP)
+     ON CONFLICT(supplier_product_id) DO UPDATE SET
+       supplier_sku=excluded.supplier_sku,name=excluded.name,image_url=excluded.image_url,image_urls=excluded.image_urls,
+       supplier_cost_usd=excluded.supplier_cost_usd,retail_price_eur=excluded.retail_price_eur,
+       compare_at_price_eur=excluded.compare_at_price_eur,category=excluded.category,
+       stock=excluded.stock,delivery_days=excluded.delivery_days,slug=excluded.slug,
+       description=CASE WHEN products.description IS NULL OR products.description='' THEN excluded.description ELSE products.description END,
+       updated_at=CURRENT_TIMESTAMP`,
+  )
+    .bind(
+      sku,
+      'CJ',
+      String(p.id),
+      skuRaw,
+      name,
+      image,
+      gallery,
+      cost,
+      retail,
+      compare,
+      category,
+      stock,
+      deliveryDays,
+      'draft',
+      slug,
+      description,
+    )
+    .run();
+
+  return {
+    ok: true,
+    lumeSku: sku,
+    status: 'draft',
+    name,
+    category,
+    slug,
+    imageCount: images.length,
+  };
+}
+
 export async function importLumeProduct(request, env) {
   try {
     const p = await request.json();
     if (!p || !p.id || !p.name) return json({ ok: false, error: 'Missing product id/name' }, 400);
-    const cost = Number(p.costUSD || 0) || 0;
-    let retail = Number(p.retailPriceEUR || 0) || 0;
-    // Prefer provided retail; otherwise derive from cost (~3× with .95 endings).
-    if (!(retail > 0) && cost > 0) retail = suggestedRetailEur(cost);
-    const rawName = String(p.name).slice(0, 240);
-    const name = cleanProductName(rawName) || rawName;
-    const category = mapMaisonCategory(name, p.category);
-    const compare = suggestedCompareEur(retail);
-    const slug = slugify(name);
-    const description = `A considered piece for calm interiors — curated for Maison Marnier.\n\n${name}`;
-    const sku = ('LL-CJ-' + String(p.sku || p.id).replace(/[^A-Za-z0-9]/g, '').slice(-18)).toUpperCase();
-    const image = safeUrl(p.image, '');
-    const gallery = serializeImageUrls(
-      Array.isArray(p.images) ? p.images : Array.isArray(p.image_urls) ? p.image_urls : [image].filter(Boolean),
-    );
-    await env.LUME_DB.prepare(
-      `INSERT INTO products (lume_sku,supplier,supplier_product_id,supplier_sku,name,image_url,image_urls,supplier_cost_usd,retail_price_eur,compare_at_price_eur,category,stock,delivery_days,status,slug,description,updated_at)
-       VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,CURRENT_TIMESTAMP)
-       ON CONFLICT(supplier_product_id) DO UPDATE SET
-         supplier_sku=excluded.supplier_sku,name=excluded.name,image_url=excluded.image_url,image_urls=excluded.image_urls,
-         supplier_cost_usd=excluded.supplier_cost_usd,retail_price_eur=excluded.retail_price_eur,
-         compare_at_price_eur=excluded.compare_at_price_eur,category=excluded.category,
-         stock=excluded.stock,delivery_days=excluded.delivery_days,slug=excluded.slug,
-         description=CASE WHEN products.description IS NULL OR products.description='' THEN excluded.description ELSE products.description END,
-         updated_at=CURRENT_TIMESTAMP`,
-    )
-      .bind(
-        sku,
-        'CJ',
-        String(p.id),
-        String(p.sku || ''),
-        name,
-        image,
-        gallery,
-        cost,
-        retail,
-        compare,
-        category,
-        Number(p.stock || 0) || 0,
-        String(p.deliveryDays || ''),
-        'draft',
-        slug,
-        description,
-      )
-      .run();
-    return json({ ok: true, lumeSku: sku, status: 'draft', name, category, slug });
+    const minImages = Math.max(3, Math.min(8, Number(p.minImages || 4) || 4));
+    const result = await upsertImportedCjProduct(env, p, { minImages });
+    return json(result);
   } catch (e) {
     return json({ ok: false, error: e.message || 'Import failed' }, 500);
+  }
+}
+
+/**
+ * Bulk import:
+ * - { products: [...], minImages }
+ * - or { q, limit: 50|100, minImages } to pull from CJ search
+ */
+export async function importLumeProductsBulk(request, env) {
+  try {
+    const body = await request.json();
+    const minImages = Math.max(3, Math.min(8, Number(body?.minImages || 4) || 4));
+    let candidates = Array.isArray(body?.products) ? body.products : [];
+
+    if (!candidates.length) {
+      const limit = Math.max(1, Math.min(100, Number(body?.limit || 50) || 50));
+      const q = String(body?.q || body?.query || 'home decor').trim().slice(0, 100);
+      const collected = await collectCjProducts(env, {
+        q,
+        limit,
+        minImages,
+        maxPages: Math.max(8, Math.ceil(limit / 3) + 4),
+      });
+      candidates = collected.products;
+    }
+
+    const imported = [];
+    const skipped = [];
+    const enrichSelected = Array.isArray(body?.products) && body.products.length <= 20;
+    for (const p of candidates.slice(0, 100)) {
+      try {
+        const r = await upsertImportedCjProduct(
+          env,
+          { ...p, skipEnrich: !enrichSelected },
+          { minImages },
+        );
+        imported.push({ id: p.id, lumeSku: r.lumeSku, imageCount: r.imageCount });
+      } catch (e) {
+        skipped.push({ id: p?.id, error: e.message || 'Import failed' });
+      }
+    }
+
+    return json({
+      ok: true,
+      minImages,
+      requested: candidates.length,
+      imported: imported.length,
+      skipped: skipped.length,
+      items: imported,
+      errors: skipped.slice(0, 12),
+    });
+  } catch (e) {
+    return json({ ok: false, error: e.message || 'Bulk import failed' }, 500);
   }
 }
 
