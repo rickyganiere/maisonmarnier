@@ -45,7 +45,9 @@ td,th{border-bottom:1px solid #e4ddd2;padding:8px;text-align:left;vertical-align
 
 .finder-toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0}
 .finder-toolbar label{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#6e665d}
-.finder-toolbar select{width:auto;min-width:90px}
+.finder-toolbar input[type="checkbox"],.draft-selection input[type="checkbox"],.draft-check{width:18px;height:18px;margin:0;flex:none;accent-color:#24211d}
+.draft-selection{display:flex;align-items:center;gap:8px}
+#deleteDraftsBtn{background:#8b2e2e}
 .finder-card{position:relative}
 .finder-card .check{position:absolute;top:10px;left:10px;z-index:2;width:18px;height:18px}
 .finder-thumbs{display:flex;gap:4px;margin:8px 0;flex-wrap:wrap}
@@ -144,15 +146,9 @@ td,th{border-bottom:1px solid #e4ddd2;padding:8px;text-align:left;vertical-align
 
             <section class="panel" id="panel-finder">
         <h2>CJ Product Finder</h2>
-        <p style="color:#6e665d;margin:0 0 8px">Only products with 3+ or 4+ supplier photos. Tick boxes to import selected, or import the first 50 / 100 matches.</p>
+        <p class="catalog-intro">Import any CJ result as a draft. You can add photos before publishing.</p>
         <div class="searchbar">
           <input id="cjQ" placeholder="Search CJ products…">
-          <label>Min photos
-            <select id="cjMinImages">
-              <option value="3">3+</option>
-              <option value="4" selected>4+</option>
-            </select>
-          </label>
           <button class="btn" type="button" id="cjSearchBtn">Search</button>
         </div>
         <div class="finder-toolbar">
@@ -161,12 +157,18 @@ td,th{border-bottom:1px solid #e4ddd2;padding:8px;text-align:left;vertical-align
           <button class="btn secondary" type="button" id="cjImport50Btn">Import 50</button>
           <button class="btn secondary" type="button" id="cjImport100Btn">Import 100</button>
         </div>
-        <div class="msg" id="finderMsg"></div>
+        <div class="msg" id="finderMsg" role="status"></div>
         <div id="cjResults"></div>
       </section>
 
 <section class="panel" id="panel-products">
         <h2>Draft Products</h2>
+        <div class="catalog-tools">
+          <input id="draftSearch" type="search" aria-label="Search draft products" placeholder="Search by title, SKU or category">
+          <label class="draft-selection"><input id="selectDrafts" type="checkbox" disabled> Select visible</label>
+          <span id="draftSelectionCount" class="catalog-meta" aria-live="polite">0 selected</span>
+          <button class="btn" type="button" id="deleteDraftsBtn" disabled>Delete selected</button>
+        </div>
         <div class="row">
           <button class="btn" type="button" id="publishAllBtn">Publish all</button>
           <span class="msg" style="margin:0">Publishes drafts with a title, 2+ supplier photos, positive prices and stock.</span>
@@ -352,14 +354,10 @@ document.getElementById('cjImport100Btn').onclick=()=>importByCount(100);
 document.getElementById('cjSelectAll').onchange=e=>{
   document.querySelectorAll('#cjResults input[data-cj]').forEach(cb=>cb.checked=e.target.checked);
 };
-document.getElementById('cjResults').onclick=async e=>{
+document.getElementById('cjResults').onclick=e=>{
   const b=e.target.closest('[data-import]'); if(!b) return;
-  const payload=JSON.parse(b.getAttribute('data-import'));
-  b.disabled=true;
-  const r=await api('/api/lume/import',{method:'POST',body:JSON.stringify(payload)});
-  b.disabled=false;
-  msg('finderMsg',r.ok?('Imported '+r.lumeSku+' ('+ (r.imageCount||'?') +' photos)'):(r.error||'Import failed'),!r.ok);
-  if(r.ok)loadAdminAll();
+  const product=cjLastResults[Number(b.dataset.import)];
+  if(product) importCjDrafts(b,{products:[product]});
 };
 
 document.getElementById('cjQ').addEventListener('keydown',e=>{if(e.key==='Enter')searchCJ()});
@@ -399,70 +397,70 @@ async function loadAdminAll(){
 }
 
 let cjLastResults=[];
-function cjMin(){return Math.max(3, Math.min(8, Number(document.getElementById('cjMinImages').value||4)||4))}
 function cjQuery(){return document.getElementById('cjQ').value.trim()||'home decor'}
 function selectedCjPayloads(){
-  return [...document.querySelectorAll('#cjResults input[data-cj]:checked')].map(el=>{
-    try{return JSON.parse(el.getAttribute('data-cj'))}catch{return null}
-  }).filter(Boolean);
+  return [...document.querySelectorAll('#cjResults input[data-cj]:checked')]
+    .map(el=>cjLastResults[Number(el.dataset.cj)]).filter(Boolean);
 }
-function renderCjResults(products, minImages){
+function renderCjResults(products){
   cjLastResults=products||[];
   const box=document.getElementById('cjResults');
-  if(!cjLastResults.length){box.innerHTML='<p class="msg">No products with '+minImages+'+ photos.</p>';return}
+  if(!cjLastResults.length){box.innerHTML='<p class="msg">No CJ products found for this search.</p>';return}
   box.innerHTML=cjLastResults.map((p,i)=>{
-    const retail=p.suggestedRetailEUR||Math.max(19.95,Math.ceil(Number(p.costUSD||0)*2.5)-0.05);
     const imgs=(p.images&&p.images.length?p.images:[p.image]).filter(Boolean).slice(0,6);
-    const payload={id:p.id,name:p.name,sku:p.sku,image:p.image,images:p.images||imgs,costUSD:p.costUSD,retailPriceEUR:retail,stock:p.stock,deliveryDays:p.deliveryDays,category:p.category,minImages};
-    const payloadAttr=esc(JSON.stringify(payload));
     return `<div class="card finder-card"><div class="cols">
       <div>
-        <input class="check" type="checkbox" data-cj='${payloadAttr}' data-idx="${i}">
-        <img src="${esc(p.image||'')}" alt="">
+        <input class="check" type="checkbox" data-cj="${i}" aria-label="Select ${esc(p.name)}">
+        ${imgs.length ? `<img src="${esc(imgs[0])}" alt="">` : ''}
       </div>
       <div>
         <strong>${esc(p.name||'')}</strong>
         <span class="badge">${esc(p.imageCount||imgs.length)} photos</span>
         <div class="msg">SKU ${esc(p.sku||'')} · cost $${Number(p.costUSD||0).toFixed(2)} · stock ${esc(p.stock)} · ${esc(p.category||'')}</div>
         <div class="finder-thumbs">${imgs.map(u=>`<img src="${esc(u)}" alt="">`).join('')}</div>
-        <button class="btn secondary" type="button" data-import='${payloadAttr}'>Import draft</button>
+        <button class="btn secondary" type="button" data-import="${i}">Import draft</button>
       </div></div></div>`;
   }).join('');
 }
 async function searchCJ(){
+  const button=document.getElementById('cjSearchBtn');
+  if(button.disabled)return;
   const q=cjQuery();
-  const minImages=cjMin();
-  msg('finderMsg','Searching (min '+minImages+' photos)…');
+  button.disabled=true;
+  msg('finderMsg','Searching CJ…');
   document.getElementById('cjSelectAll').checked=false;
-  const d=await api('/api/cj/search?q='+encodeURIComponent(q)+'&size=24&minImages='+minImages);
-  if(!d.ok){msg('finderMsg',d.error||'Search failed',true);return}
-  msg('finderMsg',(d.products||[]).length+' products with '+minImages+'+ photos (scanned '+(d.scanned||'?')+')');
-  renderCjResults(d.products||[], minImages);
+  document.getElementById('cjResults').replaceChildren();
+  cjLastResults=[];
+  try{
+    const d=await api('/api/cj/search?q='+encodeURIComponent(q)+'&size=24');
+    if(!d.ok){msg('finderMsg',d.error||'Search failed',true);return}
+    msg('finderMsg',(d.products||[]).length+' CJ products found.');
+    renderCjResults(d.products||[]);
+  }catch(e){msg('finderMsg',e.message||'Search failed',true)}
+  finally{button.disabled=false}
 }
-async function importSelectedCj(){
-  const minImages=cjMin();
+function importSelectedCj(){
   const products=selectedCjPayloads();
   if(!products.length){msg('finderMsg','Tick at least one product.',true);return}
-  const btn=document.getElementById('cjImportSelectedBtn');
-  btn.disabled=true;
-  msg('finderMsg','Importing '+products.length+' selected…');
-  try{
-    const r=await api('/api/lume/import-bulk',{method:'POST',body:JSON.stringify({products,minImages})});
-    msg('finderMsg',r.ok?('Imported '+r.imported+' · skipped '+r.skipped):(r.error||'Import failed'),!r.ok);
-    if(r.ok)loadAdminAll();
-  }finally{btn.disabled=false}
+  return importCjDrafts(document.getElementById('cjImportSelectedBtn'),{products});
 }
-async function importByCount(limit){
-  const minImages=cjMin();
+function importByCount(limit){
   const q=cjQuery();
-  if(!confirm('Import up to '+limit+' CJ products for \"'+q+'\" with '+minImages+'+ photos?'))return;
-  const btn=document.getElementById(limit===100?'cjImport100Btn':'cjImport50Btn');
+  if(!confirm('Import up to '+limit+' CJ products as drafts for "'+q+'"?'))return;
+  return importCjDrafts(document.getElementById(limit===100?'cjImport100Btn':'cjImport50Btn'),{q,limit});
+}
+async function importCjDrafts(btn,body){
   btn.disabled=true;
-  msg('finderMsg','Importing up to '+limit+'…');
+  msg('finderMsg','Importing drafts…');
   try{
-    const r=await api('/api/lume/import-bulk',{method:'POST',body:JSON.stringify({q,limit,minImages})});
-    msg('finderMsg',r.ok?('Imported '+r.imported+' · skipped '+r.skipped+(r.errors&&r.errors[0]?' · e.g. '+r.errors[0].error:'')):(r.error||'Import failed'),!r.ok);
-    if(r.ok)loadAdminAll();
+    const r=await api('/api/lume/import-bulk',{method:'POST',body:JSON.stringify(body)});
+    if(!r.ok){msg('finderMsg',r.error||'Import failed',true);return}
+    const error=r.errors?.[0]?.error;
+    if(r.imported)await loadCatalog();
+    msg('finderMsg',r.requested
+      ? 'Imported '+r.imported+' drafts · '+r.alreadyImported+' already in the catalog'+(error?' · '+error:'')
+      : 'CJ returned no products for this search.',!!error);
+  }catch(e){msg('finderMsg',e.message||'Import failed',true)
   }finally{btn.disabled=false}
 }
 
@@ -484,6 +482,10 @@ const catalogPanels = {
   live: { list: 'published', message: 'publishedMsg' },
 };
 const publishedSearch = document.getElementById('publishedSearch');
+const draftSearch = document.getElementById('draftSearch');
+const selectDrafts = document.getElementById('selectDrafts');
+const deleteDraftsBtn = document.getElementById('deleteDraftsBtn');
+const draftList = document.getElementById('drafts');
 const editor = document.getElementById('productEditor');
 const editorForm = document.getElementById('productEditorForm');
 const saveProductBtn = document.getElementById('saveProductBtn');
@@ -492,6 +494,8 @@ const editorView = document.getElementById('editorView');
 const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 4 });
 const eur = new Intl.NumberFormat('en-IE', { style: 'currency', currency: 'EUR' });
 let catalog = [];
+const selectedDrafts = new Set();
+let deletingDrafts = false;
 let editingProduct = null;
 let editorValues = {};
 
@@ -512,7 +516,7 @@ function viewable(product) {
 function renderCatalog(status) {
   const live = status === 'live';
   const products = catalog.filter(p => live ? p.status === 'live' : p.status !== 'live');
-  const query = live ? publishedSearch.value.trim().toLowerCase() : '';
+  const query = (live ? publishedSearch : draftSearch).value.trim().toLowerCase();
   const matches = products.filter(p => [p.name, p.lume_sku, p.category].some(v => String(v ?? '').toLowerCase().includes(query)));
   if (live) {
     matches.sort((a, b) => String(b.published_at || '').localeCompare(String(a.published_at || '')) || b.id - a.id);
@@ -521,10 +525,12 @@ function renderCatalog(status) {
   const box = document.getElementById(catalogPanels[status].list);
   if (!matches.length) {
     box.innerHTML = '<p class="msg">' + (query ? 'No products match your search.' : live ? 'No published products.' : 'No drafts.') + '</p>';
+    if (!live) updateDraftSelection();
     return;
   }
   box.innerHTML = matches.map(p => `<article class="catalog-item" data-product-id="${p.id}">
     <div class="catalog-product">
+      ${p.status === 'draft' ? `<input class="draft-check" type="checkbox" data-draft-id="${p.id}" aria-label="Select ${esc(p.name)}">` : ''}
       ${p.images?.[0] ? `<img src="${esc(p.images[0])}" alt="" width="54" height="64" loading="lazy">` : ''}
       <div>
         <strong>${esc(p.name)}</strong>
@@ -538,7 +544,7 @@ function renderCatalog(status) {
       <div><dt>Stock / photos</dt><dd>${esc(p.stock ?? 0)} / ${esc(p.image_count ?? 0)}</dd></div>
     </dl>
     <div class="catalog-actions">
-      <button class="btn" type="button" data-catalog-action="edit">Edit</button>
+      <button class="btn" type="button" data-catalog-action="edit">${live ? 'Edit' : 'Edit draft'}</button>
       ${viewable(p) ? `<a class="btn secondary" href="${productPath(p)}" target="_blank" rel="noopener">View product</a>` : ''}
       ${live ? `<details>
         <summary aria-label="More product actions">More</summary>
@@ -550,17 +556,78 @@ function renderCatalog(status) {
         ${p.supplier === 'CJ' ? '<button class="btn secondary" type="button" data-catalog-action="refresh">Refresh CJ</button>' : ''}`}
     </div>
   </article>`).join('');
+  if (!live) updateDraftSelection();
 }
 
 async function loadCatalog() {
   const data = await api('/api/lume/products');
   if (!data.ok) throw new Error(data.error || 'Could not load products.');
   catalog = data.products || [];
+  const draftIds = new Set(catalog.filter(p => p.status === 'draft').map(p => p.id));
+  for (const id of selectedDrafts) {
+    if (!draftIds.has(id)) selectedDrafts.delete(id);
+  }
   document.getElementById('kpiDrafts').textContent = catalog.filter(p => p.status !== 'live').length;
   document.getElementById('kpiLive').textContent = catalog.filter(p => p.status === 'live').length;
   renderCatalog('draft');
   renderCatalog('live');
 }
+
+function updateDraftSelection() {
+  const visible = [...draftList.querySelectorAll('[data-draft-id]')];
+  let checked = 0;
+  for (const checkbox of visible) {
+    checkbox.checked = selectedDrafts.has(Number(checkbox.dataset.draftId));
+    checkbox.disabled = deletingDrafts;
+    if (checkbox.checked) checked += 1;
+  }
+  selectDrafts.checked = visible.length > 0 && checked === visible.length;
+  selectDrafts.indeterminate = checked > 0 && checked < visible.length;
+  selectDrafts.disabled = deletingDrafts || !visible.length;
+  deleteDraftsBtn.disabled = deletingDrafts || !selectedDrafts.size;
+  document.getElementById('draftSelectionCount').textContent = selectedDrafts.size + ' selected';
+}
+
+draftList.addEventListener('change', event => {
+  const checkbox = event.target.closest('[data-draft-id]');
+  if (!checkbox) return;
+  const id = Number(checkbox.dataset.draftId);
+  if (checkbox.checked) selectedDrafts.add(id);
+  else selectedDrafts.delete(id);
+  updateDraftSelection();
+});
+
+selectDrafts.addEventListener('change', () => {
+  for (const checkbox of draftList.querySelectorAll('[data-draft-id]')) {
+    const id = Number(checkbox.dataset.draftId);
+    if (selectDrafts.checked) selectedDrafts.add(id);
+    else selectedDrafts.delete(id);
+  }
+  updateDraftSelection();
+});
+
+deleteDraftsBtn.addEventListener('click', async () => {
+  const ids = [...selectedDrafts];
+  if (!ids.length || !confirm('Permanently delete ' + ids.length + ' selected draft(s)?')) return;
+  deletingDrafts = true;
+  updateDraftSelection();
+  msg('draftsMsg', 'Deleting selected drafts…');
+  try {
+    const r = await api('/api/lume/delete-drafts', { method: 'POST', body: JSON.stringify({ ids }) });
+    if (!r.ok) {
+      msg('draftsMsg', r.error || 'Could not delete drafts.', true);
+      return;
+    }
+    selectedDrafts.clear();
+    await loadCatalog();
+    msg('draftsMsg', 'Deleted ' + r.deleted + ' draft(s).' + (r.skipped ? ' ' + r.skipped + ' no longer in drafts.' : ''));
+  } catch (error) {
+    msg('draftsMsg', error.message || 'Could not delete drafts.', true);
+  } finally {
+    deletingDrafts = false;
+    updateDraftSelection();
+  }
+});
 
 function openEditor(product) {
   editingProduct = product;
@@ -674,6 +741,7 @@ for (const { list, message } of Object.values(catalogPanels)) {
 }
 
 publishedSearch.addEventListener('input', () => renderCatalog('live'));
+draftSearch.addEventListener('input', () => renderCatalog('draft'));
 editorForm.addEventListener('submit', saveProduct);
 closeEditorBtn.addEventListener('click', () => editor.close());
 editor.addEventListener('cancel', event => {
