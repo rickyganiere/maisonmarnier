@@ -195,7 +195,7 @@ export async function collectionPage(url, env, request) {
         canonical: collectionPath,
         noindex: Boolean(q),
         jsonLd,
-        cache: 'public, max-age=300',
+        cache: 'private, no-cache',
         request,
         path: collectionPath,
         lang,

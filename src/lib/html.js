@@ -1,6 +1,6 @@
 import { BRAND_ICON_PATH, BRAND_LOGO_PATH, BRAND_LOGO_LIGHT_PATH } from './brandAsset.js';
 import { esc } from './escape.js';
-import { DEFAULT_LANG, getLang, t } from './i18n.js';
+import { DEFAULT_LANG, getLang, htmlCacheHeaders, syncLangCookieHeader, t } from './i18n.js';
 import { productImages } from './images.js';
 import { DEFAULT_OG_IMAGE, jsonLdScript, seoHeadHtml } from './seo.js';
 import { socialLinksHtml } from './social.js';
@@ -412,15 +412,18 @@ ${storefrontHeaderHtml({ lang: resolvedLang, path: pagePath })}
 ${storefrontFooterHtml({ lang: resolvedLang })}
 </body>
 </html>`;
-  return new Response(html, {
-    status,
-    headers: {
-      'content-type': 'text/html; charset=UTF-8',
-      'cache-control': cache,
-      'x-content-type-options': 'nosniff',
-      'content-language': resolvedLang,
-    },
-  });
+  const headers = {
+    'content-type': 'text/html; charset=UTF-8',
+    'x-content-type-options': 'nosniff',
+    ...htmlCacheHeaders(resolvedLang, cache),
+  };
+  // Never publicly cache language-dependent HTML (cookie/Accept-Language variants).
+  if (String(cache).includes('public')) {
+    headers['cache-control'] = 'private, no-cache';
+  }
+  const setCookie = request ? syncLangCookieHeader(request) : null;
+  if (setCookie) headers['set-cookie'] = setCookie;
+  return new Response(html, { status, headers });
 }
 
 /** Prefer a second supplier photo if the lead image fails to load. */

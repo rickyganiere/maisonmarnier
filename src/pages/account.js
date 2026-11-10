@@ -1,20 +1,20 @@
 import { esc } from '../lib/escape.js';
 import { htmlPage, productCard } from '../lib/html.js';
-import { getLang } from '../lib/i18n.js';
+import { getLang, t, tr } from '../lib/i18n.js';
 import {
   getCustomerFromRequest,
   listOrdersForCustomer,
   listWishlistProducts,
 } from '../db/customers.js';
 
-const STATUS_ES = {
-  pending_payment: 'Pendiente de pago',
-  paid: 'Pagado',
-  fulfilling: 'En preparación',
-  fulfilled: 'Enviado / cumplido',
-  fulfill_failed: 'Incidencia en envío',
-  expired: 'Caducado',
-  refunded: 'Reembolsado',
+const STATUS = {
+  pending_payment: { es: 'Pendiente de pago', en: 'Pending payment' },
+  paid: { es: 'Pagado', en: 'Paid' },
+  fulfilling: { es: 'En preparación', en: 'Preparing' },
+  fulfilled: { es: 'Enviado / cumplido', en: 'Shipped / fulfilled' },
+  fulfill_failed: { es: 'Incidencia en envío', en: 'Shipping issue' },
+  expired: { es: 'Caducado', en: 'Expired' },
+  refunded: { es: 'Reembolsado', en: 'Refunded' },
 };
 
 const ACCOUNT_CSS = `
@@ -54,16 +54,23 @@ function money(n) {
   return `€${Number(n || 0).toFixed(2)}`;
 }
 
-function formatDate(iso) {
+function formatDate(iso, lang) {
+  const locale = lang === 'en' ? 'en-GB' : 'es-ES';
   try {
-    return new Intl.DateTimeFormat('es-ES', { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(iso));
+    return new Intl.DateTimeFormat(locale, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(iso));
   } catch {
     return String(iso || '');
   }
 }
 
-function authScript(mode) {
+function statusLabel(status, lang) {
+  return STATUS[status] ? tr(lang, STATUS[status]) : String(status || '');
+}
+
+function authScript(mode, lang) {
   const endpoint = mode === 'register' ? '/api/account/register' : '/api/account/login';
+  const fail = tr(lang, { es: 'No se pudo completar.', en: 'Could not complete.' });
+  const net = tr(lang, { es: 'Error de red. Inténtalo de nuevo.', en: 'Network error. Try again.' });
   return `<script>
 (function(){
   const form=document.getElementById('authForm');
@@ -83,10 +90,10 @@ function authScript(mode) {
     try{
       const r=await fetch('${endpoint}',{method:'POST',headers:{'content-type':'application/json'},credentials:'same-origin',body:JSON.stringify(payload)});
       const d=await r.json();
-      if(!d.ok){err.textContent=d.error||'No se pudo completar.';btn.disabled=false;return}
+      if(!d.ok){err.textContent=d.error||${JSON.stringify(fail)};btn.disabled=false;return}
       const next=new URLSearchParams(location.search).get('next')||'/cuenta';
       location.href=next.startsWith('/')?next:'/cuenta';
-    }catch(ex){err.textContent='Error de red. Inténtalo de nuevo.';btn.disabled=false}
+    }catch(ex){err.textContent=${JSON.stringify(net)};btn.disabled=false}
   });
 })();
 </script>`;
@@ -95,46 +102,52 @@ function authScript(mode) {
 export function registerPageHtml({ next = '/cuenta', request = null } = {}) {
   const lang = request ? getLang(request) : 'es';
   const body = `<style>${ACCOUNT_CSS}</style>
-<nav class="crumbs" aria-label="Miga de pan">
-  <a href="/">Inicio</a><span class="sep">/</span>
-  <a href="/cuenta">Cuenta</a><span class="sep">/</span>
-  <span>Crear cuenta</span>
+<nav class="crumbs" aria-label="${t(lang, 'crumbs_aria')}">
+  <a href="/">${t(lang, 'home')}</a><span class="sep">/</span>
+  <a href="/cuenta">${t(lang, 'account')}</a><span class="sep">/</span>
+  <span>${tr(lang, { es: 'Crear cuenta', en: 'Create account' })}</span>
 </nav>
 <section class="account-shell">
   <div class="account-hero">
-    <h1>Regístrate para comprar</h1>
-    <p class="lead">Guarda favoritos, sigue tus pedidos y vuelve a tu edición cuando quieras.</p>
+    <h1>${tr(lang, { es: 'Regístrate para comprar', en: 'Register to shop' })}</h1>
+    <p class="lead">${tr(lang, { es: 'Guarda favoritos, sigue tus pedidos y vuelve a tu edición cuando quieras.', en: 'Save favorites, track orders, and return to your edit whenever you like.' })}</p>
   </div>
   <div class="account-grid">
     <div class="account-panel">
-      <h2>Crear tu cuenta</h2>
-      <p class="panel-lead">Un minuto y listo — checkout más ágil y seguimiento de pedidos.</p>
+      <h2>${tr(lang, { es: 'Crear tu cuenta', en: 'Create your account' })}</h2>
+      <p class="panel-lead">${tr(lang, { es: 'Un minuto y listo — checkout más ágil y seguimiento de pedidos.', en: 'One minute and you’re set — faster checkout and order tracking.' })}</p>
       <form class="auth-form" id="authForm" autocomplete="on">
-        <label>Nombre<input name="name" type="text" maxlength="120" placeholder="Tu nombre" autocomplete="name"></label>
-        <label>Correo electrónico<input name="email" type="email" required maxlength="254" placeholder="tu@correo.com" autocomplete="email"></label>
-        <label>Contraseña<input name="password" type="password" required minlength="8" maxlength="128" placeholder="Mínimo 8 caracteres" autocomplete="new-password"></label>
-        <p class="hint">Al crear la cuenta aceptas los <a href="/terminos">Términos y condiciones</a> y la <a href="/privacidad">Política de privacidad</a>.</p>
+        <label>${tr(lang, { es: 'Nombre', en: 'Name' })}<input name="name" type="text" maxlength="120" placeholder="${esc(tr(lang, { es: 'Tu nombre', en: 'Your name' }))}" autocomplete="name"></label>
+        <label>${tr(lang, { es: 'Correo electrónico', en: 'Email' })}<input name="email" type="email" required maxlength="254" placeholder="you@email.com" autocomplete="email"></label>
+        <label>${tr(lang, { es: 'Contraseña', en: 'Password' })}<input name="password" type="password" required minlength="8" maxlength="128" placeholder="${esc(tr(lang, { es: 'Mínimo 8 caracteres', en: 'At least 8 characters' }))}" autocomplete="new-password"></label>
+        <p class="hint">${tr(lang, {
+          es: 'Al crear la cuenta aceptas los <a href="/terminos">Términos y condiciones</a> y la <a href="/privacidad">Política de privacidad</a>.',
+          en: 'By creating an account you accept the <a href="/terminos">Terms &amp; conditions</a> and <a href="/privacidad">Privacy policy</a>.',
+        })}</p>
         <p class="err" id="authErr" role="alert"></p>
-        <button class="btn btn-block" type="submit" id="authSubmit">Crear cuenta</button>
+        <button class="btn btn-block" type="submit" id="authSubmit">${tr(lang, { es: 'Crear cuenta', en: 'Create account' })}</button>
       </form>
-      <p class="auth-switch">¿Ya tienes cuenta? <a href="/cuenta/entrar?next=${encodeURIComponent(next)}">Iniciar sesión</a></p>
+      <p class="auth-switch">${tr(lang, { es: '¿Ya tienes cuenta?', en: 'Already have an account?' })} <a href="/cuenta/entrar?next=${encodeURIComponent(next)}">${tr(lang, { es: 'Iniciar sesión', en: 'Sign in' })}</a></p>
     </div>
     <aside class="account-panel">
-      <h2>Por qué registrarte</h2>
+      <h2>${tr(lang, { es: 'Por qué registrarte', en: 'Why register' })}</h2>
       <ul class="account-benefits">
-        <li><i>✓</i><span>Seguimiento de pedidos y estado de envío en un solo sitio.</span></li>
-        <li><i>✓</i><span>Lista de deseos sincronizada entre visitas.</span></li>
-        <li><i>✓</i><span>Checkout más rápido con tu correo guardado.</span></li>
-        <li><i>✓</i><span>Avisos de piezas que vuelven a stock o a la edición.</span></li>
+        <li><i>✓</i><span>${tr(lang, { es: 'Seguimiento de pedidos y estado de envío en un solo sitio.', en: 'Order tracking and shipping status in one place.' })}</span></li>
+        <li><i>✓</i><span>${tr(lang, { es: 'Lista de deseos sincronizada entre visitas.', en: 'Wishlist synced across visits.' })}</span></li>
+        <li><i>✓</i><span>${tr(lang, { es: 'Checkout más rápido con tu correo guardado.', en: 'Faster checkout with your email saved.' })}</span></li>
+        <li><i>✓</i><span>${tr(lang, { es: 'Avisos de piezas que vuelven a stock o a la edición.', en: 'Alerts when pieces return to stock or the edit.' })}</span></li>
       </ul>
-      <a class="btn btn-ghost btn-block" href="/cart">Seguir como invitado</a>
+      <a class="btn btn-ghost btn-block" href="/cart">${tr(lang, { es: 'Seguir como invitado', en: 'Continue as guest' })}</a>
     </aside>
   </div>
 </section>
-${authScript('register')}`;
+${authScript('register', lang)}`;
 
-  return htmlPage('Crear cuenta', body, {
-    description: 'Crea tu cuenta Maison Marnier para seguir pedidos y guardar tu lista de deseos.',
+  return htmlPage(tr(lang, { es: 'Crear cuenta', en: 'Create account' }), body, {
+    description: tr(lang, {
+      es: 'Crea tu cuenta Maison Marnier para seguir pedidos y guardar tu lista de deseos.',
+      en: 'Create your Maison Marnier account to track orders and save your wishlist.',
+    }),
     canonical: '/cuenta/registro',
     noindex: true,
     request,
@@ -146,42 +159,45 @@ ${authScript('register')}`;
 export function loginPageHtml({ next = '/cuenta', request = null } = {}) {
   const lang = request ? getLang(request) : 'es';
   const body = `<style>${ACCOUNT_CSS}</style>
-<nav class="crumbs" aria-label="Miga de pan">
-  <a href="/">Inicio</a><span class="sep">/</span>
-  <a href="/cuenta">Cuenta</a><span class="sep">/</span>
-  <span>Entrar</span>
+<nav class="crumbs" aria-label="${t(lang, 'crumbs_aria')}">
+  <a href="/">${t(lang, 'home')}</a><span class="sep">/</span>
+  <a href="/cuenta">${t(lang, 'account')}</a><span class="sep">/</span>
+  <span>${tr(lang, { es: 'Entrar', en: 'Sign in' })}</span>
 </nav>
 <section class="account-shell">
   <div class="account-hero">
-    <h1>Bienvenida de nuevo</h1>
-    <p class="lead">Accede a tus pedidos, favoritos y perfil de compra.</p>
+    <h1>${tr(lang, { es: 'Bienvenida de nuevo', en: 'Welcome back' })}</h1>
+    <p class="lead">${tr(lang, { es: 'Accede a tus pedidos, favoritos y perfil de compra.', en: 'Access your orders, favorites, and shopping profile.' })}</p>
   </div>
   <div class="account-grid">
     <div class="account-panel">
-      <h2>Iniciar sesión</h2>
-      <p class="panel-lead">Usa el correo con el que te registraste.</p>
+      <h2>${tr(lang, { es: 'Iniciar sesión', en: 'Sign in' })}</h2>
+      <p class="panel-lead">${tr(lang, { es: 'Usa el correo con el que te registraste.', en: 'Use the email you registered with.' })}</p>
       <form class="auth-form" id="authForm" autocomplete="on">
-        <label>Correo electrónico<input name="email" type="email" required maxlength="254" placeholder="tu@correo.com" autocomplete="email"></label>
-        <label>Contraseña<input name="password" type="password" required minlength="8" maxlength="128" placeholder="Tu contraseña" autocomplete="current-password"></label>
+        <label>${tr(lang, { es: 'Correo electrónico', en: 'Email' })}<input name="email" type="email" required maxlength="254" placeholder="you@email.com" autocomplete="email"></label>
+        <label>${tr(lang, { es: 'Contraseña', en: 'Password' })}<input name="password" type="password" required minlength="8" maxlength="128" placeholder="${esc(tr(lang, { es: 'Tu contraseña', en: 'Your password' }))}" autocomplete="current-password"></label>
         <p class="err" id="authErr" role="alert"></p>
-        <button class="btn btn-block" type="submit" id="authSubmit">Entrar</button>
+        <button class="btn btn-block" type="submit" id="authSubmit">${tr(lang, { es: 'Entrar', en: 'Sign in' })}</button>
       </form>
-      <p class="auth-switch">¿Nueva en la maison? <a href="/cuenta/registro?next=${encodeURIComponent(next)}">Crear cuenta</a></p>
+      <p class="auth-switch">${tr(lang, { es: '¿Nueva en la maison?', en: 'New to the maison?' })} <a href="/cuenta/registro?next=${encodeURIComponent(next)}">${tr(lang, { es: 'Crear cuenta', en: 'Create account' })}</a></p>
     </div>
     <aside class="account-panel">
-      <h2>Tu espacio</h2>
+      <h2>${tr(lang, { es: 'Tu espacio', en: 'Your space' })}</h2>
       <ul class="account-benefits">
-        <li><i>✓</i><span>Pedidos y seguimiento.</span></li>
-        <li><i>✓</i><span>Lista de deseos.</span></li>
-        <li><i>✓</i><span>Datos listos para el próximo checkout.</span></li>
+        <li><i>✓</i><span>${tr(lang, { es: 'Pedidos y seguimiento.', en: 'Orders and tracking.' })}</span></li>
+        <li><i>✓</i><span>${tr(lang, { es: 'Lista de deseos.', en: 'Wishlist.' })}</span></li>
+        <li><i>✓</i><span>${tr(lang, { es: 'Datos listos para el próximo checkout.', en: 'Details ready for the next checkout.' })}</span></li>
       </ul>
     </aside>
   </div>
 </section>
-${authScript('login')}`;
+${authScript('login', lang)}`;
 
-  return htmlPage('Iniciar sesión', body, {
-    description: 'Inicia sesión en Maison Marnier para ver pedidos y lista de deseos.',
+  return htmlPage(tr(lang, { es: 'Iniciar sesión', en: 'Sign in' }), body, {
+    description: tr(lang, {
+      es: 'Inicia sesión en Maison Marnier para ver pedidos y lista de deseos.',
+      en: 'Sign in to Maison Marnier to view orders and wishlist.',
+    }),
     canonical: '/cuenta/entrar',
     noindex: true,
     request,
@@ -208,48 +224,48 @@ export async function accountDashboardPage(request, env) {
           (o) => `<article class="order-card">
         <div class="top">
           <strong>${esc(o.order_number)}</strong>
-          <span class="order-status">${esc(STATUS_ES[o.status] || o.status)}</span>
+          <span class="order-status">${esc(statusLabel(o.status, lang))}</span>
         </div>
-        <div class="muted">${esc(formatDate(o.created_at))} · ${money(o.total_eur)}</div>
-        ${o.cj_status ? `<div class="muted">Estado logística: ${esc(o.cj_status)}</div>` : ''}
+        <div class="muted">${esc(formatDate(o.created_at, lang))} · ${money(o.total_eur)}</div>
+        ${o.cj_status ? `<div class="muted">${tr(lang, { es: 'Estado logística', en: 'Logistics status' })}: ${esc(o.cj_status)}</div>` : ''}
       </article>`,
         )
         .join('')}</div>`
-    : `<p class="orders-empty">Aún no hay pedidos. <a href="/collections/seasonal">Explorar la edición →</a></p>`;
+    : `<p class="orders-empty">${tr(lang, { es: 'Aún no hay pedidos.', en: 'No orders yet.' })} <a href="/collections/seasonal">${tr(lang, { es: 'Explorar la edición →', en: 'Explore the edit →' })}</a></p>`;
 
   const wishHtml = wishlist.length
     ? `<div class="grid" style="grid-template-columns:repeat(auto-fill,minmax(160px,1fr));padding-top:8px">${wishlist
-        .map((p)=>productCard(p, lang))
+        .map((p) => productCard(p, lang))
         .join('')}</div>`
-    : `<p class="wish-empty">Tu lista de deseos está vacía. Guarda piezas desde la ficha de producto.</p>`;
+    : `<p class="wish-empty">${tr(lang, { es: 'Tu lista de deseos está vacía. Guarda piezas desde la ficha de producto.', en: 'Your wishlist is empty. Save pieces from a product page.' })}</p>`;
 
   const body = `<style>${ACCOUNT_CSS}</style>
-<nav class="crumbs" aria-label="Miga de pan">
-  <a href="/">Inicio</a><span class="sep">/</span>
-  <span>Cuenta</span>
+<nav class="crumbs" aria-label="${t(lang, 'crumbs_aria')}">
+  <a href="/">${t(lang, 'home')}</a><span class="sep">/</span>
+  <span>${t(lang, 'account')}</span>
 </nav>
 <section class="account-shell">
   <div class="account-hero">
-    <h1>Hola${customer.name ? `, ${esc(customer.name.split(' ')[0])}` : ''}</h1>
-    <p class="lead">${esc(customer.email)} · tu espacio Maison Marnier.</p>
+    <h1>${tr(lang, { es: 'Hola', en: 'Hello' })}${customer.name ? `, ${esc(customer.name.split(' ')[0])}` : ''}</h1>
+    <p class="lead">${esc(customer.email)} · ${tr(lang, { es: 'tu espacio Maison Marnier.', en: 'your Maison Marnier space.' })}</p>
   </div>
-  <div class="account-tabs" role="navigation" aria-label="Secciones de cuenta">
-    <a class="is-active" href="#pedidos">Pedidos</a>
-    <a href="#deseos">Lista de deseos</a>
-    <a href="/cart">Carrito</a>
+  <div class="account-tabs" role="navigation" aria-label="${esc(tr(lang, { es: 'Secciones de cuenta', en: 'Account sections' }))}">
+    <a class="is-active" href="#pedidos">${tr(lang, { es: 'Pedidos', en: 'Orders' })}</a>
+    <a href="#deseos">${tr(lang, { es: 'Lista de deseos', en: 'Wishlist' })}</a>
+    <a href="/cart">${t(lang, 'cart')}</a>
   </div>
   <section class="account-panel" id="pedidos" style="margin-bottom:22px">
-    <h2>Tus pedidos</h2>
-    <p class="panel-lead">Estado y referencias de compra. Te avisamos por correo cuando el paquete sale del almacén.</p>
+    <h2>${tr(lang, { es: 'Tus pedidos', en: 'Your orders' })}</h2>
+    <p class="panel-lead">${tr(lang, { es: 'Estado y referencias de compra. Te avisamos por correo cuando el paquete sale del almacén.', en: 'Order status and references. We email you when the parcel leaves the warehouse.' })}</p>
     ${ordersHtml}
   </section>
   <section class="account-panel" id="deseos">
-    <h2>Lista de deseos</h2>
-    <p class="panel-lead">Piezas guardadas para más tarde.</p>
+    <h2>${tr(lang, { es: 'Lista de deseos', en: 'Wishlist' })}</h2>
+    <p class="panel-lead">${tr(lang, { es: 'Piezas guardadas para más tarde.', en: 'Pieces saved for later.' })}</p>
     ${wishHtml}
     <div class="account-actions">
-      <a class="btn" href="/collections/new">Seguir comprando</a>
-      <button class="btn btn-ghost" type="button" id="logoutBtn">Cerrar sesión</button>
+      <a class="btn" href="/collections/new">${tr(lang, { es: 'Seguir comprando', en: 'Keep shopping' })}</a>
+      <button class="btn btn-ghost" type="button" id="logoutBtn">${tr(lang, { es: 'Cerrar sesión', en: 'Sign out' })}</button>
     </div>
   </section>
 </section>
@@ -260,8 +276,11 @@ document.getElementById('logoutBtn')?.addEventListener('click',async()=>{
 });
 </script>`;
 
-  return htmlPage('Mi cuenta', body, {
-    description: 'Tu cuenta Maison Marnier: pedidos y lista de deseos.',
+  return htmlPage(tr(lang, { es: 'Mi cuenta', en: 'My account' }), body, {
+    description: tr(lang, {
+      es: 'Tu cuenta Maison Marnier: pedidos y lista de deseos.',
+      en: 'Your Maison Marnier account: orders and wishlist.',
+    }),
     canonical: '/cuenta',
     noindex: true,
     request,

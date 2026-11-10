@@ -25,16 +25,16 @@ export async function productPage(url, env, request) {
     const savePct = onSale ? Math.round(((compareAt - retail) / compareAt) * 100) : 0;
     const priceBlock = `<div class="price-block">
       <span class="price-now">€${retail.toFixed(2)}</span>
-      ${onSale ? `<span class="price-was">€${compareAt.toFixed(2)}</span><span class="save">Ahorra ${savePct}%</span>` : ''}
+      ${onSale ? `<span class="price-was">€${compareAt.toFixed(2)}</span><span class="save">${tr(lang, { es: `Ahorra ${savePct}%`, en: `Save ${savePct}%` })}</span>` : ''}
     </div>`;
 
     const stock = Number(p.stock || 0);
     const stockHint =
       stock <= 0
-        ? '<p class="stock-line">No disponible en este momento.</p>'
+        ? `<p class="stock-line">${tr(lang, { es: 'No disponible en este momento.', en: 'Unavailable right now.' })}</p>`
         : stock <= 5
-          ? `<p class="stock-line">Stock limitado · solo quedan ${stock} en el almacén asociado.</p>`
-          : `<p class="stock-line">En stock · envío desde almacén asociado.</p>`;
+          ? `<p class="stock-line">${tr(lang, { es: `Stock limitado · solo quedan ${stock} en el almacén asociado.`, en: `Limited stock · only ${stock} left at partner warehouse.` })}</p>`
+          : `<p class="stock-line">${tr(lang, { es: 'En stock · envío desde almacén asociado.', en: 'In stock · ships from partner warehouse.' })}</p>`;
 
     const relatedAll = await getLiveProducts(env, 48);
     const related = relatedAll
@@ -59,8 +59,8 @@ export async function productPage(url, env, request) {
     const relatedHtml = relatedFallback.length
       ? `<section class="related">
            <div class="related-head">
-             <h2>También te puede gustar</h2>
-             <a class="view-all" href="${collectionHref}">Ver colección →</a>
+             <h2>${tr(lang, { es: 'También te puede gustar', en: 'You may also like' })}</h2>
+             <a class="view-all" href="${collectionHref}">${tr(lang, { es: 'Ver colección →', en: 'View collection →' })}</a>
            </div>
            <div class="grid">${relatedFallback.map((r)=>productCard(r, lang)).join('')}</div>
          </section>`
@@ -71,20 +71,22 @@ export async function productPage(url, env, request) {
     const mainImage = images[0] || '';
     const thumbs =
       images.length > 1
-        ? `<div class="product-thumbs" id="galleryThumbs" role="tablist" aria-label="Imágenes del producto">
+        ? `<div class="product-thumbs" id="galleryThumbs" role="tablist" aria-label="${esc(tr(lang, { es: 'Imágenes del producto', en: 'Product images' }))}">
             ${images
               .map(
                 (src, i) =>
-                  `<button type="button" class="${i === 0 ? 'is-active' : ''}" data-src="${esc(src)}" aria-label="Imagen ${i + 1}">
+                  `<button type="button" class="${i === 0 ? 'is-active' : ''}" data-src="${esc(src)}" aria-label="${esc(tr(lang, { es: `Imagen ${i + 1}`, en: `Image ${i + 1}` }))}">
                     <img src="${esc(src)}" alt="" loading="lazy">
                   </button>`,
               )
               .join('')}
           </div>`
         : '';
+    const wishLabel = tr(lang, { es: 'Lista de deseos', en: 'Wishlist' });
+    const wishOnLabel = tr(lang, { es: 'En tu lista', en: 'Saved' });
     const body = `<nav class="crumbs" aria-label="${t(lang, 'crumbs_aria')}">
         <a href="/">${t(lang, 'home')}</a><span class="sep">/</span>
-        <a href="${collectionHref}">${esc(p.category || 'Tienda')}</a><span class="sep">/</span>
+        <a href="${collectionHref}">${esc(p.category || t(lang, 'shop'))}</a><span class="sep">/</span>
         <span>${esc(p.name || '')}</span>
       </nav>
       <div class="product">
@@ -120,25 +122,35 @@ export async function productPage(url, env, request) {
             <a href="/cuenta/registro?next=/products/${encodeURIComponent(p.slug || '')}">${tr(lang, { es: 'Crear cuenta gratuita →', en: 'Create a free account →' })}</a>
           </div>
           <section aria-labelledby="product-details-title">
-            <h2 id="product-details-title">Detalles del producto</h2>
-            <div class="desc" style="margin-top:8px">${esc(p.description || 'Seleccionado con cuidado para Maison Marnier.')}</div>
+            <h2 id="product-details-title">${tr(lang, { es: 'Detalles del producto', en: 'Product details' })}</h2>
+            <div class="desc" style="margin-top:8px">${esc(p.description || tr(lang, { es: 'Seleccionado con cuidado para Maison Marnier.', en: 'Chosen with care for Maison Marnier.' }))}</div>
           </section>
           <div class="specs">
-            <div><strong>Categoría</strong>${esc(p.category || 'Decoración')}</div>
-            <div><strong>Envío</strong>Europa · almacén asociado</div>
-            <div><strong>Devoluciones</strong>30 días</div>
-            <div><strong>Pago</strong>Stripe · IVA en el checkout</div>
+            <div><strong>${tr(lang, { es: 'Categoría', en: 'Category' })}</strong>${esc(p.category || tr(lang, { es: 'Decoración', en: 'Decor' }))}</div>
+            <div><strong>${tr(lang, { es: 'Envío', en: 'Shipping' })}</strong>${tr(lang, { es: 'Europa · almacén asociado', en: 'Europe · partner warehouse' })}</div>
+            <div><strong>${tr(lang, { es: 'Devoluciones', en: 'Returns' })}</strong>${tr(lang, { es: '30 días', en: '30 days' })}</div>
+            <div><strong>${tr(lang, { es: 'Pago', en: 'Payment' })}</strong>${tr(lang, { es: 'Stripe · IVA en el checkout', en: 'Stripe · VAT at checkout' })}</div>
           </div>
           <div class="trust">
-            <span><i>✓</i> Envío gratis en pedidos superiores a 100 €</span>
-            <span><i>✓</i> Pago seguro con Stripe</span>
-            <span><i>✓</i> Cumplimiento con socios en Europa</span>
+            <span><i>✓</i> ${tr(lang, { es: 'Envío gratis en pedidos superiores a 100 €', en: 'Free shipping on orders over €100' })}</span>
+            <span><i>✓</i> ${tr(lang, { es: 'Pago seguro con Stripe', en: 'Secure Stripe checkout' })}</span>
+            <span><i>✓</i> ${tr(lang, { es: 'Cumplimiento con socios en Europa', en: 'Fulfilled with partners in Europe' })}</span>
           </div>
         </div>
       </div>
     </div>${relatedHtml}
 <script>
 (function(){
+  const L=${JSON.stringify({
+    addedHtml: tr(lang, { es: 'Añadido al carrito. <a href="/cart">Ver carrito →</a>', en: 'Added to cart. <a href="/cart">View cart →</a>' }),
+    added: tr(lang, { es: 'Añadido al carrito', en: 'Added to cart' }),
+    wishOn: '♥ ' + wishOnLabel,
+    wishOff: '♡ ' + wishLabel,
+    wishSaved: tr(lang, { es: 'Guardado en deseos', en: 'Saved to wishlist' }),
+    wishRemoved: tr(lang, { es: 'Quitado de deseos', en: 'Removed from wishlist' }),
+    wishErr: tr(lang, { es: 'No se pudo actualizar', en: 'Could not update' }),
+    netErr: tr(lang, { es: 'Error de red', en: 'Network error' }),
+  })};
   const main=document.getElementById('galleryMain');
   const thumbs=document.getElementById('galleryThumbs');
   if(main&&thumbs){
@@ -163,8 +175,8 @@ export async function productPage(url, env, request) {
       localStorage.setItem(KEY,JSON.stringify(cart));
       window.dispatchEvent(new Event('mm-cart'));
       const m=document.getElementById('addMsg');
-      if(m){m.innerHTML='Añadido al carrito. <a href="/cart">Ver carrito →</a>';}
-      if(typeof toast==='function') toast('Añadido al carrito');
+      if(m){m.innerHTML=L.addedHtml;}
+      if(typeof toast==='function') toast(L.added);
     };
   }
   const wish=document.getElementById('wishBtn');
@@ -175,7 +187,7 @@ export async function productPage(url, env, request) {
       const r=await fetch('/api/account/wishlist',{credentials:'same-origin'});
       const d=await r.json();
       if(d&&d.ok&&Array.isArray(d.items)&&d.items.some(i=>Number(i.id)===pid)){
-        wish.classList.add('is-on'); wish.textContent='♥ En tu lista';
+        wish.classList.add('is-on'); wish.textContent=L.wishOn;
       }
     }catch(e){}
   }
@@ -195,11 +207,11 @@ export async function productPage(url, env, request) {
         body:JSON.stringify({productId:pid})
       });
       const d=await r.json();
-      if(!d.ok){if(typeof toast==='function')toast(d.error||'No se pudo actualizar');return}
+      if(!d.ok){if(typeof toast==='function')toast(d.error||L.wishErr);return}
       wish.classList.toggle('is-on',!on);
-      wish.textContent=!on?'♥ En tu lista':'♡ Lista de deseos';
-      if(typeof toast==='function')toast(!on?'Guardado en deseos':'Quitado de deseos');
-    }catch(e){if(typeof toast==='function')toast('Error de red')}
+      wish.textContent=!on?L.wishOn:L.wishOff;
+      if(typeof toast==='function')toast(!on?L.wishSaved:L.wishRemoved);
+    }catch(e){if(typeof toast==='function')toast(L.netErr)}
   };
 })();
 </script>`;
@@ -212,7 +224,7 @@ export async function productPage(url, env, request) {
       ogImage: mainImage || '',
       ogType: 'product',
       jsonLd: productJsonLd(pForLd, { url: productPath, collectionPath: collectionHref }),
-      cache: 'public, max-age=0, must-revalidate',
+      cache: 'private, no-cache',
       request,
       path: productPath,
       lang,

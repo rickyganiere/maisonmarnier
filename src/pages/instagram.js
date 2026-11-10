@@ -62,7 +62,7 @@ export function instagramPage(request) {
     description:
       'Maison Marnier en Instagram — compra la edición hogar de Navidad, novedades, diario y contacto.',
     canonical: '/instagram',
-    cache: 'public, max-age=3600',
+    cache: 'private, no-cache',
     request,
     path: '/instagram',
     lang,

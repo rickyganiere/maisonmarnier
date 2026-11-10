@@ -257,7 +257,7 @@ export function infoPage(path, request) {
     {
       description,
       canonical: `/${key}`,
-      cache: 'public, max-age=3600',
+      cache: 'private, no-cache',
       request,
       path: `/${key}`,
       lang,
