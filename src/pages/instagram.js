@@ -38,7 +38,7 @@ export function instagramPage() {
   const body = `<style>${PAGE_CSS}</style>
 <section class="ig-hub">
   <div class="ig-hero">
-    ${brandLogoHtml()}
+    ${brandLogoHtml({ light: true })}
     <h1>Maison Marnier</h1>
     <p>Holiday home edit for warm, quieter rooms — ornaments, light and objects worth keeping.</p>
   </div>

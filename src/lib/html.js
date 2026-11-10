@@ -1,5 +1,6 @@
-import { BRAND_ICON_PATH, BRAND_LOGO_PATH } from './brandAsset.js';
+import { BRAND_ICON_PATH, BRAND_LOGO_PATH, BRAND_LOGO_LIGHT_PATH } from './brandAsset.js';
 import { esc } from './escape.js';
+import { productImages } from './images.js';
 import { DEFAULT_OG_IMAGE, jsonLdScript, seoHeadHtml } from './seo.js';
 
 /** Google Tag Manager — public storefront only (not admin). */
@@ -71,8 +72,9 @@ export function cartControlHtml() {
 }
 
 /** Approved horizontal Christmas branding on a light background. */
-export function brandLogoHtml() {
-  return `<img class="brand-mark-img" src="${BRAND_LOGO_PATH}" width="720" height="200" alt="Maison Marnier · Home &amp; Living" decoding="async">`;
+export function brandLogoHtml({ light = false } = {}) {
+  const path = light ? BRAND_LOGO_LIGHT_PATH : BRAND_LOGO_PATH;
+  return `<img class="brand-mark-img" src="${path}" width="972" height="270" alt="Maison Marnier · Home &amp; Living" decoding="async">`;
 }
 
 export function storefrontHeaderHtml({ search = true } = {}) {
@@ -109,26 +111,28 @@ body{margin:0;background:
 a{color:inherit;text-decoration:none}
 img{max-width:100%;display:block}
 .announce{background:#53262a;color:#fff2dd;text-align:center;font:800 10px/1.2 var(--font);letter-spacing:.12em;text-transform:uppercase;padding:7px 12px}
-.site-nav{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:clamp(12px,1.7vw,26px);min-height:var(--nav-h);padding:13px var(--pad) 7px;border-bottom:1px solid #d8c1a6;position:sticky;top:0;background:#f7efe4;color:#34231b;z-index:40}
-.brand{display:inline-flex;align-items:center;justify-self:start;text-decoration:none}
-.brand-mark-img{display:block;width:clamp(238px,21vw,306px);height:auto;border-radius:6px}
-.xmas-garland{position:absolute;inset:0 var(--pad) auto;display:flex;justify-content:space-between;gap:4px;border-top:1px solid #d6b990;pointer-events:none}
-.xmas-garland i{width:5px;height:7px;border-radius:60%;background:#ffedb7;box-shadow:0 0 7px 2px #ffc671,0 0 13px 3px #ffe0a6}
-.xmas-garland i:nth-child(4n+2){background:#f78c75;box-shadow:0 0 7px 2px #f0a58c}
-.xmas-garland i:nth-child(4n){background:#d7e5ab;box-shadow:0 0 7px 2px #bfc88d}
+.site-nav{display:grid;grid-template-columns:auto minmax(0,1fr) auto;align-items:center;gap:clamp(12px,1.7vw,26px);min-height:var(--nav-h);padding:16px var(--pad) 5px;border-bottom:1px solid #d8c1a6;position:sticky;top:0;background:linear-gradient(100deg,#f5e6d3,#fff8ec 53%,#f5e6d3);color:#34231b;z-index:40}
+.brand{display:inline-flex;align-items:center;justify-self:start;max-width:100%;text-decoration:none}
+.brand-mark-img{display:block;width:clamp(238px,21vw,306px);height:auto}
+.xmas-garland{position:absolute;inset:0 var(--pad) auto;display:flex;justify-content:space-between;gap:5px;border-top:1px solid #786748;pointer-events:none}
+.xmas-garland i{position:relative;width:8px;height:11px;border-radius:3px 3px 55% 55%;margin-top:2px;background:#fff1b4;box-shadow:0 0 9px 3px #ffbe54,0 0 17px 5px #ffc778;transform:rotate(-12deg)}
+.xmas-garland i::before{content:"";position:absolute;inset:-2px 1px auto;height:3px;border-radius:2px;background:#7d5a33}
+.xmas-garland i:nth-child(even){transform:rotate(12deg)}
+.xmas-garland i:nth-child(4n+2){background:#ff8a6b;box-shadow:0 0 9px 3px #ed8565,0 0 16px 4px #f8c1a8}
+.xmas-garland i:nth-child(4n){background:#d7e9a1;box-shadow:0 0 9px 3px #a7bd65,0 0 16px 4px #c2d5a0}
 .site-nav .links{min-width:0;display:flex;flex-wrap:wrap;justify-content:center;align-items:center;gap:0 clamp(12px,1.5vw,25px)}
 .site-nav .links a{flex:0 0 auto;white-space:nowrap;color:#3d2c22;font:800 16px/1.15 var(--font);padding:10px 0;transition:color .2s}
 .site-nav .links a:first-child,.site-nav .links a:hover{color:#852731}
 .site-nav a:focus-visible,.site-nav input:focus-visible{outline:2px solid #852731;outline-offset:3px}
 .tools{display:flex;gap:10px;align-items:center;justify-content:flex-end}
 .tools .search{width:clamp(105px,9vw,138px);padding:9px 10px;border:1px solid #d8c1a6;background:#fffbf6;color:#34231b;font:600 13px/1.2 var(--font);border-radius:6px}
-.cart-wrap{display:inline-flex;align-items:center;gap:4px}
-.nav-snowman{width:34px;height:42px;flex:0 0 auto;filter:drop-shadow(0 2px 4px rgba(75,41,24,.25));animation:snowmanBob 3.2s ease-in-out infinite;transform-origin:50% 100%}
+.cart-wrap{display:inline-flex;align-items:center;gap:8px}
+.nav-snowman{width:58px;height:69px;flex:0 0 auto;filter:drop-shadow(0 2px 4px rgba(75,41,24,.25));animation:snowmanBob 3.2s ease-in-out infinite;transform-origin:50% 100%}
 .nav-snowman .santa-hat{transform-origin:36px 18px;animation:hatTip 4.2s ease-in-out infinite}
 @keyframes hatTip{0%,100%{transform:rotate(0deg)}45%{transform:rotate(-4deg)}70%{transform:rotate(2deg)}}
 @keyframes snowmanBob{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-3px) rotate(-4deg)}}
-.cart-link{display:inline-flex;align-items:center;gap:4px;min-height:42px;padding:10px 13px;border:1px solid #c5a577;border-radius:6px;font:800 13px/1 var(--font);white-space:nowrap;color:#452b1d;background:#fff9ef}
-.cart-link:hover{background:#f0deca}
+.cart-link{display:inline-flex;align-items:center;gap:4px;min-height:52px;padding:12px 19px;border:1px solid #a97343;border-radius:8px;font:800 16px/1 var(--font);white-space:nowrap;color:#fff4e4;background:#632930;box-shadow:0 4px 12px #63293028}
+.cart-link:hover{background:#80343c}
 @media(prefers-reduced-motion:reduce){html{scroll-behavior:auto}.nav-snowman,.nav-snowman .santa-hat{animation:none}}
 .wrap{max-width:var(--max);margin:auto;padding:0 var(--pad) 56px}
 .crumbs{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:22px 0 0;font:700 11px/1 var(--font);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
@@ -155,6 +159,9 @@ h1{font:900 clamp(34px,4.6vw,56px)/.98 var(--font);margin:0;letter-spacing:-.045
 .p{display:block;color:var(--ink);position:relative}
 .p .media{position:relative;overflow:hidden;background:var(--panel2);aspect-ratio:4/5;border-radius:8px;border:1px solid var(--line)}
 .p .media img{width:100%;height:100%;object-fit:cover;display:block;transition:transform .7s cubic-bezier(.2,.65,.3,1)}
+img[hidden]{display:none!important}
+.product-image-unavailable{position:absolute;inset:0;display:grid;place-items:center;background:radial-gradient(ellipse at 50% 30%,#483229,#211a16 72%);color:#e0c5a5;font:600 12px/1.2 var(--font);text-align:center;padding:12px}
+img:not([hidden]) + .product-image-unavailable{display:none}
 .p:hover .media img{transform:scale(1.04)}
 .p .badge{position:absolute;left:12px;top:12px;z-index:1;background:rgba(18,16,14,.88);color:var(--accent2);font:800 10px/1 var(--font);letter-spacing:.1em;text-transform:uppercase;padding:8px 10px;border-radius:5px}
 .p .meta{padding-top:14px}
@@ -238,7 +245,7 @@ h1{font:900 clamp(34px,4.6vw,56px)/.98 var(--font);margin:0;letter-spacing:-.045
 @media(max-width:1200px){.grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(max-width:1100px){
   :root{--nav-h:124px}
-  .site-nav{grid-template-columns:minmax(0,1fr) auto;gap:0 12px;padding:11px var(--pad) 0}
+  .site-nav{grid-template-columns:minmax(0,1fr) auto;gap:0 12px;padding:16px var(--pad) 0}
   .site-nav .links{grid-column:1/-1;grid-row:2;flex-wrap:nowrap;justify-content:flex-start;gap:22px;overflow-x:auto;scrollbar-width:thin;scrollbar-color:#c5a577 transparent;padding:1px 4px 2px}
   .site-nav .links a{padding:12px 0}
   .site-nav .tools{grid-column:2;grid-row:1}
@@ -255,10 +262,14 @@ h1{font:900 clamp(34px,4.6vw,56px)/.98 var(--font);margin:0;letter-spacing:-.045
 @media(max-width:520px){
   :root{--nav-h:108px}
   .site-nav{padding-inline:14px;gap:0 7px}
-  .site-nav .brand-mark-img{width:min(218px, 66vw)}
+  .site-nav .brand-mark-img{width:min(218px,53vw)}
+  .xmas-garland i:nth-child(n+15){display:none}
+  .site-nav .cart-wrap{gap:4px}
+  .site-nav .nav-snowman{width:35px;height:43px}
+  .site-nav .cart-link{min-height:44px;padding:9px 12px;font-size:15px}
   .site-nav .links{gap:16px;margin-right:-14px;padding-right:14px}
   .site-nav .links a{font-size:14px}
-  .site-nav .nav-snowman,.tools .search{display:none}
+  .tools .search{display:none}
   .footer-grid{grid-template-columns:1fr}
   .p h3{min-height:0}
 }
@@ -267,7 +278,7 @@ h1{font:900 clamp(34px,4.6vw,56px)/.98 var(--font);margin:0;letter-spacing:-.045
 export function storefrontFooterHtml() {
   return `<footer class="site-footer">
   <div class="footer-grid">
-    <div><a class="brand" href="/" aria-label="Maison Marnier">${brandLogoHtml()}</a><p class="muted" style="margin-top:12px;max-width:34ch">Holiday edits for warm rooms — festive objects chosen with quiet care.</p></div>
+    <div><a class="brand" href="/" aria-label="Maison Marnier">${brandLogoHtml({ light: true })}</a><p class="muted" style="margin-top:12px;max-width:34ch">Holiday edits for warm rooms — festive objects chosen with quiet care.</p></div>
     <div><h4>Shop</h4><a href="/collections/seasonal">Holiday</a><a href="/collections/new">New Arrivals</a><a href="/collections/lighting">Lighting</a></div>
     <div><h4>About</h4><a href="/about">Our Story</a><a href="/journal">Journal</a><a href="/sourcing">Sourcing</a><a href="https://www.instagram.com/maison.marnier/" target="_blank" rel="noopener noreferrer">Instagram</a></div>
     <div><h4>Help</h4><a href="/shipping">Shipping</a><a href="/returns">Returns</a><a href="/contact">Contact</a><a href="/instagram">Link hub</a></div>
@@ -352,6 +363,16 @@ ${storefrontFooterHtml()}
   });
 }
 
+/** Prefer a second supplier photo if the lead image fails to load. */
+export function storefrontProductImage(p, { featured = false, decorative = false } = {}) {
+  const [primary, backup] = productImages(p, { max: 2 });
+  const unavailable = '<span class="product-image-unavailable">Photo unavailable</span>';
+  if (!primary) return unavailable;
+  return `<img src="${esc(primary)}" data-backup="${esc(backup || '')}" alt="${decorative ? '' : esc(p.name || '')}" decoding="async"
+    ${featured ? 'fetchpriority="high"' : 'loading="lazy"'}
+    onerror="const backup=this.dataset.backup;if(backup){delete this.dataset.backup;this.src=backup;}else{this.hidden=true;}">${unavailable}`;
+}
+
 export function productCard(p) {
   const href = '/products/' + encodeURIComponent(p.slug || '');
   const retail = Number(p.retail_price_eur || 0);
@@ -359,9 +380,8 @@ export function productCard(p) {
   const onSale = compareAt > retail && retail > 0;
   const compare = onSale ? `<span class="compare">€${compareAt.toFixed(2)}</span>` : '';
   const badge = onSale ? `<span class="badge">Edit</span>` : '';
-  const img = esc(p.image_url || '');
   return `<a class="p" href="${href}">
-    <div class="media">${badge}<img src="${img}" alt="${esc(p.name || '')}" loading="lazy" decoding="async"></div>
+    <div class="media">${badge}${storefrontProductImage(p)}</div>
     <div class="meta">
       <div class="catline">${esc(p.category || 'Maison Marnier')}</div>
       <h3>${esc(p.name || '')}</h3>
