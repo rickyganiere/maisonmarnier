@@ -96,7 +96,6 @@ export async function productPage(url, env) {
           <h1>${esc(p.name || '')}</h1>
           ${priceBlock}
           ${stockHint}
-          <div class="desc">${esc(p.description || 'Thoughtfully selected for Maison Marnier.')}</div>
           <div class="buy-actions">
           ${
             canBuy
@@ -111,6 +110,10 @@ export async function productPage(url, env) {
           }
           </div>
           <p class="muted" style="margin-top:12px" id="addMsg"></p>
+          <section aria-labelledby="product-details-title">
+            <h2 id="product-details-title">Product details</h2>
+            <div class="desc" style="margin-top:8px">${esc(p.description || 'Thoughtfully selected for Maison Marnier.')}</div>
+          </section>
           <div class="specs">
             <div><strong>Category</strong>${esc(p.category || 'Decor')}</div>
             <div><strong>Shipping</strong>Europe · partner warehouse</div>
@@ -164,7 +167,7 @@ export async function productPage(url, env) {
       ogImage: mainImage || '',
       ogType: 'product',
       jsonLd: productJsonLd(pForLd, { url: productPath, collectionPath: collectionHref }),
-      cache: 'public, max-age=300',
+      cache: 'public, max-age=0, must-revalidate',
     });
   } catch {
     return htmlPage('Product', '<p class="empty">Product error.</p>', { status: 500 });

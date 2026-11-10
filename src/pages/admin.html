@@ -1,0 +1,813 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex,nofollow">
+<title>Maison Marnier Admin</title>
+<style>
+*{box-sizing:border-box}
+body{margin:0;background:#f6f2eb;color:#211f1b;font:14px system-ui,-apple-system,sans-serif}
+a{color:#6e665d}
+.wrap{max-width:1320px;margin:auto;padding:28px 20px}
+h1,h2,h3{font-family:Georgia,serif;font-weight:400;margin:0}
+h1{font-size:36px}
+h2{font-size:22px;margin:0 0 12px}
+.top{display:flex;justify-content:space-between;align-items:flex-start;gap:16px;margin-bottom:18px}
+.layout{display:grid;grid-template-columns:220px 1fr;gap:18px}
+.side{background:#fff;border:1px solid #d4cec4;padding:12px}
+.sideBtn{display:block;width:100%;text-align:left;border:0;background:transparent;padding:10px 12px;margin:2px 0;font:inherit;cursor:pointer;border-radius:4px}
+.sideBtn.active,.sideBtn:hover{background:#efe7da}
+.panel{display:none;background:#fff;border:1px solid #d4cec4;padding:18px}
+.panel.active{display:block}
+.auth,.searchbar,.row{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}
+input,textarea,select{padding:10px;border:1px solid #d4cec4;background:#fff;font:inherit;width:100%}
+textarea{min-height:110px}
+.auth input{width:260px}
+.searchbar input{flex:1;min-width:180px}
+.btn{border:0;background:#24211d;color:#fff;padding:10px 14px;cursor:pointer;font:inherit}
+.btn.secondary{background:#efe7da;color:#211f1b;border:1px solid #d4cec4}
+.btn:disabled{opacity:.5;cursor:not-allowed}
+.kpis{display:grid;grid-template-columns:repeat(4,1fr);gap:10px;margin:14px 0}
+.kpi{background:#f6f2eb;border:1px solid #d4cec4;padding:14px}
+.kpi b{display:block;font:400 28px Georgia,serif}
+.msg{margin:10px 0;color:#6e665d;min-height:1.2em}
+.msg.err{color:#8b2e2e}
+.card{border:1px solid #d4cec4;padding:12px;margin:10px 0;background:#faf7f2}
+.card img{width:72px;height:96px;object-fit:cover;background:#e9e0d3}
+.card .cols{display:grid;grid-template-columns:84px 1fr;gap:12px}
+.grid2{display:grid;grid-template-columns:1fr 1fr;gap:10px}
+.hidden{display:none!important}
+table{width:100%;border-collapse:collapse}
+td,th{border-bottom:1px solid #e4ddd2;padding:8px;text-align:left;vertical-align:top}
+.login-gate{max-width:420px;margin:80px auto;background:#fff;border:1px solid #d4cec4;padding:28px}
+@media(max-width:900px){.layout{grid-template-columns:1fr}.kpis{grid-template-columns:1fr 1fr}.grid2{grid-template-columns:1fr}}
+
+.finder-toolbar{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:10px 0}
+.finder-toolbar label{display:inline-flex;align-items:center;gap:6px;font-size:13px;color:#6e665d}
+.finder-toolbar select{width:auto;min-width:90px}
+.finder-card{position:relative}
+.finder-card .check{position:absolute;top:10px;left:10px;z-index:2;width:18px;height:18px}
+.finder-thumbs{display:flex;gap:4px;margin:8px 0;flex-wrap:wrap}
+.finder-thumbs img{width:36px;height:48px;object-fit:cover;background:#e9e0d3;border:1px solid #d4cec4}
+.badge{display:inline-block;background:#efe7da;border:1px solid #d4cec4;padding:2px 7px;font-size:11px;margin-left:6px}
+.catalog-intro,.catalog-meta,.field-note{color:#6e665d}
+.catalog-tools{display:flex;flex-wrap:wrap;align-items:center;gap:12px;margin:16px 0}
+.catalog-tools input{width:min(100%,360px)}
+.catalog-item{display:grid;grid-template-columns:minmax(0,1.6fr) minmax(240px,1fr) auto;align-items:center;gap:16px;padding:14px 0;border-bottom:1px solid #e4ddd2}
+.catalog-product{display:flex;align-items:center;gap:12px;min-width:0;overflow-wrap:anywhere}
+.catalog-product img{width:54px;height:64px;object-fit:cover;background:#efe7da;border-radius:4px}
+.catalog-meta{font-size:12px;margin-top:5px}
+.catalog-numbers{display:grid;grid-template-columns:1.2fr 1fr 1fr;gap:10px;margin:0}
+.catalog-numbers dt{color:#6e665d;font-size:12px}
+.catalog-numbers dd{margin:3px 0 0;font-weight:600;font-variant-numeric:tabular-nums}
+.catalog-actions{display:flex;align-items:center;flex-wrap:wrap;gap:8px}
+.catalog-actions .btn,.editor-actions .btn{display:inline-flex;align-items:center;min-height:42px;border-radius:4px;text-decoration:none}
+.catalog-actions summary,.catalog-maintenance summary{cursor:pointer;color:#6e665d;padding:6px 0}
+.catalog-actions details{position:relative}
+.catalog-menu{position:absolute;z-index:2;right:0;top:100%;background:#fff;border:1px solid #d4cec4;box-shadow:0 6px 16px #211f1b20;padding:8px;display:grid;gap:6px;min-width:120px}
+.catalog-menu .danger{color:#8b2e2e}
+.catalog-maintenance{margin-top:16px}
+.product-editor{width:min(680px,calc(100% - 24px));max-height:calc(100dvh - 24px);padding:0;border:1px solid #d4cec4;border-radius:8px;color:inherit}
+.product-editor::backdrop{background:#211f1b80}
+.editor-form{padding:20px}
+.editor-heading{display:flex;align-items:start;justify-content:space-between;gap:12px}
+.editor-heading h2{margin-bottom:4px}
+.editor-section{margin:16px 0;padding:14px;border:1px solid #e4ddd2;border-radius:4px}
+.editor-section legend{font-weight:600;padding:0 4px}
+.editor-section label{display:block;margin:0 0 8px}
+.editor-section label:last-child{margin-bottom:0}
+.editor-section label input,.editor-section label textarea{margin-top:4px}
+.editor-section input[readonly]{background:#f6f2eb}
+.editor-section textarea[rows="3"]{min-height:0}
+.field-note{font-size:12px;margin:4px 0 0}
+.editor-footer{position:sticky;bottom:0;background:#fff;padding:8px 0}
+.editor-footer .msg:empty{display:none}
+.editor-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
+.editor-actions .save{margin-left:auto}
+.editor-actions [hidden]{display:none}
+@media(max-width:1100px){.catalog-item{grid-template-columns:minmax(0,1fr) minmax(210px,.75fr)}.catalog-actions{grid-column:1/-1}}
+@media(max-width:640px){
+  .wrap{padding:16px 12px}
+  .side{display:flex;overflow-x:auto;gap:4px;padding:6px}
+  .sideBtn{width:auto;white-space:nowrap}
+  .catalog-item{grid-template-columns:minmax(0,1fr);gap:10px}
+  .catalog-menu{right:auto;left:0}
+  .editor-form{padding:14px}
+}
+</style>
+</head>
+<body>
+<div id="loginView" class="login-gate">
+  <h1>Maison Marnier</h1>
+  <p style="color:#6e665d">Admin access. Use the Bearer admin token from Cloudflare secrets.</p>
+  <div class="auth">
+    <input id="adminToken" type="password" placeholder="LUME_ADMIN_TOKEN" autocomplete="current-password">
+    <button class="btn" type="button" id="loginBtn">Enter</button>
+  </div>
+  <div class="msg" id="loginMsg"></div>
+</div>
+
+<div id="app" class="wrap hidden">
+  <div class="top">
+    <div>
+      <h1>Admin</h1>
+      <p style="color:#6e665d;margin:6px 0 0">Catalog · homepage · journal</p>
+    </div>
+    <div>
+      <a href="/" target="_blank">View storefront</a>
+      · <button class="btn secondary" type="button" id="logoutBtn">Log out</button>
+    </div>
+  </div>
+  <div class="layout">
+    <aside class="side" id="side">
+      <button class="sideBtn active" data-panel="overview" type="button">Overview</button>
+      <button class="sideBtn" data-panel="finder" type="button">Product Finder</button>
+      <button class="sideBtn" data-panel="products" type="button">Draft Products</button>
+      <button class="sideBtn" data-panel="published" type="button">Published</button>
+      <button class="sideBtn" data-panel="homepage" type="button">Homepage</button>
+      <button class="sideBtn" data-panel="orders" type="button">Orders</button>
+      <button class="sideBtn" data-panel="journal" type="button">Journal</button>
+      <button class="sideBtn" data-panel="settings" type="button">Settings</button>
+    </aside>
+    <div>
+      <section class="panel active" id="panel-overview">
+        <h2>Overview</h2>
+        <div class="kpis">
+          <div class="kpi"><span>Drafts</span><b id="kpiDrafts">—</b></div>
+          <div class="kpi"><span>Live</span><b id="kpiLive">—</b></div>
+          <div class="kpi"><span>Journal</span><b id="kpiJournal">—</b></div>
+          <div class="kpi"><span>CJ</span><b id="kpiCJ">—</b></div>
+        </div>
+        <div class="msg" id="overviewMsg"></div>
+      </section>
+
+            <section class="panel" id="panel-finder">
+        <h2>CJ Product Finder</h2>
+        <p style="color:#6e665d;margin:0 0 8px">Only products with 3+ or 4+ supplier photos. Tick boxes to import selected, or import the first 50 / 100 matches.</p>
+        <div class="searchbar">
+          <input id="cjQ" placeholder="Search CJ products…">
+          <label>Min photos
+            <select id="cjMinImages">
+              <option value="3">3+</option>
+              <option value="4" selected>4+</option>
+            </select>
+          </label>
+          <button class="btn" type="button" id="cjSearchBtn">Search</button>
+        </div>
+        <div class="finder-toolbar">
+          <label><input type="checkbox" id="cjSelectAll"> Select all</label>
+          <button class="btn" type="button" id="cjImportSelectedBtn">Import selected</button>
+          <button class="btn secondary" type="button" id="cjImport50Btn">Import 50</button>
+          <button class="btn secondary" type="button" id="cjImport100Btn">Import 100</button>
+        </div>
+        <div class="msg" id="finderMsg"></div>
+        <div id="cjResults"></div>
+      </section>
+
+<section class="panel" id="panel-products">
+        <h2>Draft Products</h2>
+        <div class="row">
+          <button class="btn" type="button" id="publishAllBtn">Publish all</button>
+          <span class="msg" style="margin:0">Publishes drafts with a title, 2+ supplier photos, positive prices and stock.</span>
+        </div>
+        <div class="msg" id="draftsMsg" role="status"></div>
+        <div id="drafts"></div>
+      </section>
+
+      <section class="panel" id="panel-published">
+        <h2>Published</h2>
+        <p class="catalog-intro">Edit product details while the item stays live. Supplier costs are visible only here in admin.</p>
+        <div class="catalog-tools">
+          <input id="publishedSearch" type="search" aria-label="Search published products" placeholder="Search by title, SKU or category">
+          <span id="publishedCount" class="catalog-meta" aria-live="polite"></span>
+        </div>
+        <div class="msg" id="publishedMsg" role="status"></div>
+        <div id="published"></div>
+        <details class="catalog-maintenance">
+          <summary>Catalog maintenance</summary>
+          <button class="btn secondary" type="button" id="pruneThinBtn">Unpublish products with fewer than 2 photos</button>
+        </details>
+      </section>
+
+      <section class="panel" id="panel-homepage">
+        <h2>Homepage content</h2>
+        <p style="color:#6e665d">Image and link fields for hero, categories, seasonal and story cards.</p>
+        <div id="homeFields" class="grid2"></div>
+        <button class="btn" type="button" id="saveHomeBtn">Save homepage</button>
+        <div class="msg" id="homeMsg"></div>
+      </section>
+
+      <section class="panel" id="panel-orders">
+        <h2>Orders</h2>
+        <p style="color:#6e665d">Stripe payments and CJ fulfillment status.</p>
+        <button class="btn secondary" type="button" id="reloadOrdersBtn">Refresh</button>
+        <div class="msg" id="ordersMsg"></div>
+        <div id="ordersList"></div>
+      </section>
+      <section class="panel" id="panel-journal">
+        <h2>Journal CMS</h2>
+        <div class="card">
+          <input type="hidden" id="jId">
+          <div class="grid2">
+            <div><label>Title</label><input id="jTitle"></div>
+            <div><label>Slug</label><input id="jSlug" placeholder="auto from title"></div>
+          </div>
+          <label>Excerpt</label><input id="jExcerpt">
+          <label>Image URL</label><input id="jImage">
+          <label>Body</label><textarea id="jBody"></textarea>
+          <div class="row">
+            <select id="jStatus"><option value="draft">draft</option><option value="live">live</option></select>
+            <button class="btn" type="button" id="saveJournalBtn">Save article</button>
+            <button class="btn secondary" type="button" id="newJournalBtn">New</button>
+          </div>
+        </div>
+        <div class="msg" id="journalMsg"></div>
+        <div id="journalList"></div>
+      </section>
+
+      <section class="panel" id="panel-settings">
+        <h2>Settings</h2>
+        <table>
+          <tr><th>CJ API</th><td id="setCJ">—</td></tr>
+          <tr><th>D1 binding</th><td id="setD1">—</td></tr>
+          <tr><th>Storefront</th><td><a href="/" target="_blank">maisonmarnier.com</a></td></tr>
+          <tr><th>Import automation</th><td>POST /api/lume/import with header <code>x-lume-import-code</code></td></tr>
+        </table>
+        <div class="msg" id="settingsMsg"></div>
+        <button class="btn secondary" type="button" id="probeCJBtn">Probe CJ auth</button>
+      </section>
+    </div>
+  </div>
+</div>
+<dialog class="product-editor" id="productEditor" aria-labelledby="editorTitle">
+  <form class="editor-form" id="productEditorForm">
+    <div class="editor-heading">
+      <div>
+        <h2 id="editorTitle">Edit product</h2>
+        <div class="catalog-meta" id="editorMeta"></div>
+      </div>
+      <button class="btn secondary" type="button" id="closeEditorBtn">Close</button>
+    </div>
+    <fieldset class="editor-section">
+      <legend>Storefront details</legend>
+      <label>Product title<input name="name" required maxlength="240" autofocus></label>
+      <div class="grid2">
+        <label>Category<input name="category" maxlength="160"></label>
+        <label>Product URL slug<input name="slug" maxlength="240"></label>
+      </div>
+      <label>Product details
+        <textarea name="description" maxlength="5000" aria-describedby="productDetailsHelp"></textarea>
+      </label>
+      <p class="field-note" id="productDetailsHelp">Customers see this on the product page. Add relevant details such as materials, dimensions and what’s included.</p>
+    </fieldset>
+    <fieldset class="editor-section">
+      <legend>Pricing</legend>
+      <div class="grid2">
+        <label>Retail price (EUR)<input name="retail_price_eur" type="number" min="0" step="any"></label>
+        <label>Compare-at price (EUR)<input name="compare_at_price_eur" type="number" min="0" step="any" placeholder="Suggested if cleared"></label>
+      </div>
+      <label>Supplier cost (USD)
+        <input name="supplier_cost_usd" type="number" min="0" step="any" aria-describedby="supplierCostHelp">
+      </label>
+      <p class="field-note" id="supplierCostHelp">Admin only. Leave blank if the cost is unknown. A CJ refresh can replace this amount.</p>
+    </fieldset>
+    <fieldset class="editor-section">
+      <legend>Product photos</legend>
+      <label>Main photo URL<input name="image_url"></label>
+      <label>Gallery URLs, one per line<textarea name="image_urls" rows="3"></textarea></label>
+      <p class="field-note">Published products need at least 2 distinct supplier photos.</p>
+    </fieldset>
+    <div class="editor-footer">
+      <div class="msg" id="editorMsg" role="status"></div>
+      <div class="editor-actions">
+        <a class="btn secondary" id="editorView" target="_blank" rel="noopener">View product page</a>
+        <button class="btn save" type="submit" id="saveProductBtn">Save changes</button>
+      </div>
+    </div>
+  </form>
+</dialog>
+<script>
+const TOKEN_KEY='lumeAdminToken';
+const HOME_KEYS=['hero_image','hero_link','cat_textiles_image','cat_textiles_link','cat_objects_image','cat_objects_link','cat_candles_image','cat_candles_link','cat_wall_image','cat_wall_link','cat_seasonal_image','cat_seasonal_link','season_image','season_link','story_quiet_image','story_quiet_link','story_objects_image','story_objects_link'];
+function esc(s){return String(s??'').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;')}
+function token(){return sessionStorage.getItem(TOKEN_KEY)||''}
+function hdr(){return {'content-type':'application/json','authorization':'Bearer '+token()}}
+function msg(id,text,err){const el=document.getElementById(id);if(!el)return;el.textContent=text||'';el.className='msg'+(err?' err':'')}
+async function api(path,opts={}){
+  const r=await fetch(path,{...opts,headers:{...hdr(),...(opts.headers||{})}});
+  const d=await r.json().catch(()=>({ok:false,error:'Invalid JSON'}));
+  if(r.status===401){logout(true);throw new Error('Unauthorized')}
+  return d;
+}
+function logout(soft){
+  sessionStorage.removeItem(TOKEN_KEY);
+  document.getElementById('app').classList.add('hidden');
+  document.getElementById('loginView').classList.remove('hidden');
+  if(!soft)msg('loginMsg','Logged out.');
+}
+function goAdmin(id){
+  document.querySelectorAll('.sideBtn').forEach(b=>b.classList.toggle('active',b.dataset.panel===id));
+  document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id==='panel-'+id));
+}
+async function boot(){
+  if(!token())return;
+  document.getElementById('loginView').classList.add('hidden');
+  document.getElementById('app').classList.remove('hidden');
+  await loadAdminAll();
+}
+document.getElementById('loginBtn').onclick=async()=>{
+  const v=document.getElementById('adminToken').value.trim();
+  if(!v){msg('loginMsg','Enter the admin token.',true);return}
+  sessionStorage.setItem(TOKEN_KEY,v);
+  msg('loginMsg','Checking…');
+  try{
+    const r=await fetch('/api/lume/products',{headers:hdr()});
+    const d=await r.json().catch(()=>({ok:false,error:'Bad response'}));
+    if(r.status===401 || d.error==='Unauthorized'){
+      sessionStorage.removeItem(TOKEN_KEY);
+      msg('loginMsg','Invalid admin token.',true);
+      return;
+    }
+    if(!r.ok || d.ok===false){
+      sessionStorage.removeItem(TOKEN_KEY);
+      msg('loginMsg',d.error||('Login failed ('+r.status+')'),true);
+      return;
+    }
+    msg('loginMsg','');
+    boot();
+  }catch(e){
+    sessionStorage.removeItem(TOKEN_KEY);
+    msg('loginMsg',e.message||'Login failed',true);
+  }
+};
+document.getElementById('logoutBtn').onclick=()=>logout();
+document.getElementById('side').onclick=e=>{
+  const b=e.target.closest('.sideBtn');if(!b)return;goAdmin(b.dataset.panel);
+};
+document.getElementById('cjSearchBtn').onclick=()=>searchCJ();
+document.getElementById('cjImportSelectedBtn').onclick=()=>importSelectedCj();
+document.getElementById('cjImport50Btn').onclick=()=>importByCount(50);
+document.getElementById('cjImport100Btn').onclick=()=>importByCount(100);
+document.getElementById('cjSelectAll').onchange=e=>{
+  document.querySelectorAll('#cjResults input[data-cj]').forEach(cb=>cb.checked=e.target.checked);
+};
+document.getElementById('cjResults').onclick=async e=>{
+  const b=e.target.closest('[data-import]'); if(!b) return;
+  const payload=JSON.parse(b.getAttribute('data-import'));
+  b.disabled=true;
+  const r=await api('/api/lume/import',{method:'POST',body:JSON.stringify(payload)});
+  b.disabled=false;
+  msg('finderMsg',r.ok?('Imported '+r.lumeSku+' ('+ (r.imageCount||'?') +' photos)'):(r.error||'Import failed'),!r.ok);
+  if(r.ok)loadAdminAll();
+};
+
+document.getElementById('cjQ').addEventListener('keydown',e=>{if(e.key==='Enter')searchCJ()});
+document.getElementById('saveHomeBtn').onclick=()=>saveHomeContent();
+document.getElementById('saveJournalBtn').onclick=()=>saveJournal();
+document.getElementById('newJournalBtn').onclick=()=>clearJournalForm();
+document.getElementById('probeCJBtn').onclick=()=>checkCJStatus(true);
+document.getElementById('reloadOrdersBtn').onclick=()=>loadOrders();
+document.getElementById('publishAllBtn').onclick=()=>publishAllDrafts();
+
+async function checkCJStatus(show){
+  try{
+    const d=await api('/api/cj/status');
+    const label=d.authenticated?'OK':(d.configured?'Key set, auth failed':'Not configured');
+    document.getElementById('kpiCJ').textContent=d.authenticated?'OK':(d.configured?'!':'—');
+    document.getElementById('setCJ').textContent=label+(d.error?': '+d.error:'');
+    document.getElementById('setD1').textContent='LUME_DB bound';
+    if(show)msg('settingsMsg',label,!d.authenticated);
+  }catch(e){if(show)msg('settingsMsg',e.message,true)}
+}
+
+async function loadAdminAll(){
+  msg('overviewMsg','Loading…');
+  try {
+    const [journal] = await Promise.all([
+      api('/api/lume/journal'),
+      loadCatalog(),
+      checkCJStatus(false),
+    ]);
+    document.getElementById('kpiJournal').textContent=String((journal.articles||[]).length);
+    renderJournal(journal.articles||[]);
+    await Promise.all([loadHomeContent(), loadOrders()]);
+    msg('overviewMsg','Ready.');
+  } catch (error) {
+    msg('overviewMsg',error.message || 'Could not load admin.',true);
+  }
+}
+
+let cjLastResults=[];
+function cjMin(){return Math.max(3, Math.min(8, Number(document.getElementById('cjMinImages').value||4)||4))}
+function cjQuery(){return document.getElementById('cjQ').value.trim()||'home decor'}
+function selectedCjPayloads(){
+  return [...document.querySelectorAll('#cjResults input[data-cj]:checked')].map(el=>{
+    try{return JSON.parse(el.getAttribute('data-cj'))}catch{return null}
+  }).filter(Boolean);
+}
+function renderCjResults(products, minImages){
+  cjLastResults=products||[];
+  const box=document.getElementById('cjResults');
+  if(!cjLastResults.length){box.innerHTML='<p class="msg">No products with '+minImages+'+ photos.</p>';return}
+  box.innerHTML=cjLastResults.map((p,i)=>{
+    const retail=p.suggestedRetailEUR||Math.max(19.95,Math.ceil(Number(p.costUSD||0)*2.5)-0.05);
+    const imgs=(p.images&&p.images.length?p.images:[p.image]).filter(Boolean).slice(0,6);
+    const payload={id:p.id,name:p.name,sku:p.sku,image:p.image,images:p.images||imgs,costUSD:p.costUSD,retailPriceEUR:retail,stock:p.stock,deliveryDays:p.deliveryDays,category:p.category,minImages};
+    const payloadAttr=esc(JSON.stringify(payload));
+    return `<div class="card finder-card"><div class="cols">
+      <div>
+        <input class="check" type="checkbox" data-cj='${payloadAttr}' data-idx="${i}">
+        <img src="${esc(p.image||'')}" alt="">
+      </div>
+      <div>
+        <strong>${esc(p.name||'')}</strong>
+        <span class="badge">${esc(p.imageCount||imgs.length)} photos</span>
+        <div class="msg">SKU ${esc(p.sku||'')} · cost $${Number(p.costUSD||0).toFixed(2)} · stock ${esc(p.stock)} · ${esc(p.category||'')}</div>
+        <div class="finder-thumbs">${imgs.map(u=>`<img src="${esc(u)}" alt="">`).join('')}</div>
+        <button class="btn secondary" type="button" data-import='${payloadAttr}'>Import draft</button>
+      </div></div></div>`;
+  }).join('');
+}
+async function searchCJ(){
+  const q=cjQuery();
+  const minImages=cjMin();
+  msg('finderMsg','Searching (min '+minImages+' photos)…');
+  document.getElementById('cjSelectAll').checked=false;
+  const d=await api('/api/cj/search?q='+encodeURIComponent(q)+'&size=24&minImages='+minImages);
+  if(!d.ok){msg('finderMsg',d.error||'Search failed',true);return}
+  msg('finderMsg',(d.products||[]).length+' products with '+minImages+'+ photos (scanned '+(d.scanned||'?')+')');
+  renderCjResults(d.products||[], minImages);
+}
+async function importSelectedCj(){
+  const minImages=cjMin();
+  const products=selectedCjPayloads();
+  if(!products.length){msg('finderMsg','Tick at least one product.',true);return}
+  const btn=document.getElementById('cjImportSelectedBtn');
+  btn.disabled=true;
+  msg('finderMsg','Importing '+products.length+' selected…');
+  try{
+    const r=await api('/api/lume/import-bulk',{method:'POST',body:JSON.stringify({products,minImages})});
+    msg('finderMsg',r.ok?('Imported '+r.imported+' · skipped '+r.skipped):(r.error||'Import failed'),!r.ok);
+    if(r.ok)loadAdminAll();
+  }finally{btn.disabled=false}
+}
+async function importByCount(limit){
+  const minImages=cjMin();
+  const q=cjQuery();
+  if(!confirm('Import up to '+limit+' CJ products for \"'+q+'\" with '+minImages+'+ photos?'))return;
+  const btn=document.getElementById(limit===100?'cjImport100Btn':'cjImport50Btn');
+  btn.disabled=true;
+  msg('finderMsg','Importing up to '+limit+'…');
+  try{
+    const r=await api('/api/lume/import-bulk',{method:'POST',body:JSON.stringify({q,limit,minImages})});
+    msg('finderMsg',r.ok?('Imported '+r.imported+' · skipped '+r.skipped+(r.errors&&r.errors[0]?' · e.g. '+r.errors[0].error:'')):(r.error||'Import failed'),!r.ok);
+    if(r.ok)loadAdminAll();
+  }finally{btn.disabled=false}
+}
+
+async function publishAllDrafts(){
+  if(!confirm('Publish all valid drafts? Invalid drafts will be skipped.'))return;
+  const btn=document.getElementById('publishAllBtn');
+  btn.disabled=true;
+  try{
+    const r=await api('/api/lume/publish-all',{method:'POST',body:'{}'});
+    if(!r.ok){msg('draftsMsg',r.error||'Publish all failed',true);return}
+    msg('draftsMsg','Published '+r.published+' · skipped '+r.skipped+(r.errors&&r.errors.length?' · first skip: '+(r.errors[0].error||''):''));
+    await loadCatalog();
+  }catch(e){msg('draftsMsg',e.message||'Publish all failed',true)}
+  finally{btn.disabled=false}
+}
+
+const catalogPanels = {
+  draft: { list: 'drafts', message: 'draftsMsg' },
+  live: { list: 'published', message: 'publishedMsg' },
+};
+const publishedSearch = document.getElementById('publishedSearch');
+const editor = document.getElementById('productEditor');
+const editorForm = document.getElementById('productEditorForm');
+const saveProductBtn = document.getElementById('saveProductBtn');
+const closeEditorBtn = document.getElementById('closeEditorBtn');
+const editorView = document.getElementById('editorView');
+const usd = new Intl.NumberFormat('en-US', { style: 'currency', currency: 'USD', maximumFractionDigits: 4 });
+const eur = new Intl.NumberFormat('en-IE', { style: 'currency', currency: 'EUR' });
+let catalog = [];
+let editingProduct = null;
+let editorValues = {};
+
+function fmtPub(ts) {
+  if (!ts) return '—';
+  const date = new Date(ts.includes('T') || ts.includes('Z') ? ts : ts.replace(' ', 'T') + 'Z');
+  return Number.isNaN(date.getTime()) ? ts : date.toLocaleString('en-GB', {dateStyle:'medium',timeStyle:'short'});
+}
+
+function productPath(product) {
+  return '/products/' + encodeURIComponent(product.slug);
+}
+
+function viewable(product) {
+  return product.status === 'live' && product.slug && product.image_count >= 2 && product.retail_price_eur > 0;
+}
+
+function renderCatalog(status) {
+  const live = status === 'live';
+  const products = catalog.filter(p => live ? p.status === 'live' : p.status !== 'live');
+  const query = live ? publishedSearch.value.trim().toLowerCase() : '';
+  const matches = products.filter(p => [p.name, p.lume_sku, p.category].some(v => String(v ?? '').toLowerCase().includes(query)));
+  if (live) {
+    matches.sort((a, b) => String(b.published_at || '').localeCompare(String(a.published_at || '')) || b.id - a.id);
+    document.getElementById('publishedCount').textContent = query ? matches.length + ' of ' + products.length : products.length + ' products';
+  }
+  const box = document.getElementById(catalogPanels[status].list);
+  if (!matches.length) {
+    box.innerHTML = '<p class="msg">' + (query ? 'No products match your search.' : live ? 'No published products.' : 'No drafts.') + '</p>';
+    return;
+  }
+  box.innerHTML = matches.map(p => `<article class="catalog-item" data-product-id="${p.id}">
+    <div class="catalog-product">
+      ${p.images?.[0] ? `<img src="${esc(p.images[0])}" alt="" width="54" height="64" loading="lazy">` : ''}
+      <div>
+        <strong>${esc(p.name)}</strong>
+        <div class="catalog-meta">${esc([p.lume_sku, p.category].filter(Boolean).join(' · '))}</div>
+        ${live ? `<div class="catalog-meta">Published ${esc(fmtPub(p.published_at))}${viewable(p) ? '' : ' · Storefront unavailable'}</div>` : ''}
+      </div>
+    </div>
+    <dl class="catalog-numbers">
+      <div><dt>Supplier cost</dt><dd>${p.supplier_cost_usd > 0 ? usd.format(p.supplier_cost_usd) : 'Unknown'}</dd></div>
+      <div><dt>Retail price</dt><dd>${eur.format(p.retail_price_eur || 0)}</dd></div>
+      <div><dt>Stock / photos</dt><dd>${esc(p.stock ?? 0)} / ${esc(p.image_count ?? 0)}</dd></div>
+    </dl>
+    <div class="catalog-actions">
+      <button class="btn" type="button" data-catalog-action="edit">Edit</button>
+      ${viewable(p) ? `<a class="btn secondary" href="${productPath(p)}" target="_blank" rel="noopener">View product</a>` : ''}
+      ${live ? `<details>
+        <summary aria-label="More product actions">More</summary>
+        <div class="catalog-menu">
+          <button class="btn secondary" type="button" data-catalog-action="unpublish">Unpublish</button>
+          <button class="btn secondary danger" type="button" data-catalog-action="delete">Delete</button>
+        </div>
+      </details>` : `<button class="btn secondary" type="button" data-catalog-action="publish">Publish</button>
+        ${p.supplier === 'CJ' ? '<button class="btn secondary" type="button" data-catalog-action="refresh">Refresh CJ</button>' : ''}`}
+    </div>
+  </article>`).join('');
+}
+
+async function loadCatalog() {
+  const data = await api('/api/lume/products');
+  if (!data.ok) throw new Error(data.error || 'Could not load products.');
+  catalog = data.products || [];
+  document.getElementById('kpiDrafts').textContent = catalog.filter(p => p.status !== 'live').length;
+  document.getElementById('kpiLive').textContent = catalog.filter(p => p.status === 'live').length;
+  renderCatalog('draft');
+  renderCatalog('live');
+}
+
+function openEditor(product) {
+  editingProduct = product;
+  const live = product.status === 'live';
+  let gallery = [];
+  try {
+    gallery = JSON.parse(product.image_urls || '[]');
+  } catch {
+    // A malformed legacy gallery can be replaced in the editor.
+  }
+  editorValues = {
+    name: product.name ?? '',
+    category: product.category ?? '',
+    slug: product.slug ?? '',
+    description: product.description ?? '',
+    retail_price_eur: String(product.retail_price_eur || ''),
+    compare_at_price_eur: String(product.compare_at_price_eur || ''),
+    supplier_cost_usd: String(product.supplier_cost_usd || ''),
+    image_url: product.image_url ?? '',
+    image_urls: Array.isArray(gallery) ? gallery.join('\n') : '',
+  };
+  for (const [key, value] of Object.entries(editorValues)) {
+    editorForm.elements.namedItem(key).value = value;
+  }
+  editorForm.elements.namedItem('slug').readOnly = live;
+  editorForm.elements.namedItem('retail_price_eur').required = live;
+  document.getElementById('editorTitle').textContent = live ? 'Edit published product' : 'Edit draft product';
+  document.getElementById('editorMeta').textContent = product.lume_sku + (live ? ' · Published' : ' · Draft');
+  editorView.hidden = !viewable(product);
+  editorView.href = viewable(product) ? productPath(product) : '#';
+  saveProductBtn.textContent = live ? 'Save live changes' : 'Save draft';
+  msg('editorMsg', '');
+  editor.showModal();
+}
+
+async function saveProduct(event) {
+  event.preventDefault();
+  const product = editingProduct;
+  const changes = {};
+  for (const [key, value] of new FormData(editorForm)) {
+    if (value !== editorValues[key]) changes[key] = key === 'image_urls' ? value.split(/\r?\n/) : value;
+  }
+  if (!Object.keys(changes).length) {
+    editor.close();
+    return;
+  }
+  saveProductBtn.disabled = true;
+  closeEditorBtn.disabled = true;
+  msg('editorMsg', 'Saving…');
+  try {
+    const r = await api('/api/lume/update', {
+      method: 'POST',
+      body: JSON.stringify({ id: product.id, revision: product.updated_at, ...changes }),
+    });
+    if (!r.ok) {
+      if (r.conflict) await loadCatalog();
+      msg('editorMsg', r.error || 'Save failed.', true);
+      return;
+    }
+    catalog = catalog.map(p => p.id === product.id ? r.product : p);
+    const status = product.status === 'live' ? 'live' : 'draft';
+    editor.close();
+    renderCatalog(status);
+    msg(catalogPanels[status].message, status === 'live' ? 'Saved. Changes are live on the product page.' : 'Draft saved.');
+    document.querySelector('[data-product-id="' + product.id + '"] [data-catalog-action="edit"]')?.focus();
+  } catch (error) {
+    msg('editorMsg', error.message || 'Save failed.', true);
+  } finally {
+    saveProductBtn.disabled = false;
+    closeEditorBtn.disabled = false;
+  }
+}
+
+const catalogActions = {
+  publish: { success: 'Product published.' },
+  refresh: { success: 'CJ product data refreshed.', confirm: 'Refresh from CJ? This can replace the supplier cost, stock and photos.' },
+  unpublish: { success: 'Product moved to Draft Products.', confirm: 'Move this product to Draft Products and remove it from the storefront?' },
+  delete: { success: 'Product deleted.', confirm: 'Permanently delete this product?' },
+};
+
+for (const { list, message } of Object.values(catalogPanels)) {
+  document.getElementById(list).addEventListener('click', async event => {
+    const button = event.target.closest('[data-catalog-action]');
+    if (!button) return;
+    const id = Number(button.closest('[data-product-id]').dataset.productId);
+    const product = catalog.find(p => p.id === id);
+    if (!product) return;
+    const action = button.dataset.catalogAction;
+    if (action === 'edit') {
+      openEditor(product);
+      return;
+    }
+    const operation = catalogActions[action];
+    if (operation.confirm && !confirm(operation.confirm)) return;
+    const controls = button.closest('.catalog-actions');
+    controls.querySelectorAll('button').forEach(b => b.disabled = true);
+    try {
+      const r = await api('/api/lume/' + action, { method: 'POST', body: JSON.stringify({ id }) });
+      if (!r.ok) {
+        msg(message, r.error || 'Product action failed.', true);
+        return;
+      }
+      msg(message, operation.success);
+      await loadCatalog();
+    } catch (error) {
+      msg(message, error.message || 'Product action failed.', true);
+    } finally {
+      controls.querySelectorAll('button').forEach(b => b.disabled = false);
+    }
+  });
+}
+
+publishedSearch.addEventListener('input', () => renderCatalog('live'));
+editorForm.addEventListener('submit', saveProduct);
+closeEditorBtn.addEventListener('click', () => editor.close());
+editor.addEventListener('cancel', event => {
+  if (saveProductBtn.disabled) event.preventDefault();
+});
+
+document.getElementById('pruneThinBtn').addEventListener('click', async event => {
+  if (!confirm('Move every published product with fewer than 2 supplier photos to Draft Products?')) return;
+  const button = event.currentTarget;
+  button.disabled = true;
+  try {
+    const r = await api('/api/lume/prune-thin', { method: 'POST', body: '{}' });
+    msg('publishedMsg', r.ok ? 'Moved ' + r.demoted + ' of ' + r.scanned + ' products to Draft Products.' : r.error || 'Action failed.', !r.ok);
+    if (r.ok) await loadCatalog();
+  } catch (error) {
+    msg('publishedMsg', error.message || 'Action failed.', true);
+  } finally {
+    button.disabled = false;
+  }
+});
+
+async function loadHomeContent(){
+  const d=await api('/api/lume/home');
+  const c=d.content||{};
+  const box=document.getElementById('homeFields');
+  box.innerHTML=HOME_KEYS.map(k=>`<div><label>${k}</label><input data-home="${k}" value="${esc(c[k]||'')}"></div>`).join('');
+}
+async function saveHomeContent(){
+  const body={};
+  document.querySelectorAll('[data-home]').forEach(i=>body[i.dataset.home]=i.value);
+  const r=await api('/api/lume/home',{method:'POST',body:JSON.stringify(body)});
+  msg('homeMsg',r.ok?('Saved '+r.saved+' fields.'):(r.error||'Save failed'),!r.ok);
+}
+
+function clearJournalForm(){
+  ['jId','jTitle','jSlug','jExcerpt','jImage','jBody'].forEach(id=>document.getElementById(id).value='');
+  document.getElementById('jStatus').value='draft';
+}
+function renderJournal(articles){
+  const box=document.getElementById('journalList');
+  if(!articles.length){box.innerHTML='<p class="msg">No articles yet.</p>';return}
+  box.innerHTML=articles.map(a=>`<div class="card">
+    <strong>${esc(a.title)}</strong> · <code>${esc(a.slug)}</code> · ${esc(a.status)}
+    <div class="row">
+      <button class="btn secondary" type="button" data-jed="${a.id}">Edit</button>
+      <button class="btn secondary" type="button" data-jdel="${a.id}">Delete</button>
+      ${a.status==='live'?`<a href="/journal/${encodeURIComponent(a.slug)}" target="_blank">View</a>`:''}
+    </div>
+  </div>`).join('');
+  box.onclick=async e=>{
+    const ed=e.target.closest('[data-jed]');
+    const del=e.target.closest('[data-jdel]');
+    if(ed){
+      const a=articles.find(x=>String(x.id)===ed.dataset.jed);if(!a)return;
+      document.getElementById('jId').value=a.id;
+      document.getElementById('jTitle').value=a.title||'';
+      document.getElementById('jSlug').value=a.slug||'';
+      document.getElementById('jExcerpt').value=a.excerpt||'';
+      document.getElementById('jImage').value=a.image_url||'';
+      document.getElementById('jBody').value=a.body||'';
+      document.getElementById('jStatus').value=a.status||'draft';
+      msg('journalMsg','Editing #'+a.id);
+    }
+    if(del){
+      if(!confirm('Delete this article?'))return;
+      const r=await api('/api/lume/journal',{method:'DELETE',body:JSON.stringify({id:Number(del.dataset.jdel)})});
+      msg('journalMsg',r.ok?'Deleted.':(r.error||'Delete failed'),!r.ok);
+      if(r.ok)loadAdminAll();
+    }
+  };
+}
+async function saveJournal(){
+  const body={
+    id:document.getElementById('jId').value||undefined,
+    title:document.getElementById('jTitle').value,
+    slug:document.getElementById('jSlug').value,
+    excerpt:document.getElementById('jExcerpt').value,
+    image_url:document.getElementById('jImage').value,
+    body:document.getElementById('jBody').value,
+    status:document.getElementById('jStatus').value,
+  };
+  const r=await api('/api/lume/journal',{method:'POST',body:JSON.stringify(body)});
+  msg('journalMsg',r.ok?('Saved '+r.slug):(r.error||'Save failed'),!r.ok);
+  if(r.ok){clearJournalForm();loadAdminAll()}
+}
+
+
+async function loadOrders(){
+  try{
+    const d=await api('/api/lume/orders');
+    if(!d.ok){msg('ordersMsg',d.error||'Failed',true);return}
+    const box=document.getElementById('ordersList');
+    const orders=d.orders||[];
+    document.getElementById('kpiLive');
+    if(!orders.length){box.innerHTML='<p class="msg">No orders yet.</p>';msg('ordersMsg','');return}
+    box.innerHTML='<table><tr><th>Order</th><th>Status</th><th>Total</th><th>CJ</th><th></th></tr>'+orders.map(o=>`<tr>
+      <td><strong>${esc(o.order_number)}</strong><div class="msg">${esc(o.email||o.customer_name||'')}</div></td>
+      <td>${esc(o.status)}</td>
+      <td>€${Number(o.total_eur||0).toFixed(2)}</td>
+      <td>${esc(o.cj_order_id||'—')}<div class="msg">${esc(o.cj_status||o.cj_error||'')}</div></td>
+      <td>
+        ${(o.status==='fulfill_failed'||o.status==='paid')&&!o.cj_order_id?`<button class="btn secondary" type="button" data-fulfill="${o.id}">Retry CJ</button>`:''}
+        ${o.cj_order_id?`<button class="btn secondary" type="button" data-orefresh="${o.id}">Refresh CJ</button>`:''}
+        <button class="btn secondary" type="button" data-odetail="${o.id}">Details</button>
+      </td>
+    </tr>`).join('')+'</table>';
+    box.onclick=async e=>{
+      const f=e.target.closest('[data-fulfill]');
+      const r=e.target.closest('[data-orefresh]');
+      const dbtn=e.target.closest('[data-odetail]');
+      if(f){
+        f.disabled=true;
+        const res=await api('/api/lume/orders/fulfill',{method:'POST',body:JSON.stringify({id:Number(f.dataset.fulfill)})});
+        msg('ordersMsg',res.ok?('CJ order '+ (res.cjOrderId||'ok')):(res.error||'Failed'),!res.ok);
+        f.disabled=false; if(res.ok)loadOrders();
+      }
+      if(r){
+        r.disabled=true;
+        const res=await api('/api/lume/orders/refresh',{method:'POST',body:JSON.stringify({id:Number(r.dataset.orefresh)})});
+        msg('ordersMsg',res.ok?('CJ status '+res.cjStatus):(res.error||'Failed'),!res.ok);
+        r.disabled=false; if(res.ok)loadOrders();
+      }
+      if(dbtn){
+        const res=await api('/api/lume/orders?id='+dbtn.dataset.odetail);
+        if(!res.ok){msg('ordersMsg',res.error||'Failed',true);return}
+        const items=(res.items||[]).map(i=>i.quantity+'× '+i.name).join(', ');
+        msg('ordersMsg',res.order.order_number+': '+items+(res.order.shipping_city?(' → '+res.order.shipping_city):''));
+      }
+    };
+    msg('ordersMsg',orders.length+' orders');
+  }catch(e){msg('ordersMsg',e.message,true)}
+}
+
+if(token())boot();
+</script>
+</body>
+</html>
