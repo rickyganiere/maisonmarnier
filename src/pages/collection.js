@@ -52,7 +52,7 @@ const CHIP_LINKS = [
   ['New', '/collections/new'],
   ['Decor', '/collections/decor'],
   ['Lighting', '/collections/lighting'],
-  ['Seasonal', '/collections/seasonal'],
+  ['Holiday', '/collections/seasonal'],
   ['Objects', '/collections/objects'],
   ['Candles', '/collections/candles'],
   ['Wall Decor', '/collections/wall-decor'],
