@@ -33,6 +33,7 @@ npx wrangler deploy --dry-run
 | `src/router.js` | HTTP routing |
 | `src/auth.js` | Admin / import auth |
 | `src/cj.js` | CJ Dropshipping client |
+| `src/suppliers/external.js` | Multi-supplier JSON draft import |
 | `src/stripe.js` | Stripe Checkout + webhook verify |
 | `src/commerce.js` | Cart checkout + fulfillment |
 | `src/db/*` | D1 access |
@@ -87,6 +88,8 @@ Use Stripe Dashboard to create/send invoices (branding + Hosted Invoice Page). N
 Public: `/api/store/*`, `/api/checkout`, storefront HTML, `/api/stripe/webhook` (Stripe signature).
 
 Admin: `/api/cj/*`, `/api/lume/*`.
+
+External supplier drafts: `POST /api/lume/import-external` with `{ supplier: "SPOCKET", products: [...] }` (or admin → **Other suppliers**). Non-CJ line items fulfill as manual.
 
 ## Commerce flow
 

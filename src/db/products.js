@@ -15,6 +15,11 @@ import {
   suggestedRetailEur,
 } from '../lib/merch.js';
 import { collectCjProducts, refreshProductFromCJ } from '../cj.js';
+import {
+  exampleExternalProducts,
+  normalizeSupplierCode,
+  prepareExternalDraft,
+} from '../suppliers/external.js';
 
 const PRODUCT_COLS =
   'id,lume_sku,supplier,supplier_product_id,supplier_sku,name,image_url,image_urls,supplier_cost_usd,retail_price_eur,compare_at_price_eur,category,stock,delivery_days,status,slug,description,published_at,created_at,updated_at';
@@ -26,7 +31,7 @@ function publishValidationError(row) {
   if (galleryErr) return galleryErr;
   if (!(Number(row.retail_price_eur) > 0)) return 'Set a retail price before publishing';
   if (!(Number(row.supplier_cost_usd) > 0)) {
-    return 'CJ cost is missing/zero. Review the real variant cost before publishing.';
+    return 'Supplier cost is missing/zero. Review the real cost before publishing.';
   }
   if (Number(row.stock) <= 0) return 'Product is out of stock';
   return null;
@@ -509,4 +514,62 @@ export async function getLiveProductBySlug(env, slug) {
   if (!row) return null;
   if (!isStorefrontListable(row, { minPhotos: 2 })) return null;
   return withGalleryMeta(row);
+}
+
+/**
+ * Import drafts from any non-CJ supplier.
+ * Body: { supplier: 'SPOCKET'|'SYNCEE'|'MANUAL'|…, products: [...] }
+ * or { supplier, useExample: true } to load demo holiday payloads.
+ */
+export async function importExternalProducts(request, env) {
+  try {
+    const body = await request.json();
+    const supplier = normalizeSupplierCode(body?.supplier || body?.code || 'EXT');
+    let candidates = Array.isArray(body?.products) ? body.products : [];
+    if (body?.useExample) candidates = exampleExternalProducts();
+    if (!candidates.length) {
+      return json({ ok: false, error: 'Provide products[] or set useExample: true.' }, 400);
+    }
+
+    const imported = [];
+    const skipped = [];
+    const pending = [];
+    for (const p of candidates.slice(0, 100)) {
+      try {
+        const { statement, draft } = prepareExternalDraft(env, supplier, p);
+        pending.push({
+          statement,
+          item: {
+            id: draft.supplierProductId,
+            lumeSku: draft.lumeSku,
+            supplier: draft.supplier,
+            imageCount: draft.imageCount,
+            name: draft.name,
+          },
+        });
+      } catch (e) {
+        skipped.push({ id: p?.id || p?.sku, error: e.message || 'Import failed' });
+      }
+    }
+
+    const results = pending.length ? await env.LUME_DB.batch(pending.map((p) => p.statement)) : [];
+    let alreadyImported = 0;
+    for (const [index, result] of results.entries()) {
+      if (result.results?.length) imported.push(pending[index].item);
+      else alreadyImported += 1;
+    }
+
+    return json({
+      ok: true,
+      supplier,
+      requested: candidates.length,
+      imported: imported.length,
+      skipped: skipped.length + alreadyImported,
+      alreadyImported,
+      items: imported,
+      errors: skipped.slice(0, 12),
+    });
+  } catch (e) {
+    return json({ ok: false, error: e.message || 'External import failed' }, 500);
+  }
 }

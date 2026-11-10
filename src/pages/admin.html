@@ -125,6 +125,7 @@ td,th{border-bottom:1px solid #e4ddd2;padding:8px;text-align:left;vertical-align
     <aside class="side" id="side">
       <button class="sideBtn active" data-panel="overview" type="button">Overview</button>
       <button class="sideBtn" data-panel="finder" type="button">Product Finder</button>
+      <button class="sideBtn" data-panel="suppliers" type="button">Other suppliers</button>
       <button class="sideBtn" data-panel="products" type="button">Draft Products</button>
       <button class="sideBtn" data-panel="published" type="button">Published</button>
       <button class="sideBtn" data-panel="homepage" type="button">Homepage</button>
@@ -159,6 +160,28 @@ td,th{border-bottom:1px solid #e4ddd2;padding:8px;text-align:left;vertical-align
         </div>
         <div class="msg" id="finderMsg" role="status"></div>
         <div id="cjResults"></div>
+      </section>
+
+      <section class="panel" id="panel-suppliers">
+        <h2>Other suppliers</h2>
+        <p class="catalog-intro">Import drafts from any supplier via JSON (Spocket, Syncee, CSV export, manual…). IDs are namespaced as <code>CODE:id</code>. Non-CJ orders fulfill as <strong>manual</strong>.</p>
+        <div class="grid2">
+          <div>
+            <label for="extSupplier">Supplier code</label>
+            <input id="extSupplier" value="SPOCKET" placeholder="SPOCKET / SYNCEE / MANUAL…" maxlength="12">
+          </div>
+          <div style="display:flex;align-items:end;gap:8px;flex-wrap:wrap">
+            <button class="btn secondary" type="button" id="extExampleBtn">Load example (3)</button>
+            <button class="btn" type="button" id="extImportBtn">Import drafts</button>
+          </div>
+        </div>
+        <label for="extJson">Products JSON array</label>
+        <textarea id="extJson" rows="14" spellcheck="false" placeholder='[{"id":"sku-1","name":"…","costUSD":8.5,"stock":50,"images":["https://…","https://…"]}]'></textarea>
+        <div class="msg" id="extMsg" role="status"></div>
+        <details class="catalog-maintenance">
+          <summary>Expected fields</summary>
+          <p class="catalog-intro" style="margin:8px 0 0"><code>id</code> (required), <code>name</code> (required), <code>sku</code>, <code>costUSD</code>, <code>retailPriceEUR</code>, <code>stock</code>, <code>deliveryDays</code>, <code>category</code>, <code>images</code> (2+ real product photos to publish), <code>description</code>.</p>
+        </details>
       </section>
 
 <section class="panel" id="panel-products">
@@ -351,6 +374,8 @@ document.getElementById('cjSearchBtn').onclick=()=>searchCJ();
 document.getElementById('cjImportSelectedBtn').onclick=()=>importSelectedCj();
 document.getElementById('cjImport50Btn').onclick=()=>importByCount(50);
 document.getElementById('cjImport100Btn').onclick=()=>importByCount(100);
+document.getElementById('extExampleBtn').onclick=()=>loadExternalExample();
+document.getElementById('extImportBtn').onclick=()=>importExternalDrafts();
 document.getElementById('cjSelectAll').onchange=e=>{
   document.querySelectorAll('#cjResults input[data-cj]').forEach(cb=>cb.checked=e.target.checked);
 };
@@ -464,6 +489,35 @@ async function importCjDrafts(btn,body){
   }finally{btn.disabled=false}
 }
 
+const EXT_EXAMPLE=[
+  {"id":"demo-garland-01","sku":"SPK-GARLAND-01","name":"Warm pine garland with soft gold tips","costUSD":8.4,"stock":120,"deliveryDays":"8-14","category":"Holiday","images":["https://cf.cjdropshipping.com/quick/product/f008bf58-f7b0-480f-b191-e9ea6f05a68d.jpg","https://cf.cjdropshipping.com/quick/product/4a272584-3dbe-48da-916a-8c339552f852.jpg"]},
+  {"id":"demo-candle-01","sku":"SPK-CANDLE-01","name":"Amber glass candle for quiet evenings","costUSD":6.2,"stock":80,"deliveryDays":"7-12","category":"Candles","images":["https://cf.cjdropshipping.com/quick/product/920ea9f8-5221-43ab-94c0-621693289928.jpg","https://oss-cf.cjdropshipping.com/product/2024/10/17/09/9f88a440-cf3c-4cbf-9a78-61bded43b702.jpg"]},
+  {"id":"demo-ornament-01","sku":"SYN-ORN-01","name":"Matte ceramic ornament set","costUSD":5.1,"stock":200,"deliveryDays":"10-16","category":"Holiday","images":["https://cf.cjdropshipping.com/bbdf7d33-3944-47f9-b8fd-cfaf5ac4ba31.jpg","https://cf.cjdropshipping.com/c9b386da-09e4-4d7c-8da3-33b2a386cc8d.jpg"]}
+];
+function loadExternalExample(){
+  document.getElementById('extSupplier').value='SPOCKET';
+  document.getElementById('extJson').value=JSON.stringify(EXT_EXAMPLE,null,2);
+  msg('extMsg','Loaded 3 example holiday products for supplier SPOCKET.');
+}
+async function importExternalDrafts(){
+  const btn=document.getElementById('extImportBtn');
+  const supplier=document.getElementById('extSupplier').value.trim()||'EXT';
+  let products;
+  try{products=JSON.parse(document.getElementById('extJson').value||'[]')}
+  catch(e){msg('extMsg','Invalid JSON: '+(e.message||'parse error'),true);return}
+  if(!Array.isArray(products)||!products.length){msg('extMsg','Paste a JSON array of products.',true);return}
+  btn.disabled=true;
+  msg('extMsg','Importing '+products.length+' drafts from '+supplier+'…');
+  try{
+    const r=await api('/api/lume/import-external',{method:'POST',body:JSON.stringify({supplier,products})});
+    if(!r.ok){msg('extMsg',r.error||'Import failed',true);return}
+    const error=r.errors?.[0]?.error;
+    if(r.imported)await loadCatalog();
+    msg('extMsg','['+r.supplier+'] Imported '+r.imported+' · already '+r.alreadyImported+(error?' · '+error:''),!!error);
+  }catch(e){msg('extMsg',e.message||'Import failed',true)}
+  finally{btn.disabled=false}
+}
+
 async function publishAllDrafts(){
   if(!confirm('Publish all valid drafts? Invalid drafts will be skipped.'))return;
   const btn=document.getElementById('publishAllBtn');
@@ -517,7 +571,7 @@ function renderCatalog(status) {
   const live = status === 'live';
   const products = catalog.filter(p => live ? p.status === 'live' : p.status !== 'live');
   const query = (live ? publishedSearch : draftSearch).value.trim().toLowerCase();
-  const matches = products.filter(p => [p.name, p.lume_sku, p.category].some(v => String(v ?? '').toLowerCase().includes(query)));
+  const matches = products.filter(p => [p.name, p.lume_sku, p.category, p.supplier].some(v => String(v ?? '').toLowerCase().includes(query)));
   if (live) {
     matches.sort((a, b) => String(b.published_at || '').localeCompare(String(a.published_at || '')) || b.id - a.id);
     document.getElementById('publishedCount').textContent = query ? matches.length + ' of ' + products.length : products.length + ' products';
@@ -534,7 +588,7 @@ function renderCatalog(status) {
       ${p.images?.[0] ? `<img src="${esc(p.images[0])}" alt="" width="54" height="64" loading="lazy">` : ''}
       <div>
         <strong>${esc(p.name)}</strong>
-        <div class="catalog-meta">${esc([p.lume_sku, p.category].filter(Boolean).join(' · '))}</div>
+        <div class="catalog-meta">${esc([p.supplier, p.lume_sku, p.category].filter(Boolean).join(' · '))}</div>
         ${live ? `<div class="catalog-meta">Published ${esc(fmtPub(p.published_at))}${viewable(p) ? '' : ' · Storefront unavailable'}</div>` : ''}
       </div>
     </div>
