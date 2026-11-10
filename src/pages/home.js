@@ -4,8 +4,8 @@ import {
   fontLinksHtml,
   gtmHeadHtml,
   gtmNoscriptHtml,
+  homeProductCard,
   LAYOUT_CSS,
-  productCard,
   storefrontFooterHtml,
   storefrontHeaderHtml,
   storefrontProductImage,
@@ -72,7 +72,8 @@ ${LAYOUT_CSS}
 }
 @media (prefers-reduced-motion:reduce){
   .mm-snow{display:none}
-  .mm-products > .p,.mm-story img,.mm-cat,.mm-cat-media,.mm-cat-glow,.mm-cat-hint::after{animation:none;transition:none}
+  .mm-card,.mm-card .mm-card-media img,.mm-story img,.mm-cat,.mm-cat-media,.mm-cat-glow,.mm-cat-hint::after{animation:none;transition:none}
+  .mm-card:hover{transform:none}
   .mm-cat:hover,.mm-cat:focus-visible{transform:none}
   .mm-cat:hover .mm-cat-media,.mm-cat:hover .mm-cat-glow,.mm-cat:focus-visible .mm-cat-media,.mm-cat:focus-visible .mm-cat-glow{transform:none}
 }
@@ -81,10 +82,23 @@ ${LAYOUT_CSS}
 .mm-section-head{display:flex;justify-content:space-between;align-items:end;gap:12px;margin-bottom:9px}
 .mm-section-head h2{margin:0;font:700 clamp(1.35rem,2.4vw,1.85rem)/1.05 Georgia,serif;letter-spacing:-.025em;color:#fff3e0}
 .mm-section-head a{font:800 12px/1 var(--font);letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
-.mm-products{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:16px;padding-top:0}
-.mm-products .media{aspect-ratio:4/3;border-color:#574033}
-.mm-products .p .meta{padding-top:9px}
-.mm-products .p .price-row{margin-top:6px}
+.mm-products{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;padding-top:0}
+.mm-card{position:relative;display:block;min-height:0;overflow:hidden;border:1px solid #574033;border-radius:8px;background:#1a1411;box-shadow:0 14px 34px rgba(0,0,0,.28);text-decoration:none;color:inherit;transition:border-color .3s ease,transform .3s ease,box-shadow .3s ease}
+.mm-card::after{content:"";position:absolute;left:0;right:0;top:0;height:1px;background:linear-gradient(90deg,transparent,#c9a46a,transparent);opacity:0;transition:opacity .3s ease;pointer-events:none}
+.mm-card:hover,.mm-card:focus-visible{border-color:rgba(201,164,106,.7);transform:translateY(-3px);box-shadow:0 22px 50px rgba(0,0,0,.55),0 0 36px rgba(201,164,106,.1)}
+.mm-card:hover::after,.mm-card:focus-visible::after{opacity:1}
+.mm-card:focus-visible{outline:2px solid #ffe4a9;outline-offset:2px}
+.mm-card-media{position:relative;display:block;height:210px;overflow:hidden;background:linear-gradient(135deg,#483229,#211a16)}
+.mm-card-media::after{content:"";position:absolute;left:0;right:0;bottom:0;height:34%;background:linear-gradient(180deg,rgba(26,20,17,0),rgba(26,20,17,.55));pointer-events:none}
+.mm-card-media img{width:100%;height:100%;display:block;object-fit:cover;transition:transform .5s ease}
+.mm-card:hover .mm-card-media img{transform:scale(1.04)}
+.mm-card-drop{position:absolute;top:9px;left:9px;z-index:2;padding:4px 7px;border-radius:2px;background:#7a1f28;color:#fff4e4;font:800 10px/1.1 var(--font);letter-spacing:.06em;text-transform:uppercase;pointer-events:none}
+.mm-card-body{position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;column-gap:12px;row-gap:2px;padding:12px 14px 14px;background:linear-gradient(180deg,#241c17,#171210)}
+.mm-card-name,.mm-card-meta{grid-column:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.mm-card-name{font:900 .98rem/1.25 var(--font);color:#fff8ec;letter-spacing:-.01em}
+.mm-card-meta{margin-top:2px;color:#b3a89a;font:600 .72rem/1.3 var(--font)}
+.mm-card-price{grid-column:2;grid-row:1 / span 3;align-self:end;margin:0;color:#fff8ec;font:900 1.12rem/1.3 var(--font);white-space:nowrap;text-align:right}
+.mm-card-was{display:block;margin-top:1px;color:#8a7d70;font:600 .72rem/1 var(--font);text-decoration:line-through;text-align:right}
 .mm-cats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:8px}
 .mm-cat{position:relative;isolation:isolate;overflow:hidden;min-height:132px;border-radius:14px;border:1px solid #8a6848;display:flex;align-items:flex-end;padding:18px 16px 16px;background:#241812;box-shadow:inset 0 1px 0 rgba(255,232,196,.12);transition:border-color .3s ease,transform .35s cubic-bezier(.2,.7,.2,1),box-shadow .35s ease}
 .mm-cat-media,.mm-cat-glow{position:absolute;inset:0;z-index:-2;width:100%;height:100%;object-fit:cover;object-position:center 42%;transform:scale(1.02);transition:transform .55s cubic-bezier(.2,.7,.2,1),filter .35s ease;pointer-events:none}
@@ -137,9 +151,10 @@ ${LAYOUT_CSS}
   .mm-hero h1{font-size:clamp(2.2rem,4vw,3.25rem)}
   .mm-carousel{height:clamp(200px,23vw,230px)}
 }
-@media(max-width:1100px){.mm-products{grid-template-columns:repeat(4,minmax(0,1fr))}}
+@media(max-width:1100px){.mm-products{grid-template-columns:repeat(3,minmax(0,1fr))}}
 @media(max-width:980px){
-  .mm-products{grid-template-columns:repeat(3,minmax(0,1fr))}
+  .mm-products{grid-template-columns:repeat(2,minmax(0,1fr))}
+  .mm-card-media{height:180px}
   .mm-cats{grid-template-columns:repeat(2,minmax(0,1fr));gap:10px}
   .mm-cat{min-height:118px}
   .mm-band,.mm-stories,.mm-news{grid-template-columns:1fr}
@@ -160,6 +175,10 @@ ${LAYOUT_CSS}
   .mm-carousel-controls button{width:32px;height:32px}
   .mm-benefits{grid-template-columns:1fr}
   .mm-products{grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+  .mm-card-media{height:150px}
+  .mm-card-body{padding:10px 11px 12px}
+  .mm-card-name{font-size:.86rem}
+  .mm-card-price{font-size:1rem}
   .mm-cat{min-height:108px;padding:14px 13px 13px;border-radius:12px}
   .mm-cat-name{font-size:1.05rem}
 }
@@ -168,8 +187,8 @@ ${LAYOUT_CSS}
   .mm-carousel{height:156px}
   .mm-section-head h2{font-size:1.2rem}
   .mm-section-head a{font-size:10px;white-space:nowrap}
-  .mm-products .p h3{font-size:14px}
-  .mm-products .p .catline{margin-bottom:4px}
+  .mm-products{grid-template-columns:1fr}
+  .mm-card-media{height:190px}
 }
 `;
 
@@ -221,8 +240,8 @@ export async function homePage(env, request) {
   ]);
   const products = [...new Map([...curated, ...latest].map((p) => [p.slug, p])).values()];
   const featuredHtml = products.length
-    ? products.slice(0, 10).map((p) => productCard(p, lang)).join('')
-    : `<p class="empty">${esc(tr(lang, { es: 'Las piezas navideñas están llegando.', en: 'Holiday pieces are arriving.' }))}</p>`;
+    ? products.slice(0, 8).map((p, i) => homeProductCard(p, { featured: i === 0, lang })).join('')
+    : `<p class="empty">${esc(tr(lang, { es: 'Las piezas navideñas van llegando.', en: 'Holiday pieces are arriving.' }))}</p>`;
   const carouselHtml = heroCarouselHtml(curated.length ? curated : products, lang);
 
   const homeTitle = tr(lang, {
@@ -281,7 +300,7 @@ ${storefrontHeaderHtml({ search: false, lang, path: '/' })}
         <h2>${esc(tr(lang, { es: 'Novedades de temporada', en: 'Holiday arrivals' }))}</h2>
         <a href="/collections/new">${esc(tr(lang, { es: 'Ver todas →', en: 'View all arrivals →' }))}</a>
       </div>
-      <div class="mm-products grid">${featuredHtml}</div>
+      <div class="mm-products" data-home-listings>${featuredHtml}</div>
       <nav class="mm-cats" style="margin-top:22px" aria-label="${esc(tr(lang, { es: 'Comprar por categoría', en: 'Shop by category' }))}">
         <a class="mm-cat mm-cat--holiday" href="/collections/seasonal">
           <img class="mm-cat-media" src="${CHRISTMAS_SCENES.living}" alt="" width="640" height="400" loading="lazy" decoding="async">
