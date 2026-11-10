@@ -32,6 +32,7 @@ import {
   publishAllLumeProducts,
   publishLumeProduct,
   refreshLumeProduct,
+  refreshMissingCjCosts,
   unpublishLumeProduct,
   updateLumeProduct,
 } from './db/products.js';
@@ -222,6 +223,12 @@ export async function handleRequest(request, env, ctx) {
     const denied = await requireAdmin(request, env);
     if (denied) return denied;
     return refreshLumeProduct(request, env);
+  }
+  if (pathname === '/api/lume/refresh-costs') {
+    if (method !== 'POST') return methodNotAllowed();
+    const denied = await requireAdmin(request, env);
+    if (denied) return denied;
+    return refreshMissingCjCosts(request, env);
   }
   if (pathname === '/api/lume/import') {
     if (method !== 'POST') return methodNotAllowed();
