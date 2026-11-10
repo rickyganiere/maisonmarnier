@@ -1,4 +1,5 @@
 import { COLLECTION_RULES } from './collection.js';
+import { isStorefrontListable } from '../lib/images.js';
 import { SITE_ORIGIN, escXml, formatLastmod } from '../lib/seo.js';
 
 const INFO_PATHS = ['/about', '/shipping', '/returns', '/contact', '/sourcing', '/journal'];
@@ -89,16 +90,18 @@ export async function sitemapProductsXml(env) {
   const entries = [];
   try {
     const r = await env.LUME_DB.prepare(
-      `SELECT slug, published_at FROM products
+      `SELECT slug, published_at, image_url, image_urls FROM products
        WHERE status='live' AND slug IS NOT NULL AND slug!=''
        ORDER BY published_at DESC, id DESC LIMIT ?`,
     )
-      .bind(PRODUCT_CAP)
+      .bind(PRODUCT_CAP * 3)
       .all();
     for (const p of r.results || []) {
+      if (!isStorefrontListable(p, { minPhotos: 2 })) continue;
       entries.push(
         urlEntry(`${SITE_ORIGIN}/products/${encodeURIComponent(p.slug)}`, formatLastmod(p.published_at)),
       );
+      if (entries.length >= PRODUCT_CAP) break;
     }
   } catch {
     /* D1 unavailable — empty products sitemap still valid */

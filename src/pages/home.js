@@ -2,6 +2,7 @@
 import { esc } from '../lib/escape.js';
 import {
   brandLogoHtml,
+  cartControlHtml,
   fontLinksHtml,
   gtmHeadHtml,
   gtmNoscriptHtml,
@@ -42,14 +43,37 @@ ${LAYOUT_CSS}
 .mm-lights i:nth-child(3){animation-delay:.9s}
 .mm-lights i:nth-child(4){animation-delay:1.3s;opacity:.65}
 @keyframes twinkle{0%,100%{filter:brightness(.7)}50%{filter:brightness(1.35)}}
-.mm-flake{position:absolute;inset:0;pointer-events:none;z-index:0;overflow:hidden}
-.mm-flake i{position:absolute;top:-4%;width:3px;height:3px;border-radius:50%;background:rgba(246,240,230,.55);animation:flakeFall linear infinite;opacity:.5}
-.mm-flake i:nth-child(1){left:10%;animation-duration:10s}
-.mm-flake i:nth-child(2){left:28%;width:2px;height:2px;animation-duration:13s;animation-delay:-3s}
-.mm-flake i:nth-child(3){left:52%;animation-duration:11s;animation-delay:-1s}
-.mm-flake i:nth-child(4){left:74%;width:2px;height:2px;animation-duration:14s;animation-delay:-5s}
-.mm-flake i:nth-child(5){left:88%;animation-duration:12s;animation-delay:-2s}
-@keyframes flakeFall{0%{transform:translateY(0);opacity:0}15%{opacity:.55}100%{transform:translateY(140px);opacity:0}}
+.mm-snow{position:fixed;inset:0;pointer-events:none;z-index:35;overflow:hidden}
+.mm-snow i{position:absolute;top:-8%;border-radius:50%;background:rgba(255,255,255,.88);box-shadow:0 0 6px rgba(255,255,255,.35);animation:snowFall linear infinite;opacity:.75}
+.mm-snow i:nth-child(odd){background:rgba(246,240,230,.9)}
+.mm-snow i:nth-child(1){left:4%;width:3px;height:3px;animation-duration:9s;animation-delay:-1s}
+.mm-snow i:nth-child(2){left:11%;width:5px;height:5px;animation-duration:13s;animation-delay:-4s}
+.mm-snow i:nth-child(3){left:18%;width:2px;height:2px;animation-duration:8s;animation-delay:-2s}
+.mm-snow i:nth-child(4){left:26%;width:4px;height:4px;animation-duration:12s;animation-delay:-6s}
+.mm-snow i:nth-child(5){left:33%;width:3px;height:3px;animation-duration:10s;animation-delay:-3s}
+.mm-snow i:nth-child(6){left:41%;width:6px;height:6px;animation-duration:15s;animation-delay:-8s}
+.mm-snow i:nth-child(7){left:48%;width:2px;height:2px;animation-duration:9s;animation-delay:-1.5s}
+.mm-snow i:nth-child(8){left:55%;width:4px;height:4px;animation-duration:11s;animation-delay:-5s}
+.mm-snow i:nth-child(9){left:62%;width:3px;height:3px;animation-duration:14s;animation-delay:-7s}
+.mm-snow i:nth-child(10){left:69%;width:5px;height:5px;animation-duration:12s;animation-delay:-2.5s}
+.mm-snow i:nth-child(11){left:76%;width:2px;height:2px;animation-duration:8.5s;animation-delay:-4.5s}
+.mm-snow i:nth-child(12){left:83%;width:4px;height:4px;animation-duration:13.5s;animation-delay:-9s}
+.mm-snow i:nth-child(13){left:90%;width:3px;height:3px;animation-duration:10.5s;animation-delay:-3.5s}
+.mm-snow i:nth-child(14){left:96%;width:5px;height:5px;animation-duration:16s;animation-delay:-6.5s}
+.mm-snow i:nth-child(15){left:8%;width:2px;height:2px;animation-duration:11.5s;animation-delay:-10s}
+.mm-snow i:nth-child(16){left:22%;width:3px;height:3px;animation-duration:9.5s;animation-delay:-7.5s}
+.mm-snow i:nth-child(17){left:37%;width:4px;height:4px;animation-duration:14.5s;animation-delay:-1.2s}
+.mm-snow i:nth-child(18){left:58%;width:2px;height:2px;animation-duration:8.2s;animation-delay:-5.8s}
+.mm-snow i:nth-child(19){left:72%;width:6px;height:6px;animation-duration:17s;animation-delay:-11s}
+.mm-snow i:nth-child(20){left:87%;width:3px;height:3px;animation-duration:12.8s;animation-delay:-4.1s}
+@keyframes snowFall{
+  0%{transform:translate3d(0,-4vh,0) rotate(0deg);opacity:0}
+  8%{opacity:.85}
+  100%{transform:translate3d(28px,110vh,0) rotate(180deg);opacity:.15}
+}
+@media (prefers-reduced-motion:reduce){
+  .mm-snow i,.nav-snowman{animation:none!important}
+}
 .mm-section{padding:18px var(--pad) 28px}
 .mm-section-inner{width:min(1420px,100%);margin:0 auto}
 .mm-section-head{display:flex;justify-content:space-between;align-items:end;gap:16px;margin-bottom:14px}
@@ -152,14 +176,14 @@ ${gtmNoscriptHtml()}
     <a href="/journal">Journal</a>
   </nav>
   <div class="tools">
-    <a href="/cart" id="cartBtn" class="cart-link">Cart <span id="cartCount"></span></a>
+    ${cartControlHtml()}
   </div>
 </header>
 <div class="mm-lights" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
+<div class="mm-snow" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
 
 <main class="home-main">
   <section class="mm-hero">
-    <div class="mm-flake" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></div>
     <div class="mm-hero-inner">
       <div>
         <span class="mm-kicker">Maison Marnier · Holiday 2026</span>

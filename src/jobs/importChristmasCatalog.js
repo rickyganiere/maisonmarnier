@@ -200,25 +200,22 @@ export async function importChristmasCatalog(request, env) {
     const byId = new Map();
     const errors = [];
 
-    // Prefer multi-image first, then fill with single-image festive SKUs if needed
-    for (const minImages of [2, 1]) {
-      if (byId.size >= target) break;
-      for (const q of SEARCHES) {
+    // Only multi-image festive SKUs (never Unsplash / single-photo)
+    for (const q of SEARCHES) {
+      if (byId.size >= target * 1.5) break;
+      for (const page of [1, 2, 3]) {
         if (byId.size >= target * 1.5) break;
-        for (const page of [1, 2]) {
-          if (byId.size >= target * 1.5) break;
-          try {
-            const items = await searchCj(cjToken, q, page, 20);
-            for (const raw of items) {
-              const n = normalizeCj(raw, { minImages });
-              if (!n) continue;
-              if (!byId.has(n.id)) byId.set(n.id, n);
-            }
-            await new Promise((r) => setTimeout(r, 160));
-          } catch (e) {
-            errors.push({ q, page, error: e.message || String(e) });
-            await new Promise((r) => setTimeout(r, 500));
+        try {
+          const items = await searchCj(cjToken, q, page, 20);
+          for (const raw of items) {
+            const n = normalizeCj(raw, { minImages: 2 });
+            if (!n) continue;
+            if (!byId.has(n.id)) byId.set(n.id, n);
           }
+          await new Promise((r) => setTimeout(r, 160));
+        } catch (e) {
+          errors.push({ q, page, error: e.message || String(e) });
+          await new Promise((r) => setTimeout(r, 500));
         }
       }
     }

@@ -10,12 +10,15 @@ import {
   retryFulfill,
 } from './commerce.js';
 import {
+  deleteLumeProduct,
   importLumeProduct,
   listLumeProducts,
   listPublishedProducts,
+  pruneThinLiveProducts,
   publishAllLumeProducts,
   publishLumeProduct,
   refreshLumeProduct,
+  unpublishLumeProduct,
   updateLumeProduct,
 } from './db/products.js';
 import { getHomeContent, saveHomeContent } from './db/site-content.js';
@@ -126,6 +129,25 @@ export async function handleRequest(request, env, ctx) {
     const denied = await requireAdmin(request, env);
     if (denied) return denied;
     return publishAllLumeProducts(request, env);
+  }
+  if (pathname === '/api/lume/unpublish') {
+    if (method !== 'POST') return methodNotAllowed();
+    const denied = await requireAdmin(request, env);
+    if (denied) return denied;
+    return unpublishLumeProduct(request, env);
+  }
+  if (pathname === '/api/lume/delete') {
+    if (method !== 'POST') return methodNotAllowed();
+    const denied = await requireAdmin(request, env);
+    if (denied) return denied;
+    return deleteLumeProduct(request, env);
+  }
+  if (pathname === '/api/lume/prune-thin') {
+    if (method !== 'POST') return methodNotAllowed();
+    const denied = await requireAdmin(request, env);
+    if (denied) return denied;
+    const result = await pruneThinLiveProducts(env);
+    return json({ ok: true, ...result });
   }
   if (pathname === '/api/lume/refresh') {
     if (method !== 'POST') return methodNotAllowed();

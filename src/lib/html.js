@@ -30,6 +30,33 @@ function navHtml() {
   return NAV.map(([label, href]) => `<a href="${href}">${esc(label)}</a>`).join('');
 }
 
+/** Cute snowman mark — sits beside the cart control. */
+export function snowmanHtml() {
+  return `<svg class="nav-snowman" viewBox="0 0 40 46" width="34" height="38" aria-hidden="true" focusable="false">
+  <ellipse cx="20" cy="43.2" rx="12" ry="2.2" fill="rgba(246,240,230,.18)"/>
+  <circle cx="20" cy="31" r="9.2" fill="#f4efe6"/>
+  <circle cx="20" cy="16.5" r="6.4" fill="#f7f2ea"/>
+  <circle cx="18" cy="15.4" r="0.85" fill="#1a1410"/>
+  <circle cx="22.2" cy="15.4" r="0.85" fill="#1a1410"/>
+  <path d="M18.2 17.6h3.8l-1.9 2.4z" fill="#c46a2d"/>
+  <path d="M12.5 20.2c2.2 1.4 12.8 1.4 15 0" fill="none" stroke="#9a2430" stroke-width="2.2" stroke-linecap="round"/>
+  <rect x="14.2" y="8.2" width="11.6" height="3.2" rx="1" fill="#1f1712"/>
+  <rect x="16.4" y="3.4" width="7.2" height="5.4" rx="1.2" fill="#1f1712"/>
+  <circle cx="20" cy="27.2" r="0.9" fill="#1f1712"/>
+  <circle cx="20" cy="30.6" r="0.9" fill="#1f1712"/>
+  <circle cx="20" cy="34" r="0.9" fill="#1f1712"/>
+  <path d="M10.5 28.5c-3.2 1.2-4.8 3.8-4.2 5.2" fill="none" stroke="#c9a46a" stroke-width="1.5" stroke-linecap="round"/>
+  <path d="M29.5 28.5c3.2 1.2 4.8 3.8 4.2 5.2" fill="none" stroke="#c9a46a" stroke-width="1.5" stroke-linecap="round"/>
+</svg>`;
+}
+
+export function cartControlHtml() {
+  return `<span class="cart-wrap" title="Holiday cart">
+  ${snowmanHtml()}
+  <a href="/cart" id="cartBtn" class="cart-link">Cart <span id="cartCount"></span></a>
+</span>`;
+}
+
 /** Maison Marnier wordmark + mark — used in header/footer on every storefront page. */
 export function brandLogoHtml({ compact = false } = {}) {
   // Circle monogram + seasonal Santa hat perched on top
@@ -82,6 +109,9 @@ img{max-width:100%;display:block}
 .site-nav .links a:hover{color:var(--accent2)}
 .tools{display:flex;gap:10px;align-items:center;justify-content:flex-end}
 .tools .search{width:150px;padding:11px 12px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:600 12px/1.2 var(--font);border-radius:6px}
+.cart-wrap{display:inline-flex;align-items:center;gap:8px}
+.nav-snowman{width:34px;height:38px;flex:0 0 auto;filter:drop-shadow(0 2px 6px rgba(0,0,0,.35));animation:snowmanBob 3.2s ease-in-out infinite;transform-origin:50% 100%}
+@keyframes snowmanBob{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-2px) rotate(-3deg)}}
 .cart-link{display:inline-flex;align-items:center;gap:6px;padding:11px 14px;border:1px solid var(--accent);border-radius:6px;font:800 11px/1 var(--font);letter-spacing:.08em;text-transform:uppercase;color:#fff;background:transparent}
 .cart-link:hover{background:rgba(201,164,106,.12)}
 .wrap{max-width:var(--max);margin:auto;padding:0 var(--pad) 56px}
@@ -282,7 +312,7 @@ ${gtmNoscriptHtml()}
     <form action="/collections/new" method="get" role="search">
       <input class="search" type="search" name="q" placeholder="Search…" aria-label="Search products">
     </form>
-    <a href="/cart" id="cartBtn" class="cart-link">Cart <span id="cartCount"></span></a>
+    ${cartControlHtml()}
   </div>
 </header>
 <main class="wrap">${body}</main>

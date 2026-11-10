@@ -1,7 +1,13 @@
 import { json } from '../lib/json.js';
 import { slugify } from '../lib/slugify.js';
 import { safeUrl } from '../lib/escape.js';
-import { serializeImageUrls } from '../lib/images.js';
+import {
+  galleryValidationError,
+  hasMultiRealPhotos,
+  isStorefrontListable,
+  productImages,
+  serializeImageUrls,
+} from '../lib/images.js';
 import {
   cleanProductName,
   mapMaisonCategory,
@@ -16,6 +22,8 @@ const PRODUCT_COLS =
 function publishValidationError(row) {
   if (!row) return 'Product not found';
   if (!row.name || !row.image_url) return 'Title and image are required before publishing';
+  const galleryErr = galleryValidationError(row, { min: 2 });
+  if (galleryErr) return galleryErr;
   if (!(Number(row.retail_price_eur) > 0)) return 'Set a retail price before publishing';
   if (!(Number(row.supplier_cost_usd) > 0)) {
     return 'CJ cost is missing/zero. Review the real variant cost before publishing.';
@@ -24,12 +32,23 @@ function publishValidationError(row) {
   return null;
 }
 
+function withGalleryMeta(row) {
+  if (!row) return row;
+  const images = productImages(row, { max: 12, allowStock: false });
+  return {
+    ...row,
+    images,
+    image_count: images.length,
+    published_at: row.published_at || null,
+  };
+}
+
 export async function listLumeProducts(env) {
   try {
     const r = await env.LUME_DB.prepare(
       `SELECT ${PRODUCT_COLS} FROM products ORDER BY id DESC LIMIT 500`,
     ).all();
-    return json({ ok: true, products: r.results || [] });
+    return json({ ok: true, products: (r.results || []).map(withGalleryMeta) });
   } catch (e) {
     return json({ ok: false, error: e.message || 'Database error' }, 500);
   }
@@ -42,22 +61,26 @@ export async function listPublishedProducts(env, { q = '', limit = 48 } = {}) {
     let r;
     if (query) {
       r = await env.LUME_DB.prepare(
-        `SELECT id,lume_sku,name,slug,image_url,image_urls,retail_price_eur,compare_at_price_eur,category,stock,description
+        `SELECT id,lume_sku,name,slug,image_url,image_urls,retail_price_eur,compare_at_price_eur,category,stock,description,published_at
          FROM products WHERE status='live'
          AND (lower(name) LIKE ? OR lower(category) LIKE ? OR lower(ifnull(description,'')) LIKE ?)
          ORDER BY published_at DESC,id DESC LIMIT ?`,
       )
-        .bind(`%${query}%`, `%${query}%`, `%${query}%`, lim)
+        .bind(`%${query}%`, `%${query}%`, `%${query}%`, lim * 3)
         .all();
     } else {
       r = await env.LUME_DB.prepare(
-        `SELECT id,lume_sku,name,slug,image_url,image_urls,retail_price_eur,compare_at_price_eur,category,stock,description
+        `SELECT id,lume_sku,name,slug,image_url,image_urls,retail_price_eur,compare_at_price_eur,category,stock,description,published_at
          FROM products WHERE status='live' ORDER BY published_at DESC,id DESC LIMIT ?`,
       )
-        .bind(lim)
+        .bind(Math.min(600, lim * 4))
         .all();
     }
-    return json({ ok: true, products: r.results || [], q: query || undefined });
+    const products = (r.results || [])
+      .filter((p) => isStorefrontListable(p, { minPhotos: 2 }))
+      .slice(0, lim)
+      .map(withGalleryMeta);
+    return json({ ok: true, products, q: query || undefined });
   } catch (e) {
     return json({ ok: false, error: e.message || 'Could not load products' }, 500);
   }
@@ -160,7 +183,7 @@ export async function publishLumeProduct(request, env) {
     const id = Number(p.id);
     if (!id) return json({ ok: false, error: 'Missing product id' }, 400);
     const row = await env.LUME_DB.prepare(
-      'SELECT id,name,image_url,supplier_cost_usd,retail_price_eur,stock,slug FROM products WHERE id=?',
+      'SELECT id,name,image_url,image_urls,supplier_cost_usd,retail_price_eur,stock,slug FROM products WHERE id=?',
     )
       .bind(id)
       .first();
@@ -168,12 +191,13 @@ export async function publishLumeProduct(request, env) {
     if (err === 'Product not found') return json({ ok: false, error: err }, 404);
     if (err) return json({ ok: false, error: err }, 400);
     const slug = slugify(row.slug || row.name);
+    const images = productImages(row, { max: 12, allowStock: false });
     await env.LUME_DB.prepare(
-      "UPDATE products SET status='live',slug=?,published_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=?",
+      "UPDATE products SET status='live',slug=?,image_url=?,image_urls=?,published_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=?",
     )
-      .bind(slug, id)
+      .bind(slug, images[0] || row.image_url, serializeImageUrls(images), id)
       .run();
-    return json({ ok: true, id, slug, status: 'live' });
+    return json({ ok: true, id, slug, status: 'live', published_at: new Date().toISOString(), image_count: images.length });
   } catch (e) {
     return json({ ok: false, error: e.message || 'Publish failed' }, 500);
   }
@@ -183,7 +207,7 @@ export async function publishLumeProduct(request, env) {
 export async function publishAllLumeProducts(request, env) {
   try {
     const drafts = await env.LUME_DB.prepare(
-      `SELECT id,name,image_url,supplier_cost_usd,retail_price_eur,stock,slug
+      `SELECT id,name,image_url,image_urls,supplier_cost_usd,retail_price_eur,stock,slug
        FROM products WHERE status!='live' ORDER BY id ASC`,
     ).all();
     const rows = drafts.results || [];
@@ -199,10 +223,11 @@ export async function publishAllLumeProducts(request, env) {
       }
       try {
         const slug = slugify(row.slug || row.name);
+        const images = productImages(row, { max: 12, allowStock: false });
         await env.LUME_DB.prepare(
-          "UPDATE products SET status='live',slug=?,published_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=?",
+          "UPDATE products SET status='live',slug=?,image_url=?,image_urls=?,published_at=CURRENT_TIMESTAMP,updated_at=CURRENT_TIMESTAMP WHERE id=?",
         )
-          .bind(slug, row.id)
+          .bind(slug, images[0] || row.image_url, serializeImageUrls(images), row.id)
           .run();
         published += 1;
       } catch (e) {
@@ -214,6 +239,62 @@ export async function publishAllLumeProducts(request, env) {
   } catch (e) {
     return json({ ok: false, error: e.message || 'Publish all failed' }, 500);
   }
+}
+
+/** Soft-remove from storefront (status=draft). Keeps the row for later. */
+export async function unpublishLumeProduct(request, env) {
+  try {
+    const p = await request.json();
+    const id = Number(p.id);
+    if (!id) return json({ ok: false, error: 'Missing product id' }, 400);
+    const row = await env.LUME_DB.prepare('SELECT id,status FROM products WHERE id=?')
+      .bind(id)
+      .first();
+    if (!row) return json({ ok: false, error: 'Product not found' }, 404);
+    await env.LUME_DB.prepare(
+      `UPDATE products SET status='draft', updated_at=CURRENT_TIMESTAMP WHERE id=?`,
+    )
+      .bind(id)
+      .run();
+    return json({ ok: true, id, status: 'draft' });
+  } catch (e) {
+    return json({ ok: false, error: e.message || 'Unpublish failed' }, 500);
+  }
+}
+
+/** Permanently delete a product row. */
+export async function deleteLumeProduct(request, env) {
+  try {
+    const p = await request.json();
+    const id = Number(p.id);
+    if (!id) return json({ ok: false, error: 'Missing product id' }, 400);
+    const row = await env.LUME_DB.prepare('SELECT id,name FROM products WHERE id=?').bind(id).first();
+    if (!row) return json({ ok: false, error: 'Product not found' }, 404);
+    await env.LUME_DB.prepare('DELETE FROM products WHERE id=?').bind(id).run();
+    return json({ ok: true, id, deleted: true, name: row.name || '' });
+  } catch (e) {
+    return json({ ok: false, error: e.message || 'Delete failed' }, 500);
+  }
+}
+
+/** Demote live SKUs that do not meet the multi-photo rule. */
+export async function pruneThinLiveProducts(env) {
+  const live = (
+    await env.LUME_DB.prepare(
+      `SELECT id,name,image_url,image_urls FROM products WHERE status='live'`,
+    ).all()
+  ).results || [];
+  let demoted = 0;
+  for (const row of live) {
+    if (hasMultiRealPhotos(row, { min: 2 })) continue;
+    await env.LUME_DB.prepare(
+      `UPDATE products SET status='draft', updated_at=CURRENT_TIMESTAMP WHERE id=?`,
+    )
+      .bind(row.id)
+      .run();
+    demoted += 1;
+  }
+  return { scanned: live.length, demoted };
 }
 
 export async function refreshLumeProduct(request, env) {
@@ -266,20 +347,27 @@ export async function refreshLumeProduct(request, env) {
 }
 
 export async function getLiveProducts(env, limit = 100) {
+  const lim = Math.max(1, Math.min(200, Number(limit) || 100));
   const r = await env.LUME_DB.prepare(
     `SELECT id,name,slug,image_url,image_urls,retail_price_eur,compare_at_price_eur,category,description,stock,published_at
      FROM products WHERE status='live' ORDER BY published_at DESC,id DESC LIMIT ?`,
   )
-    .bind(limit)
+    .bind(Math.min(600, lim * 4))
     .all();
-  return r.results || [];
+  return (r.results || [])
+    .filter((p) => isStorefrontListable(p, { minPhotos: 2 }))
+    .slice(0, lim)
+    .map(withGalleryMeta);
 }
 
 export async function getLiveProductBySlug(env, slug) {
-  return env.LUME_DB.prepare(
-    `SELECT id,name,slug,image_url,image_urls,retail_price_eur,compare_at_price_eur,category,description,stock
+  const row = await env.LUME_DB.prepare(
+    `SELECT id,name,slug,image_url,image_urls,retail_price_eur,compare_at_price_eur,category,description,stock,published_at
      FROM products WHERE status='live' AND slug=? LIMIT 1`,
   )
     .bind(slug)
     .first();
+  if (!row) return null;
+  if (!isStorefrontListable(row, { minPhotos: 2 })) return null;
+  return withGalleryMeta(row);
 }

@@ -1,12 +1,20 @@
 import { safeUrl } from './escape.js';
 
+const STOCK_HOST =
+  /unsplash\.com|images\.unsplash\.com|pexels\.com|picsum\.photos|placeholder\.com|loremflickr\.com/i;
+
+export function isStockImageUrl(url) {
+  return STOCK_HOST.test(String(url || ''));
+}
+
 /** Normalize product image list from image_url + image_urls JSON. */
-export function productImages(p, { max = 8 } = {}) {
+export function productImages(p, { max = 8, allowStock = false } = {}) {
   const out = [];
   const seen = new Set();
   function push(raw) {
     const u = safeUrl(raw, '');
     if (!u || seen.has(u)) return;
+    if (!allowStock && isStockImageUrl(u)) return;
     seen.add(u);
     out.push(u);
   }
@@ -23,10 +31,29 @@ export function productImages(p, { max = 8 } = {}) {
   return out.slice(0, max);
 }
 
+/** Live catalog rule: at least 2 real (non-stock) photos. */
+export function hasMultiRealPhotos(p, { min = 2 } = {}) {
+  return productImages(p, { max: 12, allowStock: false }).length >= min;
+}
+
+/** Storefront listing gate: price + multi real photos (no empty/stock-only). */
+export function isStorefrontListable(p, { minPhotos = 2 } = {}) {
+  if (!(Number(p?.retail_price_eur || 0) > 0)) return false;
+  return hasMultiRealPhotos(p, { min: minPhotos });
+}
+
+export function galleryValidationError(p, { min = 2 } = {}) {
+  const imgs = productImages(p, { max: 12, allowStock: false });
+  if (imgs.length < min) {
+    return `Need at least ${min} real product photos (CJ/supplier). Unsplash/stock images do not count.`;
+  }
+  return null;
+}
+
 export function serializeImageUrls(urls) {
   const list = (Array.isArray(urls) ? urls : [])
     .map((u) => safeUrl(u, ''))
-    .filter(Boolean)
+    .filter((u) => u && !isStockImageUrl(u))
     .slice(0, 12);
   return list.length ? JSON.stringify(list) : null;
 }
