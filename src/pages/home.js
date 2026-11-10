@@ -20,23 +20,33 @@ import {
 const HOME_CSS = `
 ${LAYOUT_CSS}
 .home-main{overflow:hidden}
-.mm-hero{position:relative;isolation:isolate;padding:18px var(--pad) 8px;border-bottom:1px solid var(--line);background:
-  radial-gradient(700px 180px at 88% 0%, rgba(154,36,48,.28), transparent 60%),
-  radial-gradient(560px 160px at 8% 100%, rgba(31,61,50,.3), transparent 55%),
+.mm-hero{position:relative;isolation:isolate;padding:22px var(--pad) 12px;border-bottom:1px solid var(--line);background:
+  radial-gradient(780px 220px at 88% 0%, rgba(154,36,48,.3), transparent 60%),
+  radial-gradient(620px 180px at 8% 100%, rgba(31,61,50,.32), transparent 55%),
   linear-gradient(180deg,#161210,var(--bg))}
-.mm-hero-inner{width:min(1420px,100%);margin:0 auto;display:grid;grid-template-columns:1.15fr .85fr;gap:20px;align-items:center;padding:10px 0 14px}
-.mm-kicker{display:inline-flex;align-items:center;gap:8px;margin-bottom:10px;color:var(--accent);font:900 11px/1 var(--font);letter-spacing:.14em;text-transform:uppercase}
+.mm-hero-inner{width:min(1420px,100%);margin:0 auto;display:grid;grid-template-columns:1fr 1.05fr;gap:28px;align-items:center;padding:8px 0 16px}
+.mm-kicker{display:inline-flex;align-items:center;gap:8px;margin-bottom:12px;color:var(--accent);font:900 12px/1 var(--font);letter-spacing:.14em;text-transform:uppercase}
 .mm-kicker::before{content:"";width:8px;height:8px;border-radius:50%;background:#9a2430;box-shadow:0 0 0 3px rgba(154,36,48,.25)}
-.mm-hero h1{margin:0;max-width:14ch;font:900 clamp(1.9rem,3.6vw,2.8rem)/.98 var(--font);letter-spacing:-.04em;color:#fff}
+.mm-hero h1{margin:0;max-width:13ch;font:900 clamp(2.35rem,5vw,3.55rem)/.94 var(--font);letter-spacing:-.045em;color:#fff}
 .mm-hero h1 em{font-style:normal;color:var(--accent2)}
-.mm-hero .lead{margin:10px 0 0;max-width:46ch;color:#d2cbc1;font:500 14px/1.45 var(--font)}
-.mm-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:16px}
-.mm-hero-aside{position:relative;min-height:120px;border:1px solid var(--line);border-radius:12px;overflow:hidden;background:
+.mm-hero .lead{margin:14px 0 0;max-width:42ch;color:#d2cbc1;font:500 16px/1.5 var(--font)}
+.mm-actions{display:flex;flex-wrap:wrap;gap:10px;margin-top:18px}
+.mm-carousel{position:relative;border-radius:16px;overflow:hidden;border:1px solid var(--line);background:#14110f;aspect-ratio:5/4;min-height:280px;box-shadow:0 24px 60px rgba(0,0,0,.35)}
+.mm-carousel-track{display:flex;height:100%;width:100%;transition:transform .85s cubic-bezier(.22,.61,.36,1)}
+.mm-carousel-slide{position:relative;min-width:100%;height:100%;flex:0 0 100%}
+.mm-carousel-slide img{width:100%;height:100%;object-fit:cover;display:block;filter:saturate(1.05) contrast(1.04)}
+.mm-carousel-slide::after{content:"";position:absolute;inset:0;background:linear-gradient(180deg,transparent 42%,rgba(8,7,6,.78))}
+.mm-carousel-meta{position:absolute;left:0;right:0;bottom:0;z-index:2;padding:22px 24px;display:flex;justify-content:space-between;align-items:end;gap:12px}
+.mm-carousel-meta strong{display:block;font:800 1.05rem/1.15 var(--font);letter-spacing:-.02em;color:#fff;max-width:28ch}
+.mm-carousel-meta span{display:block;margin-top:4px;font:700 12px/1 var(--font);letter-spacing:.08em;text-transform:uppercase;color:var(--accent2)}
+.mm-carousel-dots{position:absolute;top:16px;right:16px;z-index:3;display:flex;gap:6px}
+.mm-carousel-dots button{width:8px;height:8px;border-radius:99px;border:0;padding:0;background:rgba(255,255,255,.35);cursor:pointer}
+.mm-carousel-dots button.is-on{background:var(--accent2);width:22px}
+.mm-carousel-empty{display:grid;place-items:end start;height:100%;padding:24px;background:
   radial-gradient(circle at 30% 40%, rgba(230,196,138,.2), transparent 42%),
   radial-gradient(circle at 78% 30%, rgba(154,36,48,.32), transparent 46%),
-  linear-gradient(145deg,#1a221c,#140f0e 55%,#1f1412);display:flex;align-items:flex-end;padding:18px}
-.mm-hero-aside strong{font:900 1.35rem/1.05 var(--font);letter-spacing:-.03em;color:#fff;max-width:12ch}
-.mm-hero-aside span{display:block;margin-top:6px;font:600 12px/1.35 var(--font);color:var(--muted)}
+  linear-gradient(145deg,#1a221c,#140f0e 55%,#1f1412)}
+.mm-carousel-empty strong{font:900 1.5rem/1.05 var(--font);color:#fff}
 .mm-lights{display:flex;justify-content:space-between;gap:6px;padding:8px var(--pad) 0;max-width:1420px;margin:0 auto}
 .mm-lights i{flex:1;height:3px;border-radius:99px;background:linear-gradient(90deg,transparent,#9a2430,var(--accent2),#2f5a48,transparent);opacity:.55;animation:twinkle 2.8s ease-in-out infinite}
 .mm-lights i:nth-child(2){animation-delay:.4s;opacity:.7}
@@ -44,35 +54,17 @@ ${LAYOUT_CSS}
 .mm-lights i:nth-child(4){animation-delay:1.3s;opacity:.65}
 @keyframes twinkle{0%,100%{filter:brightness(.7)}50%{filter:brightness(1.35)}}
 .mm-snow{position:fixed;inset:0;pointer-events:none;z-index:35;overflow:hidden}
-.mm-snow i{position:absolute;top:-8%;border-radius:50%;background:rgba(255,255,255,.88);box-shadow:0 0 6px rgba(255,255,255,.35);animation:snowFall linear infinite;opacity:.75}
-.mm-snow i:nth-child(odd){background:rgba(246,240,230,.9)}
-.mm-snow i:nth-child(1){left:4%;width:3px;height:3px;animation-duration:9s;animation-delay:-1s}
-.mm-snow i:nth-child(2){left:11%;width:5px;height:5px;animation-duration:13s;animation-delay:-4s}
-.mm-snow i:nth-child(3){left:18%;width:2px;height:2px;animation-duration:8s;animation-delay:-2s}
-.mm-snow i:nth-child(4){left:26%;width:4px;height:4px;animation-duration:12s;animation-delay:-6s}
-.mm-snow i:nth-child(5){left:33%;width:3px;height:3px;animation-duration:10s;animation-delay:-3s}
-.mm-snow i:nth-child(6){left:41%;width:6px;height:6px;animation-duration:15s;animation-delay:-8s}
-.mm-snow i:nth-child(7){left:48%;width:2px;height:2px;animation-duration:9s;animation-delay:-1.5s}
-.mm-snow i:nth-child(8){left:55%;width:4px;height:4px;animation-duration:11s;animation-delay:-5s}
-.mm-snow i:nth-child(9){left:62%;width:3px;height:3px;animation-duration:14s;animation-delay:-7s}
-.mm-snow i:nth-child(10){left:69%;width:5px;height:5px;animation-duration:12s;animation-delay:-2.5s}
-.mm-snow i:nth-child(11){left:76%;width:2px;height:2px;animation-duration:8.5s;animation-delay:-4.5s}
-.mm-snow i:nth-child(12){left:83%;width:4px;height:4px;animation-duration:13.5s;animation-delay:-9s}
-.mm-snow i:nth-child(13){left:90%;width:3px;height:3px;animation-duration:10.5s;animation-delay:-3.5s}
-.mm-snow i:nth-child(14){left:96%;width:5px;height:5px;animation-duration:16s;animation-delay:-6.5s}
-.mm-snow i:nth-child(15){left:8%;width:2px;height:2px;animation-duration:11.5s;animation-delay:-10s}
-.mm-snow i:nth-child(16){left:22%;width:3px;height:3px;animation-duration:9.5s;animation-delay:-7.5s}
-.mm-snow i:nth-child(17){left:37%;width:4px;height:4px;animation-duration:14.5s;animation-delay:-1.2s}
-.mm-snow i:nth-child(18){left:58%;width:2px;height:2px;animation-duration:8.2s;animation-delay:-5.8s}
-.mm-snow i:nth-child(19){left:72%;width:6px;height:6px;animation-duration:17s;animation-delay:-11s}
-.mm-snow i:nth-child(20){left:87%;width:3px;height:3px;animation-duration:12.8s;animation-delay:-4.1s}
+.mm-snow i{position:absolute;top:-10%;border-radius:50%;background:#fff;box-shadow:0 0 8px rgba(255,255,255,.55);animation:snowFall linear infinite;opacity:.85}
+.mm-snow i:nth-child(3n){background:rgba(246,240,230,.95)}
+.mm-snow i:nth-child(4n){width:3px;height:3px}
+.mm-snow i:nth-child(5n){width:6px;height:6px;opacity:.7}
 @keyframes snowFall{
-  0%{transform:translate3d(0,-4vh,0) rotate(0deg);opacity:0}
-  8%{opacity:.85}
-  100%{transform:translate3d(28px,110vh,0) rotate(180deg);opacity:.15}
+  0%{transform:translate3d(0,-6vh,0) rotate(0deg);opacity:0}
+  6%{opacity:.9}
+  100%{transform:translate3d(42px,112vh,0) rotate(220deg);opacity:.12}
 }
 @media (prefers-reduced-motion:reduce){
-  .mm-snow i,.nav-snowman{animation:none!important}
+  .mm-snow i,.nav-snowman,.mm-carousel-track{animation:none!important;transition:none!important}
 }
 .mm-section{padding:18px var(--pad) 28px}
 .mm-section-inner{width:min(1420px,100%);margin:0 auto}
@@ -96,7 +88,7 @@ ${LAYOUT_CSS}
   radial-gradient(circle at 70% 60%, rgba(154,36,48,.35), transparent 45%),
   linear-gradient(145deg,#1a221c,#140f0e 55%,#1f1412)}
 .mm-band-img::before{content:"";position:absolute;inset:18px auto auto 18px;width:54px;height:54px;border-radius:50%;border:2px solid rgba(230,196,138,.35);box-shadow:inset 0 0 0 8px rgba(31,61,50,.35)}
-.mm-band-img::after{content:"✦  Fêtes";position:absolute;inset:auto 22px 22px auto;font:900 1.5rem/1 var(--font);letter-spacing:-.03em;color:rgba(246,240,230,.22)}
+.mm-band-img::after{content:"✦  Holiday";position:absolute;inset:auto 22px 22px auto;font:900 1.5rem/1 var(--font);letter-spacing:-.03em;color:rgba(246,240,230,.22)}
 .mm-benefits{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;padding:22px var(--pad);border-top:1px solid var(--line);border-bottom:1px solid var(--line);background:#0c0b0a;margin-top:28px}
 .mm-benefit strong{display:block;font:800 13px/1.2 var(--font);margin-bottom:6px;color:#fff}
 .mm-benefit span{display:block;font:500 12px/1.45 var(--font);color:var(--muted)}
@@ -114,7 +106,7 @@ ${LAYOUT_CSS}
 @media(max-width:1100px){.mm-products{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(max-width:980px){
   .mm-hero-inner{grid-template-columns:1fr}
-  .mm-hero-aside{min-height:96px}
+  .mm-carousel{min-height:240px}
   .mm-cats,.mm-products{grid-template-columns:repeat(2,minmax(0,1fr))}
   .mm-band,.mm-stories,.mm-news{grid-template-columns:1fr}
   .mm-benefits{grid-template-columns:1fr 1fr}
@@ -125,17 +117,62 @@ ${LAYOUT_CSS}
 }
 `;
 
+function heroCarouselHtml(products) {
+  const slides = (products || [])
+    .filter((p) => p?.image_url || (Array.isArray(p?.images) && p.images[0]))
+    .slice(0, 8);
+  if (!slides.length) {
+    return `<div class="mm-carousel" aria-label="Holiday edit">
+      <div class="mm-carousel-empty"><div><strong>Holiday arrivals</strong><span class="muted" style="display:block;margin-top:6px">Garlands · glow · table objects</span></div></div>
+    </div>`;
+  }
+  const track = slides
+    .map((p, i) => {
+      const img = esc(p.image_url || p.images?.[0] || '');
+      const href = `/products/${encodeURIComponent(p.slug || '')}`;
+      const price = Number(p.retail_price_eur || 0);
+      return `<a class="mm-carousel-slide" href="${href}" data-slide="${i}" aria-label="${esc(p.name || 'Product')}">
+        <img src="${img}" alt="${esc(p.name || '')}" loading="${i === 0 ? 'eager' : 'lazy'}">
+        <div class="mm-carousel-meta">
+          <div>
+            <strong>${esc(p.name || 'Holiday piece')}</strong>
+            <span>${price > 0 ? `€${price.toFixed(2)}` : 'Shop now'}</span>
+          </div>
+        </div>
+      </a>`;
+    })
+    .join('');
+  const dots = slides
+    .map((_, i) => `<button type="button" data-dot="${i}" aria-label="Slide ${i + 1}"${i === 0 ? ' class="is-on"' : ''}></button>`)
+    .join('');
+  return `<div class="mm-carousel" id="heroCarousel" aria-roledescription="carousel" aria-label="Featured holiday products">
+    <div class="mm-carousel-track" id="heroTrack">${track}</div>
+    <div class="mm-carousel-dots" id="heroDots">${dots}</div>
+  </div>`;
+}
+
+function snowFlakesHtml(count = 56) {
+  return Array.from({ length: count }, (_, i) => {
+    const left = ((i * 17) % 100) + (i % 7) * 0.3;
+    const size = 2 + (i % 5);
+    const dur = 7 + (i % 11);
+    const delay = -((i * 0.73) % 14);
+    const drift = 18 + (i % 40);
+    return `<i style="left:${left.toFixed(1)}%;width:${size}px;height:${size}px;animation-duration:${dur}s;animation-delay:${delay.toFixed(1)}s;--drift:${drift}px"></i>`;
+  }).join('');
+}
+
 export async function homePage(env) {
-  let featuredHtml = '';
+  let products = [];
   try {
-    const products = await getLiveProducts(env, 10);
-    featuredHtml = products.map(productCard).join('');
+    products = await getLiveProducts(env, 12);
   } catch {
-    featuredHtml = '';
+    products = [];
   }
-  if (!featuredHtml) {
-    featuredHtml = `<p class="empty">Holiday pieces are arriving.</p>`;
-  }
+  const featuredHtml = products.length
+    ? products.slice(0, 10).map(productCard).join('')
+    : `<p class="empty">Holiday pieces are arriving.</p>`;
+  const carouselHtml = heroCarouselHtml(products);
 
   const homeTitle = 'Maison Marnier — Holiday Home Edit';
   const homeDescription =
@@ -159,7 +196,14 @@ ${seoHeadHtml({
 })}
 ${jsonLdScript(organizationWebsiteJsonLd())}
 ${fontLinksHtml()}
-<style>${HOME_CSS}</style>
+<style>${HOME_CSS}
+.mm-snow i{--drift:28px}
+@keyframes snowFall{
+  0%{transform:translate3d(0,-6vh,0) rotate(0deg);opacity:0}
+  6%{opacity:.92}
+  100%{transform:translate3d(var(--drift),112vh,0) rotate(220deg);opacity:.1}
+}
+</style>
 </head>
 <body>
 ${gtmNoscriptHtml()}
@@ -168,7 +212,7 @@ ${gtmNoscriptHtml()}
 <header class="site-nav">
   <a class="brand" href="/" aria-label="Maison Marnier home">${brandLogoHtml()}</a>
   <nav class="links">
-    <a href="/collections/seasonal">Fêtes</a>
+    <a href="/collections/seasonal">Holiday</a>
     <a href="/collections/new">New</a>
     <a href="/collections/lighting">Lighting</a>
     <a href="/collections/objects">Objects</a>
@@ -180,26 +224,21 @@ ${gtmNoscriptHtml()}
   </div>
 </header>
 <div class="mm-lights" aria-hidden="true"><i></i><i></i><i></i><i></i></div>
-<div class="mm-snow" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i><i></i></div>
+<div class="mm-snow" aria-hidden="true">${snowFlakesHtml(56)}</div>
 
 <main class="home-main">
   <section class="mm-hero">
     <div class="mm-hero-inner">
       <div>
         <span class="mm-kicker">Maison Marnier · Holiday 2026</span>
-        <h1>Light the <em>maison</em> for the fêtes</h1>
+        <h1>Light the <em>home</em> for the holidays</h1>
         <p class="lead">Ornaments, warm lights and festive objects — real supplier photos, ready for quieter holiday rooms.</p>
         <div class="mm-actions">
           <a class="btn" href="/collections/seasonal">Shop the holiday edit</a>
           <a class="btn btn-ghost" href="#featured">See arrivals</a>
         </div>
       </div>
-      <aside class="mm-hero-aside">
-        <div>
-          <strong>Noël chez vous</strong>
-          <span>Garlands · glow · table objects</span>
-        </div>
-      </aside>
+      ${carouselHtml}
     </div>
   </section>
 
@@ -211,7 +250,7 @@ ${gtmNoscriptHtml()}
       </div>
       <div class="mm-products grid">${featuredHtml}</div>
       <div class="mm-cats" style="margin-top:22px">
-        <a class="mm-cat" href="/collections/seasonal"><span>Fêtes</span></a>
+        <a class="mm-cat" href="/collections/seasonal"><span>Holiday</span></a>
         <a class="mm-cat" href="/collections/lighting"><span>Glow &amp; lights</span></a>
         <a class="mm-cat" href="/collections/candles"><span>Candles</span></a>
         <a class="mm-cat" href="/collections/objects"><span>Objects</span></a>
@@ -224,9 +263,9 @@ ${gtmNoscriptHtml()}
       <span class="mm-kicker">Seasonal edit</span>
       <h2>Warm rooms for the holidays</h2>
       <p>Garlands, stockings, table light and small festive objects — collected, not cluttered.</p>
-      <div class="mm-actions"><a class="btn" href="/collections/seasonal">Shop Fêtes</a></div>
+      <div class="mm-actions"><a class="btn" href="/collections/seasonal">Shop holiday</a></div>
     </div>
-    <div class="mm-band-img" role="img" aria-label="Holiday maison atmosphere"></div>
+    <div class="mm-band-img" role="img" aria-label="Holiday home atmosphere"></div>
   </section>
 
   <div class="mm-benefits">
@@ -247,7 +286,7 @@ ${gtmNoscriptHtml()}
 
   <section class="mm-news">
     <div>
-      <h2>Stay close to the maison</h2>
+      <h2>Stay close to Maison Marnier</h2>
       <p>Holiday drops and seasonal notes — occasionally, not constantly.</p>
     </div>
     <form class="mm-form" id="form">
@@ -260,9 +299,9 @@ ${gtmNoscriptHtml()}
 <footer class="site-footer">
   <div class="footer-grid">
     <div><a class="brand" href="/" aria-label="Maison Marnier">${brandLogoHtml()}</a><p class="muted" style="margin-top:12px;max-width:34ch">Holiday edits for warm rooms — festive objects chosen with quiet care.</p></div>
-    <div><h4>Shop</h4><a href="/collections/seasonal">Fêtes</a><a href="/collections/new">New Arrivals</a><a href="/collections/lighting">Lighting</a></div>
-    <div><h4>About</h4><a href="/about">Our Story</a><a href="/journal">Journal</a><a href="/sourcing">Sourcing</a></div>
-    <div><h4>Help</h4><a href="/shipping">Shipping</a><a href="/returns">Returns</a><a href="/contact">Contact</a></div>
+    <div><h4>Shop</h4><a href="/collections/seasonal">Holiday</a><a href="/collections/new">New Arrivals</a><a href="/collections/lighting">Lighting</a></div>
+    <div><h4>About</h4><a href="/about">Our Story</a><a href="/journal">Journal</a><a href="/sourcing">Sourcing</a><a href="https://www.instagram.com/maison.marnier/" target="_blank" rel="noopener noreferrer">Instagram</a></div>
+    <div><h4>Help</h4><a href="/shipping">Shipping</a><a href="/returns">Returns</a><a href="/contact">Contact</a><a href="/instagram">Link hub</a></div>
   </div>
   <div class="bottom"><span>© 2026 Maison Marnier.</span><span>Europe · EUR €</span></div>
 </footer>
@@ -275,6 +314,23 @@ document.getElementById('form').onsubmit=e=>{e.preventDefault();toast('Thanks �
   function count(){try{return (JSON.parse(localStorage.getItem('mm_cart')||'[]')||[]).reduce((s,i)=>s+Number(i.qty||1),0)}catch(e){return 0}}
   function paint(){const el=document.getElementById('cartCount'); if(!el)return; const n=count(); el.textContent=n?('('+n+')'):'';}
   paint(); window.addEventListener('mm-cart',paint);
+})();
+(function(){
+  const track=document.getElementById('heroTrack');
+  const dots=document.getElementById('heroDots');
+  if(!track||!dots) return;
+  const slides=[...track.children];
+  if(slides.length<2) return;
+  let i=0;
+  const paint=()=>{
+    track.style.transform='translateX('+(-i*100)+'%)';
+    [...dots.children].forEach((d,idx)=>d.classList.toggle('is-on', idx===i));
+  };
+  dots.addEventListener('click',e=>{
+    const b=e.target.closest('[data-dot]'); if(!b) return;
+    i=Number(b.dataset.dot)||0; paint();
+  });
+  setInterval(()=>{ i=(i+1)%slides.length; paint(); }, 4200);
 })();
 </script>
 </body>

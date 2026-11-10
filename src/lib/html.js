@@ -18,7 +18,7 @@ export function gtmNoscriptHtml() {
 }
 
 const NAV = [
-  ['Fêtes', '/collections/seasonal'],
+  ['Holiday', '/collections/seasonal'],
   ['New', '/collections/new'],
   ['Lighting', '/collections/lighting'],
   ['Objects', '/collections/objects'],
@@ -30,23 +30,35 @@ function navHtml() {
   return NAV.map(([label, href]) => `<a href="${href}">${esc(label)}</a>`).join('');
 }
 
-/** Cute snowman mark — sits beside the cart control. */
+/** Festive snowman beside cart — Santa hat, scarf, holly. */
 export function snowmanHtml() {
-  return `<svg class="nav-snowman" viewBox="0 0 40 46" width="34" height="38" aria-hidden="true" focusable="false">
-  <ellipse cx="20" cy="43.2" rx="12" ry="2.2" fill="rgba(246,240,230,.18)"/>
-  <circle cx="20" cy="31" r="9.2" fill="#f4efe6"/>
-  <circle cx="20" cy="16.5" r="6.4" fill="#f7f2ea"/>
-  <circle cx="18" cy="15.4" r="0.85" fill="#1a1410"/>
-  <circle cx="22.2" cy="15.4" r="0.85" fill="#1a1410"/>
-  <path d="M18.2 17.6h3.8l-1.9 2.4z" fill="#c46a2d"/>
-  <path d="M12.5 20.2c2.2 1.4 12.8 1.4 15 0" fill="none" stroke="#9a2430" stroke-width="2.2" stroke-linecap="round"/>
-  <rect x="14.2" y="8.2" width="11.6" height="3.2" rx="1" fill="#1f1712"/>
-  <rect x="16.4" y="3.4" width="7.2" height="5.4" rx="1.2" fill="#1f1712"/>
-  <circle cx="20" cy="27.2" r="0.9" fill="#1f1712"/>
-  <circle cx="20" cy="30.6" r="0.9" fill="#1f1712"/>
-  <circle cx="20" cy="34" r="0.9" fill="#1f1712"/>
-  <path d="M10.5 28.5c-3.2 1.2-4.8 3.8-4.2 5.2" fill="none" stroke="#c9a46a" stroke-width="1.5" stroke-linecap="round"/>
-  <path d="M29.5 28.5c3.2 1.2 4.8 3.8 4.2 5.2" fill="none" stroke="#c9a46a" stroke-width="1.5" stroke-linecap="round"/>
+  return `<svg class="nav-snowman" viewBox="0 0 72 86" width="58" height="70" aria-hidden="true" focusable="false">
+  <ellipse cx="36" cy="81" rx="22" ry="3.2" fill="rgba(246,240,230,.2)"/>
+  <circle cx="36" cy="58" r="17.5" fill="#f7f2ea"/>
+  <circle cx="36" cy="32" r="12.2" fill="#faf6f0"/>
+  <circle cx="31.4" cy="30.2" r="1.55" fill="#1a1410"/>
+  <circle cx="40.8" cy="30.2" r="1.55" fill="#1a1410"/>
+  <circle cx="28.6" cy="34.2" r="2.1" fill="#f0b3b0" opacity=".9"/>
+  <circle cx="43.6" cy="34.2" r="2.1" fill="#f0b3b0" opacity=".9"/>
+  <path d="M33.2 33.4h6.2l-3.1 4.4z" fill="#e07a2f"/>
+  <path d="M30.8 38.4c1.6 1.5 8.6 1.5 10.2 0" fill="none" stroke="#1a1410" stroke-width="1.4" stroke-linecap="round"/>
+  <g class="santa-hat">
+    <path d="M20 22c3.5-14 18-18 28-10 4 3.2 7 7.8 7.6 12.2l-10.5-2.2c-6.2-1.3-12.4.4-17.4 3.6L20 22Z" fill="#9a2430"/>
+    <path d="M18.2 24.8c6.4-5.2 16.8-7.2 26.2-4.4 5.4 1.6 9.8 4.4 12.4 7.6.5.6.1 1.5-.7 1.5-7.4.4-16 .2-24.2-2.2-4.4-1.3-8.4-3.2-12.2-5.4-.5-.3-.7-1.1-.1-1.5Z" fill="#f4efe6"/>
+    <circle cx="50.5" cy="14.2" r="5.2" fill="#f4efe6"/>
+    <circle cx="50.5" cy="14.2" r="2" fill="#c9a46a" opacity=".5"/>
+  </g>
+  <path d="M22 42c4 4 24 4 28 0 1.2 3.4-1.2 7.2-5.2 8.2l-2.4 10.4c-1.4.4-3.2.6-4.4.6-1.2 0-3-.2-4.4-.6L31.2 50.2C27.2 49.2 24.8 45.4 22 42Z" fill="#9a2430"/>
+  <path d="M31.4 50.4l2.2 11.2M40.6 50.4l-2.2 11.2" fill="none" stroke="#c9a46a" stroke-width="2.4"/>
+  <path d="M26 56h5M41 56h5" fill="none" stroke="#c9a46a" stroke-width="2.2" stroke-linecap="round"/>
+  <circle cx="36" cy="52" r="1.5" fill="#1a1410"/>
+  <circle cx="36" cy="58.5" r="1.5" fill="#1a1410"/>
+  <circle cx="36" cy="65" r="1.5" fill="#1a1410"/>
+  <path d="M18.5 52c-5.5 2.2-8.5 7-7.4 9.4" fill="none" stroke="#8b5a2b" stroke-width="2.2" stroke-linecap="round"/>
+  <path d="M53.5 52c5.5 2.2 8.5 7 7.4 9.4" fill="none" stroke="#8b5a2b" stroke-width="2.2" stroke-linecap="round"/>
+  <circle cx="24.2" cy="20.5" r="2.1" fill="#1f3d32"/>
+  <circle cx="27.4" cy="18.8" r="2.1" fill="#2f5a48"/>
+  <circle cx="22.2" cy="18.2" r="1.7" fill="#9a2430"/>
 </svg>`;
 }
 
@@ -79,7 +91,7 @@ export const LAYOUT_CSS = `
   --bg:#100e0c;--panel:#171411;--panel2:#211c17;--ink:#f6f0e6;--muted:#b3a89a;
   --line:#342c24;--accent:#c9a46a;--accent2:#e6c48a;--soft:#ddd3c5;
   --festive:#7a1f28;--pine:#1f3d32;--pine2:#2f5a48;
-  --pad:clamp(18px,4vw,56px);--max:1420px;--nav-h:78px;
+  --pad:clamp(18px,4vw,56px);--max:1420px;--nav-h:92px;
   --font:"Hanken Grotesk",system-ui,-apple-system,sans-serif;
 }
 *{box-sizing:border-box}
@@ -92,27 +104,28 @@ body{margin:0;background:
 a{color:inherit;text-decoration:none}
 img{max-width:100%;display:block}
 .announce{background:linear-gradient(90deg,#1a0f10,#0c0b0a 40%,#122019);color:var(--soft);text-align:center;font:700 11px/1 var(--font);letter-spacing:.14em;text-transform:uppercase;padding:12px 16px;border-bottom:1px solid var(--line)}
-.site-nav{display:grid;grid-template-columns:minmax(200px,280px) 1fr auto;align-items:center;gap:24px;min-height:var(--nav-h);padding:0 var(--pad);border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(16,14,12,.94);backdrop-filter:blur(14px);z-index:40}
-.brand,.brand-lockup{display:inline-flex;align-items:center;gap:12px;color:#fff;text-decoration:none}
-.brand-mark{color:var(--accent2);flex:0 0 auto;overflow:visible;filter:drop-shadow(0 0 10px rgba(201,164,106,.18))}
+.site-nav{display:grid;grid-template-columns:minmax(240px,320px) 1fr auto;align-items:center;gap:28px;min-height:var(--nav-h);padding:0 var(--pad);border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(16,14,12,.94);backdrop-filter:blur(14px);z-index:40}
+.brand,.brand-lockup{display:inline-flex;align-items:center;gap:14px;color:#fff;text-decoration:none}
+.brand-mark{color:var(--accent2);flex:0 0 auto;overflow:visible;filter:drop-shadow(0 0 10px rgba(201,164,106,.18));width:42px;height:50px}
 .brand-mark .santa-hat{transform-origin:28px 12px;animation:hatTip 4.8s ease-in-out infinite}
 @keyframes hatTip{0%,100%{transform:rotate(0deg)}45%{transform:rotate(-4deg)}70%{transform:rotate(2deg)}}
-.brand-text{font:900 14px/1 var(--font);letter-spacing:.2em;text-transform:uppercase;color:#fff}
+.brand-text{font:900 17px/1 var(--font);letter-spacing:.18em;text-transform:uppercase;color:#fff}
 .brand-text span,.brand span{color:var(--accent)}
-.brand-lockup.is-compact .brand-text{font-size:13px;letter-spacing:.16em}
+.brand-lockup.is-compact .brand-text{font-size:15px;letter-spacing:.14em}
 .xmas-garland{display:flex;justify-content:center;gap:10px;padding:6px var(--pad) 2px;pointer-events:none}
 .xmas-garland span{width:7px;height:7px;border-radius:50%;background:var(--accent2);box-shadow:0 0 0 2px rgba(31,61,50,.55);opacity:.85;position:relative}
 .xmas-garland span:nth-child(odd){background:#9a2430;box-shadow:0 0 0 2px rgba(154,36,48,.35);transform:translateY(3px)}
 .xmas-garland span::after{content:"";position:absolute;left:50%;top:-5px;width:1px;height:5px;background:rgba(47,90,72,.7);transform:translateX(-50%)}
-.site-nav .links{display:flex;flex-wrap:wrap;justify-content:center;gap:22px}
-.site-nav .links a{color:var(--soft);font:700 13px/1 var(--font);letter-spacing:.02em;opacity:.9;transition:color .2s}
+.site-nav .links{display:flex;flex-wrap:wrap;justify-content:center;gap:28px}
+.site-nav .links a{color:var(--soft);font:800 15px/1 var(--font);letter-spacing:.04em;text-transform:uppercase;opacity:.95;transition:color .2s}
 .site-nav .links a:hover{color:var(--accent2)}
-.tools{display:flex;gap:10px;align-items:center;justify-content:flex-end}
-.tools .search{width:150px;padding:11px 12px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:600 12px/1.2 var(--font);border-radius:6px}
-.cart-wrap{display:inline-flex;align-items:center;gap:8px}
-.nav-snowman{width:34px;height:38px;flex:0 0 auto;filter:drop-shadow(0 2px 6px rgba(0,0,0,.35));animation:snowmanBob 3.2s ease-in-out infinite;transform-origin:50% 100%}
-@keyframes snowmanBob{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-2px) rotate(-3deg)}}
-.cart-link{display:inline-flex;align-items:center;gap:6px;padding:11px 14px;border:1px solid var(--accent);border-radius:6px;font:800 11px/1 var(--font);letter-spacing:.08em;text-transform:uppercase;color:#fff;background:transparent}
+.tools{display:flex;gap:12px;align-items:center;justify-content:flex-end}
+.tools .search{width:150px;padding:12px 14px;border:1px solid var(--line);background:var(--panel);color:var(--ink);font:600 13px/1.2 var(--font);border-radius:6px}
+.cart-wrap{display:inline-flex;align-items:center;gap:10px}
+.nav-snowman{width:58px;height:70px;flex:0 0 auto;filter:drop-shadow(0 4px 10px rgba(0,0,0,.4));animation:snowmanBob 3.2s ease-in-out infinite;transform-origin:50% 100%}
+.nav-snowman .santa-hat{transform-origin:36px 18px;animation:hatTip 4.2s ease-in-out infinite}
+@keyframes snowmanBob{0%,100%{transform:translateY(0) rotate(0)}50%{transform:translateY(-3px) rotate(-4deg)}}
+.cart-link{display:inline-flex;align-items:center;gap:6px;padding:13px 16px;border:1px solid var(--accent);border-radius:6px;font:800 12px/1 var(--font);letter-spacing:.1em;text-transform:uppercase;color:#fff;background:transparent}
 .cart-link:hover{background:rgba(201,164,106,.12)}
 .wrap{max-width:var(--max);margin:auto;padding:0 var(--pad) 56px}
 .crumbs{display:flex;flex-wrap:wrap;gap:8px;align-items:center;padding:22px 0 0;font:700 11px/1 var(--font);letter-spacing:.1em;text-transform:uppercase;color:var(--muted)}
@@ -241,7 +254,7 @@ function footerHtml() {
   return `<footer class="site-footer">
   <div class="footer-grid">
     <div><a class="brand" href="/" aria-label="Maison Marnier">${brandLogoHtml()}</a><p class="muted" style="margin-top:12px;max-width:34ch">Holiday edits for warm rooms — festive objects chosen with quiet care.</p></div>
-    <div><h4>Shop</h4><a href="/collections/seasonal">Fêtes</a><a href="/collections/new">New Arrivals</a><a href="/collections/lighting">Lighting</a></div>
+    <div><h4>Shop</h4><a href="/collections/seasonal">Holiday</a><a href="/collections/new">New Arrivals</a><a href="/collections/lighting">Lighting</a></div>
     <div><h4>About</h4><a href="/about">Our Story</a><a href="/journal">Journal</a><a href="/sourcing">Sourcing</a><a href="https://www.instagram.com/maison.marnier/" target="_blank" rel="noopener noreferrer">Instagram</a></div>
     <div><h4>Help</h4><a href="/shipping">Shipping</a><a href="/returns">Returns</a><a href="/contact">Contact</a><a href="/instagram">Link hub</a></div>
   </div>

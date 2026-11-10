@@ -22,7 +22,7 @@ const PAGE_CSS = `
 `;
 
 const LINKS = [
-  { href: '/collections/seasonal', label: 'Shop Fêtes', primary: true },
+  { href: '/collections/seasonal', label: 'Shop Holiday', primary: true },
   { href: '/collections/new', label: 'New arrivals' },
   { href: '/journal', label: 'Journal' },
   { href: '/contact', label: 'Contact' },
