@@ -49,6 +49,7 @@ export function organizationWebsiteJsonLd() {
         logo: DEFAULT_OG_IMAGE,
         email: 'hello@maisonmarnier.com',
         areaServed: 'EU',
+        sameAs: ['https://www.instagram.com/maison.marnier/'],
       },
       {
         '@type': 'WebSite',

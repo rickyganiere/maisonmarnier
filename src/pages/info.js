@@ -12,7 +12,7 @@ const PAGES = {
   ],
   contact: [
     'Contact',
-    'Questions about a piece, an order, or collaboration?\n\nEmail hello@maisonmarnier.com and we will reply within two business days.',
+    'Questions about a piece, an order, or collaboration?\n\nEmail hello@maisonmarnier.com and we will reply within two business days.\n\nFor social and collabs, find us on Instagram @maison.marnier.',
   ],
   sourcing: [
     'Sourcing',
@@ -20,7 +20,7 @@ const PAGES = {
   ],
   about: [
     'About Maison Marnier',
-    'Maison Marnier is a curated home edit for calm, considered everyday spaces — natural materials, soft light, and objects worth keeping.\n\nThe maison is based in Europe and publishes in EUR. Payments are processed securely by Stripe.',
+    'Maison Marnier is a curated home edit for calm, considered everyday spaces — natural materials, soft light, and objects worth keeping.\n\nFollow the maison on Instagram @maison.marnier for holiday rooms, new pieces, and quiet fêtes.\n\nThe maison is based in Europe and publishes in EUR. Payments are processed securely by Stripe.',
   ],
 };
 

@@ -2,7 +2,15 @@ import { COLLECTION_RULES } from './collection.js';
 import { isStorefrontListable } from '../lib/images.js';
 import { SITE_ORIGIN, escXml, formatLastmod } from '../lib/seo.js';
 
-const INFO_PATHS = ['/about', '/shipping', '/returns', '/contact', '/sourcing', '/journal'];
+const INFO_PATHS = [
+  '/about',
+  '/shipping',
+  '/returns',
+  '/contact',
+  '/sourcing',
+  '/journal',
+  '/instagram',
+];
 const PRODUCT_CAP = 4500;
 const JOURNAL_CAP = 200;
 
