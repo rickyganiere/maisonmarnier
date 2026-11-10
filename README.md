@@ -2,27 +2,31 @@
 
 Cloudflare Worker `lume-living-dev` serving [maisonmarnier.com](https://maisonmarnier.com).
 
-Deploy is automatic via **Cloudflare Workers Builds** on every push to `main` (`npx wrangler deploy`). Do not use GitHub Actions for deploy.
+Deploy is automatic via **Cloudflare Workers Builds** on every push to `main`. Set the Workers Builds **Deploy command** to `npm run deploy` so pending D1 migrations apply before the Worker ships. Do not use GitHub Actions for deploy.
+
+`wrangler deploy` alone does **not** apply D1 migrations. Account features (for example `/cuenta/registro`) fail with `no such table: customers` if a migration lands in git without a remote apply.
 
 ## Local development
 
 ```bash
 cp .dev.vars.example .dev.vars
 # fill secrets (see below)
-npx wrangler d1 migrations apply LUME_DB --local
-npx wrangler dev
+npm install
+npm run db:migrations:local
+npm run dev
 ```
 
-Apply D1 migrations to production (use with care):
+Apply D1 migrations to production (use with care), or deploy (migrations + Worker):
 
 ```bash
-npx wrangler d1 migrations apply LUME_DB --remote
+npm run db:migrations:remote
+npm run deploy
 ```
 
 Dry-run a production bundle:
 
 ```bash
-npx wrangler deploy --dry-run
+npm run deploy:dry-run
 ```
 
 ## Project layout
