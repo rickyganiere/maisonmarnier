@@ -152,24 +152,24 @@ ${LAYOUT_CSS}
 function heroCarouselHtml(products) {
   const slides = products.filter((p) => p.slug && (p.image_url || p.images?.[0])).slice(0, 5);
   if (!slides.length) {
-    return `<div class="mm-carousel"><div class="mm-carousel-empty"><strong>Holiday arrivals</strong></div></div>`;
+    return `<div class="mm-carousel"><div class="mm-carousel-empty"><strong>Novedades navideñas</strong></div></div>`;
   }
   const track = slides.map((p, i) => {
-    const name = esc(p.name || 'Holiday piece');
+    const name = esc(p.name || 'Pieza de temporada');
     const price = Number(p.retail_price_eur || 0);
     return `<a class="mm-carousel-slide" href="/products/${encodeURIComponent(p.slug)}">
       ${storefrontProductImage(p, { featured: i === 0, decorative: true })}
       <div class="mm-carousel-meta">
-        <span>${price > 0 ? `€${price.toFixed(2)}` : 'Shop now'}</span>
+        <span>${price > 0 ? `€${price.toFixed(2)}` : 'Comprar'}</span>
         <strong>${name}</strong>
       </div>
     </a>`;
   }).join('');
   const controls = slides.length > 1 ? `<div class="mm-carousel-controls">
-    <button type="button" data-step="-1" aria-label="Previous featured product" aria-controls="heroTrack">‹</button>
-    <button type="button" data-step="1" aria-label="Next featured product" aria-controls="heroTrack">›</button>
+    <button type="button" data-step="-1" aria-label="Producto destacado anterior" aria-controls="heroTrack">‹</button>
+    <button type="button" data-step="1" aria-label="Siguiente producto destacado" aria-controls="heroTrack">›</button>
   </div>` : '';
-  return `<section class="mm-carousel" id="heroCarousel" aria-roledescription="carousel" aria-label="Featured Christmas products">
+  return `<section class="mm-carousel" id="heroCarousel" aria-roledescription="carousel" aria-label="Productos navideños destacados">
     <div class="mm-carousel-track" id="heroTrack">${track}</div>
     ${controls}
   </section>`;
@@ -194,15 +194,15 @@ export async function homePage(env) {
   const products = [...new Map([...curated, ...latest].map((p) => [p.slug, p])).values()];
   const featuredHtml = products.length
     ? products.slice(0, 10).map(productCard).join('')
-    : `<p class="empty">Holiday pieces are arriving.</p>`;
+    : `<p class="empty">Las piezas navideñas están llegando.</p>`;
   const carouselHtml = heroCarouselHtml(curated.length ? curated : products);
 
-  const homeTitle = 'Maison Marnier — Holiday Home Edit';
+  const homeTitle = 'Maison Marnier — Edición hogar de Navidad';
   const homeDescription =
-    'Festive home decor for European interiors — ornaments, lights, candles and holiday objects curated by Maison Marnier.';
+    'Decoración festiva para interiores europeos — ornamentos, luces, velas y objetos de temporada seleccionados por Maison Marnier.';
 
   const html = `<!doctype html>
-<html lang="en">
+<html lang="es">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
@@ -230,11 +230,12 @@ ${storefrontHeaderHtml({ search: false })}
   <section class="mm-hero">
     <div class="mm-hero-inner">
       <div>
-        <span class="mm-kicker">The Christmas Edit</span>
-        <h1>Bring <em>Christmas</em> home</h1>
-        <p class="lead">Warm lights, festive décor and thoughtful details for Christmas at home.</p>
+        <span class="mm-kicker">La edición de Navidad</span>
+        <h1>Trae la <em>Navidad</em> a casa</h1>
+        <p class="lead">Luces cálidas, decoración festiva y detalles pensados para la Navidad en casa.</p>
         <div class="mm-actions">
-          <a class="btn" href="/collections/seasonal">Shop Christmas</a>
+          <a class="btn" href="/collections/seasonal">Comprar Navidad</a>
+          <a class="btn btn-ghost" href="/cuenta/registro">Crear cuenta</a>
         </div>
       </div>
       ${carouselHtml}
@@ -244,64 +245,64 @@ ${storefrontHeaderHtml({ search: false })}
   <section class="mm-section" id="featured">
     <div class="mm-section-inner">
       <div class="mm-section-head">
-        <h2>Holiday arrivals</h2>
-        <a href="/collections/new">View all arrivals →</a>
+        <h2>Novedades de temporada</h2>
+        <a href="/collections/new">Ver todas →</a>
       </div>
       <div class="mm-products grid">${featuredHtml}</div>
       <div class="mm-cats" style="margin-top:22px">
-        <a class="mm-cat" href="/collections/seasonal"><span>Holiday</span></a>
-        <a class="mm-cat" href="/collections/lighting"><span>Glow &amp; lights</span></a>
-        <a class="mm-cat" href="/collections/candles"><span>Candles</span></a>
-        <a class="mm-cat" href="/collections/objects"><span>Objects</span></a>
+        <a class="mm-cat" href="/collections/seasonal"><span>Navidad</span></a>
+        <a class="mm-cat" href="/collections/lighting"><span>Luz y brillo</span></a>
+        <a class="mm-cat" href="/collections/candles"><span>Velas</span></a>
+        <a class="mm-cat" href="/collections/objects"><span>Objetos</span></a>
       </div>
     </div>
   </section>
 
   <section class="mm-band" id="seasonal">
     <div class="mm-band-copy">
-      <span class="mm-kicker">Seasonal edit</span>
-      <h2>Warm rooms for the holidays</h2>
-      <p>Garlands, stockings, table light and small festive objects — collected, not cluttered.</p>
-      <div class="mm-actions"><a class="btn" href="/collections/seasonal">Shop holiday</a></div>
+      <span class="mm-kicker">Edición de temporada</span>
+      <h2>Hogares cálidos para las fiestas</h2>
+      <p>Guirnaldas, calcetines, luz de mesa y pequeños objetos festivos — reunidos, sin ruido visual.</p>
+      <div class="mm-actions"><a class="btn" href="/collections/seasonal">Comprar temporada</a></div>
     </div>
     <div class="mm-band-img">
-      <img src="${CHRISTMAS_SCENES.living}" alt="A Christmas living room with a lit tree, candles and a fireplace" width="900" height="606" loading="lazy" decoding="async">
+      <img src="${CHRISTMAS_SCENES.living}" alt="Salón navideño con árbol iluminado, velas y chimenea" width="900" height="606" loading="lazy" decoding="async">
     </div>
   </section>
 
   <div class="mm-benefits">
-    <div class="mm-benefit"><strong>EU shipping</strong><span>Partner fulfilment across Europe.</span></div>
-    <div class="mm-benefit"><strong>30-day returns</strong><span>Clear, simple and fair.</span></div>
-    <div class="mm-benefit"><strong>Real product photos</strong><span>Supplier galleries — not stock fillers.</span></div>
-    <div class="mm-benefit"><strong>Secure checkout</strong><span>Stripe · VAT calculated at payment.</span></div>
+    <div class="mm-benefit"><strong>Envíos UE</strong><span>Cumplimiento con socios en Europa.</span></div>
+    <div class="mm-benefit"><strong>Devoluciones 30 días</strong><span>Claras, sencillas y justas.</span></div>
+    <div class="mm-benefit"><strong>Fotos reales</strong><span>Galerías del proveedor, no relleno genérico.</span></div>
+    <div class="mm-benefit"><strong>Pago seguro</strong><span>Stripe · IVA calculado en el pago.</span></div>
   </div>
 
   <section class="mm-stories" id="journal">
     <a class="mm-story" href="/journal">
       <img src="${CHRISTMAS_SCENES.table}" alt="" width="900" height="606" loading="lazy" decoding="async">
-      <div><span class="mm-kicker">Journal</span><h3>A quieter Christmas table</h3><p>Light, linen and a few festive objects.</p></div>
+      <div><span class="mm-kicker">Diario</span><h3>Una mesa de Navidad más serena</h3><p>Luz, lino y unos pocos objetos festivos.</p></div>
     </a>
     <a class="mm-story" href="/collections/candles">
       <img src="${CHRISTMAS_SCENES.candlelight}" alt="" width="900" height="606" loading="lazy" decoding="async">
-      <div><span class="mm-kicker">Edit</span><h3>Glow for long evenings</h3><p>Candles and warm lamps after dinner.</p></div>
+      <div><span class="mm-kicker">Edición</span><h3>Brillo para noches largas</h3><p>Velas y lámparas cálidas después de cenar.</p></div>
     </a>
   </section>
 
   <section class="mm-news">
     <div>
-      <h2>Stay close to Maison Marnier</h2>
-      <p>Holiday drops and seasonal notes — occasionally, not constantly.</p>
+      <h2>Quédate cerca de Maison Marnier</h2>
+      <p>Novedades de temporada y notas ocasionales — sin ruido constante.</p>
     </div>
     <form class="mm-form" id="form">
-      <input required type="email" placeholder="Your email" aria-label="Email">
-      <button type="submit">Subscribe</button>
+      <input required type="email" placeholder="Tu correo" aria-label="Correo electrónico">
+      <button type="submit">Suscribirme</button>
     </form>
   </section>
 </main>
 
 ${storefrontFooterHtml()}
 <script>
-document.getElementById('form').onsubmit=e=>{e.preventDefault();toast('Thanks — welcome to Maison Marnier.');e.target.reset()};
+document.getElementById('form').onsubmit=e=>{e.preventDefault();toast('Gracias — bienvenida a Maison Marnier.');e.target.reset()};
 (function(){
   const carousel = document.getElementById('heroCarousel');
   const track = document.getElementById('heroTrack');

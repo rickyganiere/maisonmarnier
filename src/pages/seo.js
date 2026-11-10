@@ -8,8 +8,12 @@ const INFO_PATHS = [
   '/returns',
   '/contact',
   '/sourcing',
+  '/privacidad',
+  '/cookies',
+  '/terminos',
   '/journal',
   '/instagram',
+  '/cuenta/registro',
 ];
 const PRODUCT_CAP = 4500;
 const JOURNAL_CAP = 200;
@@ -44,6 +48,8 @@ Allow: /
 Disallow: /admin
 Disallow: /api/
 Disallow: /cart
+Disallow: /cuenta
+Disallow: /cuenta/entrar
 
 Sitemap: ${SITE_ORIGIN}/sitemap.xml
 Sitemap: ${SITE_ORIGIN}/sitemap_index.xml

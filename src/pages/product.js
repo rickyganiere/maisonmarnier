@@ -10,9 +10,9 @@ export async function productPage(url, env) {
     const p = await getLiveProductBySlug(env, slug);
     if (!p) {
       return htmlPage(
-        'Product not found',
-        `<div class="head"><h1>Product not found</h1></div>
-         <p class="empty">This piece is no longer available. <a href="/collections/new">See new arrivals →</a></p>`,
+        'Producto no encontrado',
+        `<div class="head"><h1>Producto no encontrado</h1></div>
+         <p class="empty">Esta pieza ya no está disponible. <a href="/collections/new">Ver novedades →</a></p>`,
         { status: 404 },
       );
     }
@@ -23,16 +23,16 @@ export async function productPage(url, env) {
     const savePct = onSale ? Math.round(((compareAt - retail) / compareAt) * 100) : 0;
     const priceBlock = `<div class="price-block">
       <span class="price-now">€${retail.toFixed(2)}</span>
-      ${onSale ? `<span class="price-was">€${compareAt.toFixed(2)}</span><span class="save">Save ${savePct}%</span>` : ''}
+      ${onSale ? `<span class="price-was">€${compareAt.toFixed(2)}</span><span class="save">Ahorra ${savePct}%</span>` : ''}
     </div>`;
 
     const stock = Number(p.stock || 0);
     const stockHint =
       stock <= 0
-        ? '<p class="stock-line">Currently unavailable.</p>'
+        ? '<p class="stock-line">No disponible en este momento.</p>'
         : stock <= 5
-          ? `<p class="stock-line">Limited stock · only ${stock} remaining with our partner warehouse.</p>`
-          : `<p class="stock-line">In stock · ships from partner warehouse.</p>`;
+          ? `<p class="stock-line">Stock limitado · solo quedan ${stock} en el almacén asociado.</p>`
+          : `<p class="stock-line">En stock · envío desde almacén asociado.</p>`;
 
     const relatedAll = await getLiveProducts(env, 48);
     const related = relatedAll
@@ -57,8 +57,8 @@ export async function productPage(url, env) {
     const relatedHtml = relatedFallback.length
       ? `<section class="related">
            <div class="related-head">
-             <h2>You may also like</h2>
-             <a class="view-all" href="${collectionHref}">View collection →</a>
+             <h2>También te puede gustar</h2>
+             <a class="view-all" href="${collectionHref}">Ver colección →</a>
            </div>
            <div class="grid">${relatedFallback.map(productCard).join('')}</div>
          </section>`
@@ -69,20 +69,20 @@ export async function productPage(url, env) {
     const mainImage = images[0] || '';
     const thumbs =
       images.length > 1
-        ? `<div class="product-thumbs" id="galleryThumbs" role="tablist" aria-label="Product images">
+        ? `<div class="product-thumbs" id="galleryThumbs" role="tablist" aria-label="Imágenes del producto">
             ${images
               .map(
                 (src, i) =>
-                  `<button type="button" class="${i === 0 ? 'is-active' : ''}" data-src="${esc(src)}" aria-label="Image ${i + 1}">
+                  `<button type="button" class="${i === 0 ? 'is-active' : ''}" data-src="${esc(src)}" aria-label="Imagen ${i + 1}">
                     <img src="${esc(src)}" alt="" loading="lazy">
                   </button>`,
               )
               .join('')}
           </div>`
         : '';
-    const body = `<nav class="crumbs" aria-label="Breadcrumb">
-        <a href="/">Home</a><span class="sep">/</span>
-        <a href="${collectionHref}">${esc(p.category || 'Shop')}</a><span class="sep">/</span>
+    const body = `<nav class="crumbs" aria-label="Miga de pan">
+        <a href="/">Inicio</a><span class="sep">/</span>
+        <a href="${collectionHref}">${esc(p.category || 'Tienda')}</a><span class="sep">/</span>
         <span>${esc(p.name || '')}</span>
       </nav>
       <div class="product">
@@ -104,26 +104,33 @@ export async function productPage(url, env) {
                   data-slug="${esc(p.slug || '')}"
                   data-name="${esc(p.name || '')}"
                   data-price="${retail}"
-                  data-image="${esc(mainImage)}">Add to cart</button>
-                 <a class="btn btn-ghost" href="/cart">View cart</a>`
-              : `<button class="btn is-disabled" type="button" disabled>Unavailable</button>`
+                  data-image="${esc(mainImage)}">Añadir al carrito</button>
+                 <button class="wish-btn" type="button" id="wishBtn" data-id="${p.id}">♡ Lista de deseos</button>
+                 <a class="btn btn-ghost" href="/cart">Ver carrito</a>`
+              : `<button class="btn is-disabled" type="button" disabled>No disponible</button>
+                 <button class="wish-btn" type="button" id="wishBtn" data-id="${p.id}">♡ Lista de deseos</button>`
           }
           </div>
           <p class="muted" style="margin-top:12px" id="addMsg"></p>
+          <div class="register-buy">
+            <strong>Regístrate para comprar y seguir pedidos</strong>
+            <p>Con cuenta puedes guardar esta pieza, ver el estado de envío y checkout más rápido.</p>
+            <a href="/cuenta/registro?next=/products/${encodeURIComponent(p.slug || '')}">Crear cuenta gratuita →</a>
+          </div>
           <section aria-labelledby="product-details-title">
-            <h2 id="product-details-title">Product details</h2>
-            <div class="desc" style="margin-top:8px">${esc(p.description || 'Thoughtfully selected for Maison Marnier.')}</div>
+            <h2 id="product-details-title">Detalles del producto</h2>
+            <div class="desc" style="margin-top:8px">${esc(p.description || 'Seleccionado con cuidado para Maison Marnier.')}</div>
           </section>
           <div class="specs">
-            <div><strong>Category</strong>${esc(p.category || 'Decor')}</div>
-            <div><strong>Shipping</strong>Europe · partner warehouse</div>
-            <div><strong>Returns</strong>30-day returns</div>
-            <div><strong>Checkout</strong>Stripe · VAT at payment</div>
+            <div><strong>Categoría</strong>${esc(p.category || 'Decoración')}</div>
+            <div><strong>Envío</strong>Europa · almacén asociado</div>
+            <div><strong>Devoluciones</strong>30 días</div>
+            <div><strong>Pago</strong>Stripe · IVA en el checkout</div>
           </div>
           <div class="trust">
-            <span><i>✓</i> Free shipping on orders over €100</span>
-            <span><i>✓</i> Secure Stripe checkout</span>
-            <span><i>✓</i> Partner fulfilment across Europe</span>
+            <span><i>✓</i> Envío gratis en pedidos superiores a 100 €</span>
+            <span><i>✓</i> Pago seguro con Stripe</span>
+            <span><i>✓</i> Cumplimiento con socios en Europa</span>
           </div>
         </div>
       </div>
@@ -142,19 +149,55 @@ export async function productPage(url, env) {
       if(cartBtn)cartBtn.dataset.image=btn.dataset.src;
     });
   }
-  const btn=document.getElementById('addCart'); if(!btn)return;
+  const btn=document.getElementById('addCart');
   const KEY='mm_cart';
   function load(){try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){return []}}
-  btn.onclick=()=>{
-    const item={id:Number(btn.dataset.id),slug:btn.dataset.slug,name:btn.dataset.name,price:Number(btn.dataset.price),image:btn.dataset.image,qty:1};
-    const cart=load();
-    const ex=cart.find(x=>x.id===item.id);
-    if(ex)ex.qty=Math.min(20,(ex.qty||1)+1); else cart.push(item);
-    localStorage.setItem(KEY,JSON.stringify(cart));
-    window.dispatchEvent(new Event('mm-cart'));
-    const m=document.getElementById('addMsg');
-    if(m){m.innerHTML='Added to cart. <a href="/cart">View cart →</a>';}
-    if(typeof toast==='function') toast('Added to cart');
+  if(btn){
+    btn.onclick=()=>{
+      const item={id:Number(btn.dataset.id),slug:btn.dataset.slug,name:btn.dataset.name,price:Number(btn.dataset.price),image:btn.dataset.image,qty:1};
+      const cart=load();
+      const ex=cart.find(x=>x.id===item.id);
+      if(ex)ex.qty=Math.min(20,(ex.qty||1)+1); else cart.push(item);
+      localStorage.setItem(KEY,JSON.stringify(cart));
+      window.dispatchEvent(new Event('mm-cart'));
+      const m=document.getElementById('addMsg');
+      if(m){m.innerHTML='Añadido al carrito. <a href="/cart">Ver carrito →</a>';}
+      if(typeof toast==='function') toast('Añadido al carrito');
+    };
+  }
+  const wish=document.getElementById('wishBtn');
+  if(!wish)return;
+  const pid=Number(wish.dataset.id);
+  async function refreshWish(){
+    try{
+      const r=await fetch('/api/account/wishlist',{credentials:'same-origin'});
+      const d=await r.json();
+      if(d&&d.ok&&Array.isArray(d.items)&&d.items.some(i=>Number(i.id)===pid)){
+        wish.classList.add('is-on'); wish.textContent='♥ En tu lista';
+      }
+    }catch(e){}
+  }
+  refreshWish();
+  wish.onclick=async()=>{
+    try{
+      const me=await fetch('/api/account/me',{credentials:'same-origin'}).then(r=>r.json());
+      if(!me||!me.ok){
+        location.href='/cuenta/registro?next='+encodeURIComponent(location.pathname);
+        return;
+      }
+      const on=wish.classList.contains('is-on');
+      const r=await fetch('/api/account/wishlist',{
+        method:on?'DELETE':'POST',
+        headers:{'content-type':'application/json'},
+        credentials:'same-origin',
+        body:JSON.stringify({productId:pid})
+      });
+      const d=await r.json();
+      if(!d.ok){if(typeof toast==='function')toast(d.error||'No se pudo actualizar');return}
+      wish.classList.toggle('is-on',!on);
+      wish.textContent=!on?'♥ En tu lista':'♡ Lista de deseos';
+      if(typeof toast==='function')toast(!on?'Guardado en deseos':'Quitado de deseos');
+    }catch(e){if(typeof toast==='function')toast('Error de red')}
   };
 })();
 </script>`;
@@ -170,6 +213,6 @@ export async function productPage(url, env) {
       cache: 'public, max-age=0, must-revalidate',
     });
   } catch {
-    return htmlPage('Product', '<p class="empty">Product error.</p>', { status: 500 });
+    return htmlPage('Producto', '<p class="empty">Error al cargar el producto.</p>', { status: 500 });
   }
 }
