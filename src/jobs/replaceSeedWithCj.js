@@ -1,5 +1,5 @@
 import { json } from '../lib/json.js';
-import { extractCjImages, getCJToken } from '../cj.js';
+import { extractCjCostUsd, extractCjImages, getCJToken } from '../cj.js';
 import { cleanProductName, mapMaisonCategory, suggestedCompareEur, suggestedRetailEur } from '../lib/merch.js';
 import { serializeImageUrls } from '../lib/images.js';
 import { slugify } from '../lib/slugify.js';
@@ -48,7 +48,7 @@ async function searchCj(token, q, page = 1, size = 20) {
 function normalizeCj(x) {
   const rawName = String(x.nameEn || x.name || '').slice(0, 240);
   if (!rawName || JUNK.test(rawName)) return null;
-  const cost = Number(x.nowPrice || x.sellPrice || 0) || 0;
+  const cost = extractCjCostUsd(x);
   if (!(cost > 0)) return null;
   const stock = Number(x.warehouseInventoryNum || x.totalVerifiedInventory || 0) || 0;
   if (stock <= 0) return null;
