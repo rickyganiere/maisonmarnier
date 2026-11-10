@@ -71,7 +71,7 @@ export function cartControlHtml() {
 
 /** Official seal already includes MAISON / MARNIER — image is the brand lockup. */
 export function brandLogoHtml({ compact = false } = {}) {
-  const size = compact ? 44 : 58;
+  const size = compact ? 64 : 88;
   return `<span class="brand-lockup${compact ? ' is-compact' : ''}">
   <img class="brand-mark-img" src="/logo.jpg" width="${size}" height="${size}" alt="Maison Marnier" decoding="async" />
 </span>`;
@@ -83,7 +83,7 @@ export const LAYOUT_CSS = `
   --bg:#100e0c;--panel:#171411;--panel2:#211c17;--ink:#f6f0e6;--muted:#b3a89a;
   --line:#342c24;--accent:#c9a46a;--accent2:#e6c48a;--soft:#ddd3c5;
   --festive:#7a1f28;--pine:#1f3d32;--pine2:#2f5a48;
-  --pad:clamp(18px,4vw,56px);--max:1420px;--nav-h:92px;
+  --pad:clamp(18px,4vw,56px);--max:1420px;--nav-h:112px;
   --font:"Hanken Grotesk",system-ui,-apple-system,sans-serif;
 }
 *{box-sizing:border-box}
@@ -96,10 +96,10 @@ body{margin:0;background:
 a{color:inherit;text-decoration:none}
 img{max-width:100%;display:block}
 .announce{background:linear-gradient(90deg,#1a0f10,#0c0b0a 40%,#122019);color:var(--soft);text-align:center;font:700 11px/1 var(--font);letter-spacing:.14em;text-transform:uppercase;padding:12px 16px;border-bottom:1px solid var(--line)}
-.site-nav{display:grid;grid-template-columns:minmax(240px,320px) 1fr auto;align-items:center;gap:28px;min-height:var(--nav-h);padding:0 var(--pad);border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(16,14,12,.94);backdrop-filter:blur(14px);z-index:40}
+.site-nav{display:grid;grid-template-columns:minmax(280px,360px) 1fr auto;align-items:center;gap:24px;min-height:var(--nav-h);padding:10px var(--pad);border-bottom:1px solid var(--line);position:sticky;top:0;background:rgba(16,14,12,.94);backdrop-filter:blur(14px);z-index:40}
 .brand,.brand-lockup{display:inline-flex;align-items:center;gap:12px;color:#fff;text-decoration:none}
-.brand-mark-img{display:block;width:58px;height:58px;border-radius:50%;object-fit:cover;flex:0 0 auto;box-shadow:0 0 0 1px rgba(230,196,138,.28),0 6px 18px rgba(0,0,0,.35)}
-.brand-lockup.is-compact .brand-mark-img{width:44px;height:44px}
+.brand-mark-img{display:block;width:88px;height:88px;border-radius:50%;object-fit:cover;flex:0 0 auto;background:#0a0908;box-shadow:0 0 0 2px rgba(230,196,138,.55),0 0 28px rgba(201,164,106,.35),0 10px 24px rgba(0,0,0,.45)}
+.brand-lockup.is-compact .brand-mark-img{width:64px;height:64px}
 @keyframes hatTip{0%,100%{transform:rotate(0deg)}45%{transform:rotate(-4deg)}70%{transform:rotate(2deg)}}
 .brand-text{font:900 17px/1 var(--font);letter-spacing:.18em;text-transform:uppercase;color:#fff}
 .brand-text span,.brand span{color:var(--accent)}
@@ -224,8 +224,10 @@ h1{font:900 clamp(34px,4.6vw,56px)/.98 var(--font);margin:0;letter-spacing:-.045
 @keyframes fadeRise{from{opacity:0;transform:translateY(12px)}to{opacity:1;transform:none}}
 @media(max-width:1200px){.grid{grid-template-columns:repeat(4,minmax(0,1fr))}}
 @media(max-width:980px){
-  .site-nav{grid-template-columns:1fr auto;min-height:68px}
+  .site-nav{grid-template-columns:1fr auto;min-height:88px;padding:8px var(--pad)}
   .site-nav .links{display:none}
+  .brand-mark-img{width:72px;height:72px}
+  .brand-lockup.is-compact .brand-mark-img{width:56px;height:56px}
   .grid{grid-template-columns:repeat(2,minmax(0,1fr))}
   .product{grid-template-columns:1fr}
   .product-gallery{position:static}
