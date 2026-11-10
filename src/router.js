@@ -24,6 +24,7 @@ import {
   listJournalAdmin,
   saveJournalArticle,
 } from './db/journal.js';
+import { importChristmasCatalog } from './jobs/importChristmasCatalog.js';
 import { replaceSeedWithCj } from './jobs/replaceSeedWithCj.js';
 import { syncProductGalleries } from './jobs/syncGalleries.js';
 import { json } from './lib/json.js';
@@ -141,6 +142,10 @@ export async function handleRequest(request, env, ctx) {
   if (pathname === '/api/lume/replace-seed-cj') {
     if (method !== 'POST') return methodNotAllowed();
     return replaceSeedWithCj(request, env);
+  }
+  if (pathname === '/api/lume/import-christmas') {
+    if (method !== 'POST') return methodNotAllowed();
+    return importChristmasCatalog(request, env);
   }
   if (pathname === '/api/lume/sync-galleries') {
     if (method !== 'POST') return methodNotAllowed();
