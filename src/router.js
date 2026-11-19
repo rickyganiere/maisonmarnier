@@ -1,4 +1,6 @@
 import { requireAdmin, requireImportAuth } from './auth.js';
+import { instagramAdminRoute } from './instagram-publishing.js';
+import { instagramPhotoResponse } from './instagram-photos.js';
 import { cjCategories, cjSearch, cjStatus } from './cj.js';
 import {
   checkout,
@@ -170,7 +172,11 @@ export async function handleRequest(request, env, ctx) {
     return cjCategories(env);
   }
 
+  const instagramPhoto = pathname.match(/^\/instagram\/product-photo\/(\d+)\/([a-f0-9]{24})\.jpg$/);
+  if (instagramPhoto) return instagramPhotoResponse(request, env, instagramPhoto);
+
   // --- Lume admin APIs ---
+  if (pathname.startsWith('/api/lume/instagram/')) return instagramAdminRoute(request, env, url);
   if (pathname === '/api/lume/products') {
     const denied = await requireAdmin(request, env);
     if (denied) return denied;

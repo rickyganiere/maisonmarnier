@@ -21,6 +21,7 @@ enabled = true
 # Secrets (set in Cloudflare dashboard or `wrangler secret put`, never in git):
 #   CJ_API_KEY, LUME_ADMIN_TOKEN, LUME_IMPORT_CODE
 #   STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET
+#   INSTAGRAM_TOKEN_KEY (base64-encoded 32 random bytes for the admin Instagram connection)
 # Optional plain vars: CJ_ORDER_SANDBOX=1, CJ_LOGISTIC_NAME, CJ_IOSS_TYPE=3, CJ_IOSS_NUMBER
 
 [[rules]]
