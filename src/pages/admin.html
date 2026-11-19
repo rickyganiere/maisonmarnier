@@ -115,6 +115,22 @@ td,th{border-bottom:1px solid #e4ddd2;padding:8px;text-align:left;vertical-align
 .editor-actions{display:flex;flex-wrap:wrap;gap:8px;align-items:center}
 .editor-actions .save{margin-left:auto}
 .editor-actions [hidden]{display:none}
+.ig-compose{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;margin:18px 0}
+#igContent[hidden]{display:none}
+.ig-photo{width:100%;aspect-ratio:1;object-fit:contain;background:#f6f2eb;border:1px solid #e4ddd2;border-radius:4px}
+.ig-picks{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;border:0;padding:0}
+.ig-picks legend{margin-bottom:6px;padding:0}
+.ig-picks label{position:relative;display:block;cursor:pointer}
+.ig-picks input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}
+.ig-picks img{display:block;width:46px;height:46px;object-fit:contain;border:2px solid #e4ddd2;border-radius:4px}
+.ig-picks input:checked+img{border-color:#24211d}
+.ig-picks input:focus-visible+img{outline:2px solid #694b2f;outline-offset:2px}
+.ig-compose textarea{margin-top:6px;min-height:145px}
+#igCaptionCount{text-align:right}
+.ig-connection p{line-height:1.5}
+.ig-connection input{margin:6px 0 12px}
+.ig-history{margin:8px 0;color:#6e665d}
+@media(max-width:600px){.ig-compose{grid-template-columns:1fr}.ig-photo{max-height:30dvh}}
 @media(max-width:1100px){.catalog-item{grid-template-columns:minmax(0,1fr) minmax(210px,.75fr)}.catalog-actions{grid-column:1/-1}}
 @media(max-width:640px){
   .wrap{padding:16px 12px}
@@ -382,6 +398,11 @@ td,th{border-bottom:1px solid #e4ddd2;padding:8px;text-align:left;vertical-align
         </table>
         <div class="msg" id="settingsMsg"></div>
         <button class="btn secondary" type="button" id="probeCJBtn">Probe CJ auth</button>
+        <section class="editor-section" id="instagramSettings" aria-labelledby="instagramSettingsTitle">
+          <h3 id="instagramSettingsTitle">Instagram publishing</h3>
+          <p id="igSettingsStatus" role="status">Checking connection…</p>
+          <button class="btn secondary" type="button" id="igManage">Connect Instagram</button>
+        </section>
       </section>
     </div>
   </div>
@@ -428,9 +449,43 @@ td,th{border-bottom:1px solid #e4ddd2;padding:8px;text-align:left;vertical-align
       <div class="msg" id="editorMsg" role="status"></div>
       <div class="editor-actions">
         <a class="btn secondary" id="editorView" target="_blank" rel="noopener">View product page</a>
+        <button class="btn secondary" type="button" id="editorInstagram" hidden>Post to Instagram</button>
         <button class="btn save" type="submit" id="saveProductBtn">Save changes</button>
       </div>
     </div>
+  </form>
+</dialog>
+<dialog class="product-editor" id="igComposer" aria-labelledby="igHeading">
+  <form class="editor-form" id="igForm">
+    <div class="editor-heading">
+      <div><h2 id="igHeading">Post to Instagram</h2><a href="https://www.instagram.com/maison.marnier/" target="_blank" rel="noopener">@maison.marnier</a></div>
+      <button class="btn secondary" id="igClose" type="button">Close</button>
+    </div>
+    <p id="igProductName"></p>
+    <div class="ig-compose" id="igContent" hidden>
+      <div><img class="ig-photo" id="igPreview" alt="Selected product photo">
+        <fieldset class="ig-picks" id="igPhotos"><legend>Product photo</legend></fieldset></div>
+      <div><label for="igCaption">Caption</label><textarea id="igCaption" rows="6"></textarea>
+        <p class="field-note" id="igCaptionCount"></p></div>
+    </div>
+    <p class="ig-history" id="igHistory"></p>
+    <div class="msg" id="igMessage" role="status"></div>
+    <div class="editor-actions">
+      <button class="btn secondary" id="igConnectHere" type="button" hidden>Connect Instagram</button>
+      <button class="btn save" id="igPublish" type="submit" disabled>Publish to Instagram</button>
+    </div>
+  </form>
+</dialog>
+<dialog class="product-editor" id="igConnection" aria-labelledby="igConnectionTitle">
+  <form class="editor-form ig-connection" id="igConnectForm">
+    <div class="editor-heading"><h2 id="igConnectionTitle">Connect @maison.marnier</h2>
+      <button class="btn secondary" id="igConnectionClose" type="button">Close</button></div>
+    <p>Open the <a href="https://developers.facebook.com/apps/" target="_blank" rel="noopener">Meta App Dashboard</a>.
+      In your app’s Instagram API setup with Instagram Login, add the Maison Marnier Business or Creator account and choose <strong>Generate token</strong>. The app needs basic access and content publishing.</p>
+    <label>Instagram access token<input id="igToken" type="password" required autocomplete="off" spellcheck="false" maxlength="8192"></label>
+    <div class="msg" id="igConnectMessage" role="status"></div>
+    <div class="editor-actions"><button class="btn secondary" type="button" id="igDisconnect" hidden>Disconnect account</button>
+      <button class="btn save" type="submit" id="igSaveConnection">Verify and connect</button></div>
   </form>
 </dialog>
 <script>
@@ -448,6 +503,8 @@ async function api(path,opts={}){
 }
 function logout(soft){
   sessionStorage.removeItem(TOKEN_KEY);
+  for (const dialog of document.querySelectorAll('dialog[open]')) dialog.close();
+  document.getElementById('igToken').value='';
   document.getElementById('app').classList.add('hidden');
   document.getElementById('loginView').classList.remove('hidden');
   if(!soft)msg('loginMsg','Logged out.');
@@ -455,6 +512,7 @@ function logout(soft){
 function goAdmin(id){
   document.querySelectorAll('.sideBtn').forEach(b=>b.classList.toggle('active',b.dataset.panel===id));
   document.querySelectorAll('.panel').forEach(p=>p.classList.toggle('active',p.id==='panel-'+id));
+  if(id==='settings') loadInstagramSettings();
   if(id==='finder'){
     loadCjCategories();
     startCjSuggestionLoop(true);
@@ -466,6 +524,8 @@ async function boot(){
   if(!token())return;
   document.getElementById('loginView').classList.add('hidden');
   document.getElementById('app').classList.remove('hidden');
+  if(location.hash==='#instagram') goAdmin('settings');
+  if(location.hash==='#published') goAdmin('published');
   await loadAdminAll();
 }
 document.getElementById('loginBtn').onclick=async()=>{
@@ -1051,6 +1111,7 @@ function renderCatalog(status) {
     <div class="catalog-actions">
       <button class="btn" type="button" data-catalog-action="edit">${live ? 'Edit' : 'Edit draft'}</button>
       ${viewable(p) ? `<a class="btn secondary" href="${productPath(p)}" target="_blank" rel="noopener">View product</a>` : ''}
+      ${viewable(p) ? '<button class="btn secondary" type="button" data-catalog-action="instagram">Post to Instagram</button>' : ''}
       ${live ? `<details>
         <summary aria-label="More product actions">More</summary>
         <div class="catalog-menu">
@@ -1162,6 +1223,7 @@ function openEditor(product) {
   document.getElementById('editorTitle').textContent = live ? 'Edit published product' : 'Edit draft product';
   document.getElementById('editorMeta').textContent = product.lume_sku + (live ? ' · Published' : ' · Draft');
   editorView.hidden = !viewable(product);
+  document.getElementById('editorInstagram').hidden = !viewable(product);
   editorView.href = viewable(product) ? productPath(product) : '#';
   saveProductBtn.textContent = live ? 'Save live changes' : 'Save draft';
   msg('editorMsg', '');
@@ -1234,6 +1296,7 @@ for (const { list, message } of Object.values(catalogPanels)) {
       openEditor(product);
       return;
     }
+    if (action === 'instagram') { openInstagramComposer(product); return; }
     const operation = catalogActions[action];
     if (operation.confirm && !confirm(operation.confirm)) return;
     const item = button.closest('[data-product-id]');
@@ -1266,6 +1329,7 @@ for (const { list, message } of Object.values(catalogPanels)) {
 publishedSearch.addEventListener('input', () => renderCatalog('live'));
 draftSearch.addEventListener('input', () => renderCatalog('draft'));
 editorForm.addEventListener('submit', saveProduct);
+document.getElementById('editorInstagram').onclick = () => openInstagramComposer(editingProduct);
 closeEditorBtn.addEventListener('click', () => editor.close());
 editor.addEventListener('cancel', event => {
   if (saveProductBtn.disabled) event.preventDefault();
@@ -1397,6 +1461,179 @@ async function loadOrders(){
     msg('ordersMsg',orders.length+' orders');
   }catch(e){msg('ordersMsg',e.message,true)}
 }
+
+const igById = id => document.getElementById(id);
+const igComposer = igById('igComposer');
+const igConnection = igById('igConnection');
+const igPublish = igById('igPublish');
+const igCaption = igById('igCaption');
+let igSession = null;
+let igConnected = false;
+
+async function igApi(path, opts) {
+  const result = await api('/api/lume/instagram/' + path, opts);
+  if (!result.ok) {
+    const error = new Error(result.error || 'Could not reach Instagram.');
+    error.status = result.status;
+    throw error;
+  }
+  return result;
+}
+
+function setInstagramConnection(connected) {
+  igConnected = connected;
+  igById('igSettingsStatus').textContent = connected ? 'Connected to @maison.marnier.' : 'Connect @maison.marnier to publish product photos.';
+  igById('igManage').textContent = connected ? 'Manage connection' : 'Connect Instagram';
+  igById('igDisconnect').hidden = !connected;
+  updateInstagramControls();
+}
+
+async function loadInstagramSettings() {
+  try { setInstagramConnection((await igApi('account')).connected); }
+  catch (error) { igById('igSettingsStatus').textContent = error.message; }
+}
+
+function manageInstagram() {
+  igById('igToken').value = '';
+  msg('igConnectMessage', '');
+  igConnection.showModal();
+}
+
+igById('igManage').onclick = manageInstagram;
+igById('igConnectHere').onclick = manageInstagram;
+igById('igConnectionClose').onclick = () => igConnection.close();
+igConnection.onclose = () => { igById('igToken').value = ''; };
+igById('igConnectForm').onsubmit = async event => {
+  event.preventDefault();
+  const value = igById('igToken').value.trim();
+  igById('igSaveConnection').disabled = true;
+  msg('igConnectMessage', 'Verifying the account and publishing permission…');
+  try {
+    const result = await igApi('account', { method: 'POST', body: JSON.stringify({ token: value }) });
+    setInstagramConnection(result.connected);
+    if (igSession) msg('igMessage', 'Connected. Review your photo and caption before publishing.');
+    igConnection.close();
+  } catch (error) { msg('igConnectMessage', error.message, true); }
+  finally { igById('igSaveConnection').disabled = false; }
+};
+igById('igDisconnect').onclick = async () => {
+  if (!confirm('Disconnect @maison.marnier from the store?')) return;
+  try {
+    await igApi('account', { method: 'DELETE' });
+    setInstagramConnection(false);
+    igConnection.close();
+  } catch (error) { msg('igConnectMessage', error.message, true); }
+};
+
+function updateInstagramControls() {
+  const session = igSession;
+  const count = [...igCaption.value].length;
+  igById('igCaptionCount').textContent = count.toLocaleString('en-GB') + ' / 2,200';
+  igById('igConnectHere').hidden = !session?.loaded || igConnected;
+  const locked = !!(session?.sending || session?.pending || session?.published);
+  igCaption.readOnly = locked;
+  igById('igPhotos').disabled = locked;
+  igPublish.disabled = !session?.loaded || !session.key || !igConnected || count > 2200 || session.sending || session.published;
+  igPublish.textContent = session?.published ? 'Published' : session?.sending ? 'Sending…' : session?.pending ? 'Check post status' : 'Publish to Instagram';
+}
+
+function displayInstagramPost(row) {
+  const history = igById('igHistory');
+  history.replaceChildren();
+  if (row?.state !== 'published') return;
+  const link = document.createElement('a');
+  link.href = row.permalink || 'https://www.instagram.com/maison.marnier/';
+  link.target = '_blank';
+  link.rel = 'noopener';
+  link.textContent = row.permalink ? 'View Instagram post' : 'Open @maison.marnier';
+  history.append('Published on Instagram. ', link);
+}
+
+function selectInstagramPhoto(session, key) {
+  const photo = session.photos.find(p => p.key === key);
+  if (!photo) return;
+  session.key = photo.key;
+  igById('igPreview').src = photo.url;
+  const radio = [...igById('igPhotos').querySelectorAll('input')].find(input => input.value === key);
+  if (radio) radio.checked = true;
+  updateInstagramControls();
+}
+
+async function openInstagramComposer(product) {
+  const session = { id: product.id, key: '', photos: [], loaded: false, sending: false, pending: false, published: false, checks: 0 };
+  igSession = session;
+  igById('igContent').hidden = true;
+  igById('igProductName').textContent = product.name;
+  igCaption.value = '';
+  displayInstagramPost(null);
+  updateInstagramControls();
+  msg('igMessage', 'Loading saved product photos…');
+  igComposer.showModal();
+  try {
+    const data = await igApi('product?id=' + encodeURIComponent(product.id));
+    if (igSession !== session) return;
+    const last = data.lastPost;
+    session.photos = data.photos;
+    session.pending = ['creating', 'ready', 'publishing'].includes(last?.state) && session.photos.some(p => p.key === last.photoKey);
+    session.loaded = true;
+    igById('igProductName').textContent = data.name;
+    igCaption.value = session.pending ? last.caption : data.caption;
+    igById('igPhotos').innerHTML = '<legend>Product photo</legend>' + data.photos.map((p, i) =>
+      '<label><input type="radio" name="igPhoto" value="' + esc(p.key) + '" aria-label="Photo ' + (i + 1) + '">' +
+      '<img src="' + esc(p.url) + '" alt="" loading="lazy"></label>'
+    ).join('');
+    igById('igPreview').removeAttribute('src');
+    igById('igContent').hidden = !session.photos.length;
+    selectInstagramPhoto(session, session.pending ? last.photoKey : session.photos[0]?.key);
+    setInstagramConnection(data.connected);
+    displayInstagramPost(last);
+    const notice = !session.photos.length ? 'Add a public JPEG or CJ product photo to the gallery to post.'
+      : !igConnected ? 'Connect @maison.marnier to publish this preview.'
+      : session.pending ? 'An earlier publication is processing. Check its status to continue.' : '';
+    msg('igMessage', notice);
+  } catch (error) { if (igSession === session) msg('igMessage', error.message, true); }
+}
+
+async function submitInstagram(session) {
+  if (!session || session !== igSession || session.sending || session.published || !igConnected) return;
+  clearTimeout(session.timer);
+  session.sending = true;
+  updateInstagramControls();
+  msg('igMessage', 'Checking publication with Instagram…');
+  try {
+    const result = await igApi('publish', { method: 'POST', body: JSON.stringify({
+      productId: session.id, photoKey: session.key, caption: igCaption.value,
+    }) });
+    if (igSession !== session) return;
+    session.pending = !!result.pending;
+    session.published = !!result.published;
+    if (session.published) {
+      displayInstagramPost({ state: 'published', permalink: result.permalink });
+      msg('igMessage', '');
+    } else if (session.pending) {
+      session.checks++;
+      const automatic = session.checks < 5;
+      msg('igMessage', automatic ? 'Instagram is preparing the photo. Checking again in one minute.' : 'Instagram is still processing. Check the status again in a minute.');
+      if (automatic) session.timer = setTimeout(() => submitInstagram(session), 60000);
+    }
+  } catch (error) {
+    if (igSession === session) {
+      if (error.status === 403) setInstagramConnection(false);
+      // The same payload safely checks the saved container after a lost response.
+      session.pending = !error.status || [502, 503].includes(error.status);
+      msg('igMessage', error.message, true);
+    }
+  } finally {
+    session.sending = false;
+    if (igSession === session) updateInstagramControls();
+  }
+}
+
+igById('igForm').onsubmit = event => { event.preventDefault(); submitInstagram(igSession); };
+igById('igPhotos').onchange = event => { if (igSession) selectInstagramPhoto(igSession, event.target.value); };
+igCaption.oninput = updateInstagramControls;
+igById('igClose').onclick = () => igComposer.close();
+igComposer.onclose = () => { clearTimeout(igSession?.timer); igSession = null; };
 
 if(token())boot();
 </script>

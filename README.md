@@ -120,3 +120,12 @@ Shipping: €6.90 flat, free from €100.
 - Do not edit the Worker in the Cloudflare dashboard editor — the next git deploy overwrites it.
 - Do not change DNS/DMARC for `maisonmarnier.com`.
 - CJ fulfillment requires CJ account balance when `payType=2`. Use `CJ_ORDER_SANDBOX=1` while testing.
+
+
+## Instagram product publishing
+
+In `/admin#instagram`, connect the store’s Instagram Business or Creator account, `@maison.marnier`. Use the Instagram User access token generated in the [Meta App Dashboard](https://developers.facebook.com/apps/) with `instagram_business_basic` and `instagram_business_content_publish`. The admin verifies the handle and publishing access before saving the encrypted token. An active long-lived token is refreshed on use after 30 days. Reconnect here if it expires during inactivity.
+
+Open **Published → Post to Instagram**, or use the same action in **Edit**. Choose a product photo, review the caption, and press **Publish to Instagram** to create a single-photo feed post. The composer resumes pending submissions and links to the published post when Meta supplies its permalink.
+
+Deployment requires migration `0006_instagram_publishing.sql` and the Worker secret `INSTAGRAM_TOKEN_KEY` (32 random bytes, base64 encoded). Keep the key stable across deployments. Reconnect the Instagram account after replacing it.
