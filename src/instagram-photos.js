@@ -45,7 +45,7 @@ export async function instagramPhotoResponse(request, env, match) {
   const source = new URL(photo.source);
   source.searchParams.set('x-oss-process', 'image/resize,m_pad,w_1080,h_1080,color_FFFFFF/format,jpg/quality,q_88');
   try {
-    const result = await fetch(source, { redirect: 'error', signal: AbortSignal.timeout(10000) });
+    const result = await fetch(source, { redirect: 'manual', signal: AbortSignal.timeout(10000) });
     if (!result.ok || Number(result.headers.get('content-length')) > 8_000_000) return failure(502);
     const bytes = new Uint8Array(await result.arrayBuffer());
     if (bytes.length > 8_000_000 || bytes[0] !== 255 || bytes[1] !== 216 || bytes[2] !== 255) return failure(502);

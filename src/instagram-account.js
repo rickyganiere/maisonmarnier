@@ -18,7 +18,7 @@ export async function instagramRequest(path, token, form) {
       method: form ? 'POST' : 'GET',
       headers: { Authorization: 'Bearer ' + token },
       body: form ? new URLSearchParams(form) : undefined,
-      redirect: 'error',
+      redirect: 'manual',
       signal: AbortSignal.timeout(12000),
     });
   } catch {

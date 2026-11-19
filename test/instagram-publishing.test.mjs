@@ -33,6 +33,7 @@ function setup(t) {
   t.mock.method(globalThis, 'fetch', async (url, options) => {
     const u = new URL(url);
     assert.equal(u.origin, 'https://graph.instagram.com');
+    assert.equal(options.redirect, 'manual');
     assert.equal(options.headers.Authorization, 'Bearer ' + token);
     meta.calls++;
     switch (u.pathname.replace('/v26.0/', '')) {
@@ -138,7 +139,7 @@ test('a CJ PNG is served to Meta as a JPEG and a removed photo cannot be fetched
   t.mock.method(globalThis, 'fetch', async (url, options) => {
     assert.equal(url.hostname, 'cf.cjdropshipping.com');
     assert.match(url.searchParams.get('x-oss-process'), /format,jpg/);
-    assert.equal(options.redirect, 'error');
+    assert.equal(options.redirect, 'manual');
     return new Response(new Uint8Array([255,216,255,217]), { headers: { 'content-type': 'image/png' } });
   });
   const response = await instagramPhotoResponse(request, env, match);
