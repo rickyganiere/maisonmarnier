@@ -1,6 +1,7 @@
 /** Site-wide SEO helpers for Maison Marnier (apex host). */
 
 import { BRAND_ICON_PATH } from './brandAsset.js';
+import { priceWithVat } from './money.js';
 import { FACEBOOK_URL, INSTAGRAM_URL } from './social.js';
 
 export const SITE_ORIGIN = 'https://maisonmarnier.com';
@@ -87,7 +88,7 @@ export function breadcrumbJsonLd(items) {
 }
 
 export function productJsonLd(p, { url, collectionPath } = {}) {
-  const retail = Number(p.retail_price_eur || 0);
+  const retail = priceWithVat(Number(p.retail_price_eur || 0));
   const stock = Number(p.stock || 0);
   const productUrl = absoluteUrl(url || `/products/${encodeURIComponent(p.slug || '')}`);
   const availability =

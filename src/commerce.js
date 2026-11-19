@@ -26,11 +26,14 @@ import {
   verifyStripeWebhook,
 } from './stripe.js';
 
-const FREE_SHIPPING_EUR = 100;
-const FLAT_SHIPPING_EUR = 6.9;
+import { priceWithVat } from './lib/money.js';
 
-function shippingFor(subtotal) {
-  return subtotal >= FREE_SHIPPING_EUR ? 0 : FLAT_SHIPPING_EUR;
+const FREE_SHIPPING_EUR = 100; // public threshold, IVA included
+const FLAT_SHIPPING_EUR = 6.9; // tax-exclusive for Stripe Tax
+
+function shippingFor(exVatSubtotal) {
+  // Match storefront: free shipping when IVA-inclusive goods total reaches €100.
+  return priceWithVat(exVatSubtotal) >= FREE_SHIPPING_EUR ? 0 : FLAT_SHIPPING_EUR;
 }
 
 export async function checkout(request, env) {

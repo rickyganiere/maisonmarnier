@@ -2,6 +2,7 @@ import { BRAND_ICON_PATH, BRAND_LOGO_PATH, BRAND_LOGO_LIGHT_PATH } from './brand
 import { esc } from './escape.js';
 import { DEFAULT_LANG, getLang, htmlCacheHeaders, langHref, persistLangCookieHeader, t } from './i18n.js';
 import { productImages } from './images.js';
+import { formatEurPublic } from './money.js';
 import { DEFAULT_OG_IMAGE, jsonLdScript, seoHeadHtml } from './seo.js';
 import { socialLinksHtml } from './social.js';
 
@@ -226,6 +227,7 @@ img:not([hidden]) + .product-image-unavailable{display:none}
 .product .price-block{display:flex;align-items:baseline;gap:12px;flex-wrap:wrap;margin-bottom:8px}
 .product .price-now{font:900 26px/1 var(--font)}
 .product .price-was{font:600 14px/1 var(--font);color:var(--muted);text-decoration:line-through}
+.product .vat-note,.vat-note{font:600 12px/1.2 var(--font);color:var(--muted);letter-spacing:.02em}
 .product .save{font:800 10px/1 var(--font);letter-spacing:.1em;text-transform:uppercase;color:#12100e;background:var(--accent);padding:6px 8px;border-radius:4px}
 .stock-line{margin:10px 0 0;font-size:13px;color:var(--muted);font-weight:500}
 .desc{line-height:1.7;color:var(--soft);white-space:pre-wrap;margin:20px 0 4px;max-width:46ch;font-size:14.5px;font-weight:500}
@@ -455,7 +457,7 @@ export function productCard(p, lang = DEFAULT_LANG) {
   const retail = Number(p.retail_price_eur || 0);
   const compareAt = Number(p.compare_at_price_eur || 0);
   const onSale = compareAt > retail && retail > 0;
-  const compare = onSale ? `<span class="compare">€${compareAt.toFixed(2)}</span>` : '';
+  const compare = onSale ? `<span class="compare">${formatEurPublic(compareAt)}</span>` : '';
   const badge = onSale ? `<span class="badge">${esc(t(lang, 'badge_edit'))}</span>` : '';
   return `<a class="p" href="${href}">
     <div class="media">${badge}${storefrontProductImage(p, { lang })}</div>
@@ -463,7 +465,7 @@ export function productCard(p, lang = DEFAULT_LANG) {
       <div class="catline">${esc(p.category || 'Maison Marnier')}</div>
       <h3>${esc(p.name || '')}</h3>
       <div class="price-row">
-        <span class="price">€${retail.toFixed(2)}${compare}</span>
+        <span class="price">${formatEurPublic(retail)}${compare}</span>
         <span class="cta-hint">${esc(t(lang, 'view'))}</span>
       </div>
     </div>
@@ -491,7 +493,7 @@ export function homeProductCard(p, { featured = false, lang = DEFAULT_LANG } = {
   }
   metaParts.push(lang === 'en' ? 'EU shipping' : 'Envío UE');
   const was = onSale
-    ? `<s class="mm-card-was">€${compareAt.toFixed(2)}</s>`
+    ? `<s class="mm-card-was">${formatEurPublic(compareAt)}</s>`
     : '';
   const drop = onSale ? `<span class="mm-card-drop">${esc(t(lang, 'badge_edit'))}</span>` : '';
   const viewLabel = lang === 'en' ? 'View' : 'Ver';
@@ -500,7 +502,7 @@ export function homeProductCard(p, { featured = false, lang = DEFAULT_LANG } = {
     <span class="mm-card-body">
       <span class="mm-card-name">${esc(name)}</span>
       <span class="mm-card-meta">${esc(metaParts.join(' · '))}</span>
-      <strong class="mm-card-price">${retail > 0 ? `€${retail.toFixed(2)}` : viewLabel}${was}</strong>
+      <strong class="mm-card-price">${retail > 0 ? formatEurPublic(retail) : viewLabel}${was}</strong>
     </span>
   </a>`;
 }

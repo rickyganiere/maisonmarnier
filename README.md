@@ -80,7 +80,7 @@ Copy the endpoint signing secret (`whsec_…`) into Cloudflare secret `STRIPE_WE
 Checkout Sessions enable `automatic_tax`. Before live traffic:
 
 1. Dashboard → **Tax** → add registrations (EU domestic / OSS / IOSS as applicable).
-2. Confirm prices are **exclusive** of tax (storefront EUR retail + VAT on top).
+2. Confirm Stripe line items stay **exclusive** of tax (`tax_behavior=exclusive`). The storefront displays Spanish **IVA 21% included**; Stripe Tax still adds VAT on exclusive amounts at checkout.
 3. Product tax code used: General Tangible Goods; shipping uses shipping tax code.
 
 ### Invoicing (B2B)
@@ -105,7 +105,7 @@ External supplier drafts: `POST /api/lume/import-external` with `{ supplier: "SP
 2. Stripe webhook `checkout.session.completed` marks the order paid and creates a CJ order (`createOrderV3`, balance payType=2).
 3. Admin → **Orders**: list, retry CJ fulfill, refresh CJ status.
 
-Shipping: €6.90 flat, free from €100.
+Shipping: €6.90 flat (ex-VAT for Stripe), free from €100 **IVA included** on the storefront.
 
 ## Main routes
 
