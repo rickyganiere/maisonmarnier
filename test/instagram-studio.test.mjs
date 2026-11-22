@@ -32,12 +32,12 @@ function setup(t) {
       get: async path => objects.has(path) ? { body: objects.get(path), size: objects.get(path).length } : null,
     },
   };
-  const provider = { edits: 0, children: [], publishes: 0, fail: false, wait: null, badKey: false };
+  const provider = { edits: 0, children: [], publishes: 0, fail: false, wait: null, badKey: false, restrictedKey: false };
   t.mock.method(globalThis, 'fetch', async (url, options = {}) => {
     const u = new URL(url);
     if (u.origin === 'https://api.openai.com') {
       assert.equal(options.headers.Authorization, 'Bearer ' + key);
-      if (u.pathname.startsWith('/v1/models/')) return new Response('{}', { status: provider.badKey ? 403 : 200 });
+      if (u.pathname === '/v1/models') return new Response('{}', { status: provider.badKey ? 401 : provider.restrictedKey ? 403 : 200 });
       assert.equal(u.pathname, '/v1/images/edits');
       provider.edits++;
       assert.equal(options.body.get('size'), '1024x1280');
@@ -99,6 +99,12 @@ test('studio connection is admin-only, validates the key and returns no credenti
   provider.badKey = true;
   assert.equal((await call('studio-connection', { key })).httpStatus, 422);
   assert.equal(db.prepare('SELECT sealed_key FROM instagram_studio_connection').get().sealed_key, saved);
+  provider.badKey = false;
+  provider.restrictedKey = true;
+  const restricted = await call('studio-connection', { key });
+  assert.equal(restricted.configured, true, 'restricted model-list access must not block saving a valid image key');
+  assert.equal(restricted.validation, 'restricted');
+  assert.ok(!JSON.stringify(restricted).includes(key));
 });
 
 test('new posts require four or five generated mockups; partial packs cannot publish', async t => {
