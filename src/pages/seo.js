@@ -13,7 +13,6 @@ const INFO_PATHS = [
   '/terminos',
   '/journal',
   '/instagram',
-  '/cuenta/registro',
 ];
 const PRODUCT_CAP = 4500;
 const JOURNAL_CAP = 200;
@@ -52,7 +51,6 @@ Disallow: /cuenta
 Disallow: /cuenta/entrar
 
 Sitemap: ${SITE_ORIGIN}/sitemap.xml
-Sitemap: ${SITE_ORIGIN}/sitemap_index.xml
 `;
   return new Response(body, {
     headers: {
@@ -65,7 +63,6 @@ Sitemap: ${SITE_ORIGIN}/sitemap_index.xml
 
 /** Sitemap index — GSC-friendly split by content type. */
 export function sitemapIndexXml() {
-  const now = new Date().toISOString().slice(0, 10);
   const maps = [
     `${SITE_ORIGIN}/sitemap-pages.xml`,
     `${SITE_ORIGIN}/sitemap-products.xml`,
@@ -75,7 +72,7 @@ export function sitemapIndexXml() {
 <sitemapindex xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">
 ${maps
   .map(
-    (loc) => `<sitemap><loc>${escXml(loc)}</loc><lastmod>${escXml(now)}</lastmod></sitemap>`,
+    (loc) => `<sitemap><loc>${escXml(loc)}</loc></sitemap>`,
   )
   .join('\n')}
 </sitemapindex>
