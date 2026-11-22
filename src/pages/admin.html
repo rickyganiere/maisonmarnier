@@ -1788,7 +1788,9 @@ async function connectOpenAIKey(fieldId, buttonId, messageId) {
     field.value = '';
     const message = data.validation === 'restricted'
       ? 'Key saved securely. Model-list access is restricted; actual image access will be checked when generating.'
-      : 'OpenAI key saved securely. You can now generate Instagram mockups.';
+      : data.validation === 'unverified'
+        ? 'Key saved securely. OpenAI could not be reached for a live check; generation will verify the key.'
+        : 'OpenAI key saved securely. You can now generate Instagram mockups.';
     msg(messageId, message);
     igById('igKeyStatus').textContent = 'OpenAI key connected.';
     if (igSession) {
