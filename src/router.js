@@ -1,6 +1,7 @@
 import { requireAdmin, requireImportAuth } from './auth.js';
 import { instagramAdminRoute } from './instagram-publishing.js';
 import { instagramPhotoResponse } from './instagram-photos.js';
+import { studioPhotoResponse } from './instagram-studio.js';
 import { cjCategories, cjSearch, cjStatus } from './cj.js';
 import {
   checkout,
@@ -184,6 +185,8 @@ export async function handleRequest(request, env, ctx) {
 
   const instagramPhoto = pathname.match(/^\/instagram\/product-photo\/(\d+)\/([a-f0-9]{24})\.jpg$/);
   if (instagramPhoto) return instagramPhotoResponse(request, env, instagramPhoto);
+  const instagramMockup = pathname.match(/^\/instagram\/mockup\/(\d+)\/([a-f0-9]{32})\.jpg$/);
+  if (instagramMockup) return studioPhotoResponse(request, env, instagramMockup);
 
   // --- Lume admin APIs ---
   if (pathname.startsWith('/api/lume/instagram/')) return instagramAdminRoute(request, env, url);

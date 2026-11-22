@@ -15,6 +15,10 @@ migrations_dir = "migrations"
 [observability]
 enabled = true
 
+[[r2_buckets]]
+binding = "INSTAGRAM_MEDIA"
+bucket_name = "maison-marnier-instagram"
+
 [observability.traces]
 enabled = true
 

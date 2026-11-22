@@ -5,6 +5,7 @@ import {
   instagramHandle, instagramRequest, verifyInstagramIdentity,
 } from './instagram-account.js';
 import { digest, instagramProduct } from './instagram-photos.js';
+import { generateStudioPhoto, studioConfigured, studioConnection, studioGallery } from './instagram-studio.js';
 
 const pendingStates = "('creating','ready','publishing')";
 const pending = () => json({ ok: true, pending: true, retryAfter: 60 }, 202);
@@ -39,14 +40,19 @@ function savedContainer(state) {
 async function composer(env, id) {
   const product = await instagramProduct(env, id);
   if (!product) throw new InstagramError('This product is no longer available on the storefront.', 404);
-  const [account, lastPost] = await Promise.all([
+  const [account, lastPost, studio, configured] = await Promise.all([
     connectionStatus(env),
     env.LUME_DB.prepare(`SELECT * FROM instagram_posts WHERE product_id=?
       ORDER BY (state IN ${pendingStates}) DESC, updated_at DESC, rowid DESC LIMIT 1`).bind(id).first(),
+    studioGallery(env, product), studioConfigured(env),
   ]);
+  const last = postForAdmin(lastPost);
+  // Keep old in-flight publications recoverable after the studio upgrade.
+  const legacy = ['creating', 'ready', 'publishing'].includes(last?.state) && last.photoKeys.every(key => product.photos.some(p => p.key === key));
   return json({
     ok: true, ...account, name: product.name, caption: product.caption,
-    photos: product.photos.map(({ key, url }) => ({ key, url })), lastPost: postForAdmin(lastPost),
+    photos: legacy ? product.photos.map(({ key, url }) => ({ key, url })) : studio.photos,
+    studio: { ...studio, configured, storageReady: !!env.INSTAGRAM_MEDIA, legacy }, lastPost: last,
   });
 }
 
@@ -75,22 +81,23 @@ async function publish(request, env) {
   if (caption === null || [...caption].length > 2200) throw new InstagramError('Use a caption of up to 2,200 characters.');
   const requestedKeys = Array.isArray(input?.photoKeys) ? input.photoKeys : [input?.photoKey];
   const photoKeys = [...new Set(requestedKeys.filter(key => typeof key === 'string'))];
-  if (!photoKeys.length || photoKeys.length > product.photos.length || photoKeys.length > 20)
-    throw new InstagramError('Choose between 1 and 20 current product photos.', 409);
-  const photos = photoKeys.map(key => product.photos.find(photo => photo.key === key));
-  if (photos.some(photo => !photo))
-    throw new InstagramError('The gallery changed. Reopen the product and choose current photos.', 409);
   const storedPhotoKey = photoKeys.length === 1 ? photoKeys[0] : JSON.stringify(photoKeys);
 
   const db = env.LUME_DB;
-  const account = await getInstagramAccount(env);
   // Older posts use the login-specific account ID in their fingerprint.
   const previous = await db.prepare(`SELECT fingerprint, state, permalink FROM instagram_posts
     WHERE product_id=? AND photo_key=? AND caption=? ORDER BY (state='published') DESC, updated_at DESC LIMIT 1`)
     .bind(product.id, storedPhotoKey, caption).first();
+  const studio = await studioGallery(env, product);
+  const legacy = previous && ['creating', 'ready', 'publishing', 'published'].includes(previous.state);
+  const allowed = legacy ? [...studio.photos, ...product.photos] : studio.photos;
+  const photos = photoKeys.map(key => allowed.find(photo => photo.key === key));
+  if ((!legacy && (photoKeys.length < 4 || photoKeys.length > 5)) || !photoKeys.length || photoKeys.length > 20 || photos.some(photo => !photo))
+    throw new InstagramError('Choose 4 or 5 finished Maison Marnier mockups. Supplier photos cannot be used for a new post.', 409);
   const fingerprint = previous?.fingerprint || await digest(JSON.stringify([instagramHandle, product.id, photoKeys, caption]));
   const read = () => db.prepare('SELECT * FROM instagram_posts WHERE fingerprint=?').bind(fingerprint).first();
   if (previous?.state === 'published') return json({ ok: true, published: true, permalink: previous.permalink });
+  const account = await getInstagramAccount(env);
   if (await verifyInstagramIdentity(account) !== account.id)
     throw new InstagramError('Reconnect the store’s Instagram account in Settings.', 409);
 
@@ -171,6 +178,8 @@ export async function instagramAdminRoute(request, env, url) {
   try {
     const path = url.pathname.slice('/api/lume/instagram/'.length);
     if (path === 'account') return await instagramAccountRoute(request, env);
+    if (path === 'studio-connection') return await studioConnection(request, env);
+    if (path === 'mockups' && request.method === 'POST') return await generateStudioPhoto(request, env);
     if (path === 'product' && request.method === 'GET') return await composer(env, Number(url.searchParams.get('id')));
     if (path === 'publish' && request.method === 'POST') return await publish(request, env);
     return json({ ok: false, error: 'Method not allowed' }, 405);

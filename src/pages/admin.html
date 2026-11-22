@@ -117,12 +117,16 @@ td,th{border-bottom:1px solid #2b3227;padding:8px;text-align:left;vertical-align
 .editor-actions [hidden]{display:none}
 .ig-compose{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:18px;margin:18px 0}
 #igContent[hidden]{display:none}
-.ig-photo{width:100%;aspect-ratio:1;object-fit:contain;background:#101310;border:1px solid #2b3227;border-radius:4px}
+.ig-photo{width:100%;aspect-ratio:4/5;object-fit:contain;background:#101310;border:1px solid #2b3227;border-radius:4px}
+.ig-studio{padding:18px;border:1px solid #2b3227;border-radius:8px;background:#151a14;margin:14px 0}
+.ig-studio h3{margin:0 0 8px}.ig-studio p{line-height:1.5}.ig-studio .row{align-items:center;gap:10px}
+.ig-studio details{margin-top:14px}.ig-studio input{max-width:100%;margin:10px 0}
+.ig-studio progress{width:100%;accent-color:#c5fa68}.ig-empty{padding:28px 18px;text-align:center;background:#1d251b;border-radius:6px}
 .ig-picks{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;border:0;padding:0}
 .ig-picks legend{margin-bottom:6px;padding:0}
 .ig-picks label{position:relative;display:block;cursor:pointer}
 .ig-picks input{position:absolute;inset:0;width:100%;height:100%;margin:0;opacity:0;cursor:pointer}
-.ig-picks img{display:block;width:46px;height:46px;object-fit:contain;border:2px solid #2b3227;border-radius:4px}
+.ig-picks img{display:block;width:70px;height:88px;object-fit:contain;border:2px solid #2b3227;border-radius:4px}
 .ig-picks input:checked+img{border-color:#c5fa68}
 .ig-picks input:focus-visible+img{outline:2px solid #c5fa68;outline-offset:2px}
 .ig-compose textarea{margin-top:6px;min-height:145px}
@@ -598,10 +602,24 @@ td,th{padding:16px;font-size:14px}th{font-weight:500;color:#b0bea4}table{backgro
       <button class="btn secondary" id="igClose" type="button">Close</button>
     </div>
     <p id="igProductName"></p>
+    <section class="ig-studio" aria-labelledby="igStudioTitle">
+      <h3 id="igStudioTitle">Maison Marnier · Instagram Studio</h3>
+      <p>Five distinct styled photographs, inspired by our homepage: a signature room, material detail, everyday ritual, styled vignette and evening mood. Select four or five for your carousel.</p>
+      <div class="row"><button class="btn" id="igGenerate" type="button" disabled>Generate 5 mockups</button><span id="igStudioStatus" role="status"></span></div>
+      <progress id="igStudioProgress" max="5" value="0" hidden aria-label="Mockups completed"></progress>
+      <p class="field-note">AI-styled previews. Check the product shape, colour and details before publishing. Image generation uses your OpenAI account credits. Completed scenes are saved.</p>
+      <details id="igStudioConnection"><summary>OpenAI connection</summary>
+        <p class="field-note">Connect your existing key here. It is encrypted on the server and never returned to the browser.</p>
+        <label for="igStudioKey">Existing OpenAI API key</label>
+        <input id="igStudioKey" type="password" autocomplete="off" spellcheck="false" placeholder="Your existing OpenAI key">
+        <button class="btn secondary" id="igStudioConnect" type="button">Connect existing key</button>
+        <p class="msg" id="igStudioKeyMessage" role="status"></p>
+      </details>
+    </section>
     <div class="ig-compose" id="igContent" hidden>
-      <div><img class="ig-photo" id="igPreview" alt="Selected product photo">
-        <fieldset class="ig-picks" id="igPhotos"><legend>Product photos · select one or more for a carousel</legend></fieldset>
-        <p class="field-note" id="igSelectionCount">1 photo selected</p></div>
+      <div><p class="ig-empty" id="igEmpty">Your styled mockups will appear here.</p><img class="ig-photo" id="igPreview" alt="Selected styled product mockup" hidden>
+        <fieldset class="ig-picks" id="igPhotos"><legend>Styled mockups · choose 4 or 5</legend></fieldset>
+        <p class="field-note" id="igSelectionCount">0 mockups selected</p></div>
       <div><label for="igCaption">Social caption</label><textarea id="igCaption" rows="8"></textarea>
         <p class="field-note">Written for people who value warm, useful pieces for a considered home. You can edit it before publishing.</p>
         <p class="field-note" id="igCaptionCount"></p></div>
@@ -1697,11 +1715,17 @@ function updateInstagramControls() {
   const count = [...igCaption.value].length;
   igById('igCaptionCount').textContent = count.toLocaleString('en-GB') + ' / 2,200';
   igById('igConnectHere').hidden = !session?.loaded || igConnected;
-  const locked = !!(session?.sending || session?.pending || session?.published);
+  const locked = !!(session?.sending || session?.pending || session?.published || session?.generating);
   igCaption.readOnly = locked;
   igById('igPhotos').disabled = locked;
-  igPublish.disabled = !session?.loaded || !session.keys?.length || !igConnected || count > 2200 || session.sending || session.published;
+  const validSelection = session?.studio?.legacy ? session.keys?.length > 0 : session?.keys?.length >= 4 && session.keys.length <= 5;
+  igPublish.disabled = !session?.loaded || !validSelection || !igConnected || count > 2200 || session.generating || session.sending || session.published;
   igPublish.textContent = session?.published ? 'Published' : session?.sending ? 'Sending…' : session?.pending ? 'Check post status' : 'Publish to Instagram';
+  igById('igGenerate').disabled = !session?.loaded || !session.studio?.configured || !session.studio?.storageReady || locked || session.studio?.legacy || session.photos.length === 5;
+  igById('igGenerate').textContent = session?.generating ? 'Creating mockups…' : session?.photos?.length ? 'Complete 5 mockups' : 'Generate 5 mockups';
+  igById('igStudioProgress').hidden = !session?.generating;
+  igById('igStudioProgress').value = session?.photos?.length || 0;
+  if (!session?.generating) igById('igStudioStatus').textContent = !session?.loaded ? 'Loading…' : !session.studio?.configured ? 'Connect your existing OpenAI key below.' : !session.studio.storageReady ? 'Image storage unavailable.' : session.photos.length + ' / 5 mockups ready';
 }
 
 function displayInstagramPost(row) {
@@ -1722,11 +1746,72 @@ function selectInstagramPhotos(session, keys) {
   session.key = session.keys[0] || '';
   const photo = session.photos.find(item => item.key === session.key);
   if (photo) igById('igPreview').src = photo.url;
+  igById('igPreview').hidden = !photo;
+  igById('igEmpty').hidden = !!photo;
   [...igById('igPhotos').querySelectorAll('input')].forEach(input => { input.checked = session.keys.includes(input.value); });
   igById('igSelectionCount').textContent = session.keys.length === 1
-    ? '1 photo selected' : session.keys.length + ' photos selected · carousel post';
+    ? '1 mockup selected · choose 4 or 5' : session.keys.length + ' mockups selected · carousel post';
   updateInstagramControls();
 }
+
+function renderStudioGallery(session) {
+  igById('igPhotos').innerHTML = '<legend>Styled mockups · choose 4 or 5</legend>' + session.photos.map((p, i) =>
+    '<label title="' + esc(p.label || 'Photo ' + (i + 1)) + '"><input type="checkbox" name="igPhoto" value="' + esc(p.key) + '" aria-label="' + esc(p.label || 'Photo ' + (i + 1)) + '">' +
+    '<img src="' + esc(p.url) + '" alt="' + esc(p.label || 'Product photo') + '" loading="lazy"></label>'
+  ).join('');
+}
+
+igById('igStudioConnect').onclick = async () => {
+  const session = igSession;
+  const field = igById('igStudioKey');
+  const key = field.value.trim();
+  field.value = '';
+  igById('igStudioConnect').disabled = true;
+  msg('igStudioKeyMessage', 'Verifying your existing key…');
+  try {
+    const data = await igApi('studio-connection', { method: 'POST', body: JSON.stringify({ key }) });
+    if (igSession !== session || !session) return;
+    session.studio = { ...session.studio, configured: data.configured, storageReady: data.storageReady };
+    msg('igStudioKeyMessage', 'Connected. You can now generate your mockups.');
+    igById('igStudioConnection').open = false;
+    updateInstagramControls();
+  } catch (error) { msg('igStudioKeyMessage', error.message, true); }
+  finally { igById('igStudioConnect').disabled = false; }
+};
+
+igById('igGenerate').onclick = async () => {
+  const session = igSession;
+  if (!session?.loaded || session.generating || !session.studio?.configured) return;
+  session.generating = true;
+  updateInstagramControls();
+  msg('igMessage', 'Creating five styled photographs. Keep this window open; each completed scene is saved.');
+  try {
+    for (let slot = 0; slot < 5; slot++) {
+      if (igSession !== session) return;
+      if (session.photos.some(photo => photo.slot === slot)) continue;
+      let completed = false;
+      for (let check = 0; check < 60; check++) {
+        if (igSession !== session) return;
+        igById('igStudioStatus').textContent = 'Creating scene ' + (slot + 1) + ' of 5…';
+        const data = await igApi('mockups', { method: 'POST', body: JSON.stringify({ productId: session.id, slot, revision: session.studio.revision }) });
+        if (igSession !== session) return;
+        session.photos = data.photos;
+        session.studio = { ...session.studio, ...data };
+        renderStudioGallery(session);
+        selectInstagramPhotos(session, session.photos.map(photo => photo.key));
+        if (!data.pending) { completed = true; break; }
+        await new Promise(resolve => setTimeout(resolve, 10000));
+      }
+      if (!completed) throw new Error('This scene is still processing. Reopen the composer to check saved mockups.');
+    }
+    msg('igMessage', 'Five mockups ready. Review each photograph, select four or five, then publish your carousel.');
+  } catch (error) {
+    if (igSession === session) msg('igMessage', error.message + ' Your completed scenes are saved.', true);
+  } finally {
+    session.generating = false;
+    if (igSession === session) updateInstagramControls();
+  }
+};
 
 async function openInstagramComposer(product) {
   const session = { id: product.id, key: '', keys: [], photos: [], loaded: false, sending: false, pending: false, published: false, checks: 0 };
@@ -1736,28 +1821,29 @@ async function openInstagramComposer(product) {
   igCaption.value = '';
   displayInstagramPost(null);
   updateInstagramControls();
-  msg('igMessage', 'Loading saved product photos…');
+  igById('igStudioKey').value = '';
+  msg('igStudioKeyMessage', '');
+  msg('igMessage', 'Loading your Instagram mockups…');
   igComposer.showModal();
   try {
     const data = await igApi('product?id=' + encodeURIComponent(product.id));
     if (igSession !== session) return;
     const last = data.lastPost;
     session.photos = data.photos;
+    session.studio = data.studio;
+    igById('igStudioConnection').open = !data.studio.configured;
     const savedKeys = Array.isArray(last?.photoKeys) ? last.photoKeys : [last?.photoKey];
     session.pending = ['creating', 'ready', 'publishing'].includes(last?.state) && savedKeys.length > 0 && savedKeys.every(key => session.photos.some(p => p.key === key));
     session.loaded = true;
     igById('igProductName').textContent = data.name;
     igCaption.value = session.pending ? last.caption : data.caption;
-    igById('igPhotos').innerHTML = '<legend>Product photos · select one or more for a carousel</legend>' + data.photos.map((p, i) =>
-      '<label><input type="checkbox" name="igPhoto" value="' + esc(p.key) + '" aria-label="Photo ' + (i + 1) + '">' +
-      '<img src="' + esc(p.url) + '" alt="" loading="lazy"></label>'
-    ).join('');
+    renderStudioGallery(session);
     igById('igPreview').removeAttribute('src');
-    igById('igContent').hidden = !session.photos.length;
-    selectInstagramPhotos(session, session.pending ? savedKeys : [session.photos[0]?.key]);
+    igById('igContent').hidden = false;
+    selectInstagramPhotos(session, session.pending ? savedKeys : session.photos.map(photo => photo.key));
     setInstagramConnection(data.connected);
     displayInstagramPost(last);
-    const notice = !session.photos.length ? 'Add a public JPEG or CJ product photo to the gallery to post.'
+    const notice = !session.photos.length ? 'Generate your five styled mockups above, then review the carousel.'
       : !igConnected ? 'Connect @maison.marnier to publish this preview.'
       : session.pending ? 'An earlier publication is processing. Check its status to continue.' : '';
     msg('igMessage', notice);
@@ -1800,12 +1886,19 @@ async function submitInstagram(session) {
 }
 
 igById('igForm').onsubmit = event => { event.preventDefault(); submitInstagram(igSession); };
-igById('igPhotos').onchange = () => {
+igById('igPhotos').onchange = event => {
   if (igSession) selectInstagramPhotos(igSession, [...igById('igPhotos').querySelectorAll('input:checked')].map(input => input.value));
+  const photo = igSession?.photos.find(p => p.key === event.target.value);
+  if (photo) { igById('igPreview').src = photo.url; igById('igPreview').hidden = false; igById('igEmpty').hidden = true; }
+};
+igById('igPhotos').onclick = event => {
+  const key = event.target.closest('label')?.querySelector('input')?.value;
+  const photo = igSession?.photos.find(p => p.key === key);
+  if (photo) { igById('igPreview').src = photo.url; igById('igPreview').hidden = false; igById('igEmpty').hidden = true; }
 };
 igCaption.oninput = updateInstagramControls;
 igById('igClose').onclick = () => igComposer.close();
-igComposer.onclose = () => { clearTimeout(igSession?.timer); igSession = null; };
+igComposer.onclose = () => { clearTimeout(igSession?.timer); igSession = null; igById('igStudioKey').value = ''; };
 
 if(token())boot();
 </script>

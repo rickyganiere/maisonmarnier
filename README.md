@@ -131,3 +131,15 @@ Unified Login uses `instagram_basic` and `instagram_content_publish`. Instagram 
 Open **Published → Post to Instagram**, or use the same action in **Edit**. Select one photo for a single-image post or several photos for one carousel, review the social-focused caption, and press **Publish to Instagram**. The composer resumes pending submissions and links to the published post when Meta supplies its permalink. Carousel posts can contain up to 20 media items and count as one published post against Meta’s daily limit.
 
 Deployment requires migrations through `0007_instagram_login_method.sql` and the Worker secret `INSTAGRAM_TOKEN_KEY` (32 random bytes, base64 encoded). Keep the key stable across deployments. Reconnect the Instagram account after replacing it.
+
+### Instagram Studio
+
+Post to Instagram opens a dedicated mockup composer. Generate five portrait 4:5 scenes from the product references and the homepage interior style, review them, and select four or five for a carousel. Supplier photos remain reference inputs; new posts cannot publish them directly. Existing pending publications remain recoverable.
+
+Requires migration `0009_instagram_studio.sql` and the `INSTAGRAM_MEDIA` R2 binding (`maison-marnier-instagram`). Connect an existing OpenAI key in the private composer, or configure `OPENAI_API_KEY` as a Worker secret. The composer verifies model access and stores only an AES-GCM encrypted credential in D1, using the existing `INSTAGRAM_TOKEN_KEY` with studio-specific authenticated data. Never log keys or provider response bodies.
+
+Each scene is generated once for the current product references, saved in R2, and reusable after reload. A D1 lease prevents concurrent duplicate edits. Generation sends JSON whitespace heartbeats while waiting for OpenAI; the composer creates scenes sequentially and retains completed images after errors. Keep the composer open during generation. Review product fidelity before publishing; image quality and live OpenAI access require verification with the connected account.
+
+Image edit API reference: https://developers.openai.com/api/reference/resources/images/methods/edit
+
+Validation: `node --test test/instagram-publishing.test.mjs test/instagram-studio.test.mjs`.
