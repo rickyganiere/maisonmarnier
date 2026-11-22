@@ -19,6 +19,13 @@ test('storefront requires a price and four distinct supplier photos', () => {
 test('daily catalog filter accepts decor and rejects unrelated products', () => {
   assert.equal(isHomeDecorCandidate({ name: 'Ceramic Vase', category: 'Home Decoration' }), true);
   assert.equal(isHomeDecorCandidate({ name: 'Decorative Cushion Cover', category: 'Textiles' }), true);
+  assert.equal(isHomeDecorCandidate({ name: 'Decorative Candle Holder', category: 'Home Decoration' }), true);
   assert.equal(isHomeDecorCandidate({ name: 'Rear Trunk Cargo Rack', category: 'Automotive' }), false);
   assert.equal(isHomeDecorCandidate({ name: 'Baby Storage Basket', category: 'Baby' }), false);
+  assert.equal(isHomeDecorCandidate({ name: 'Portable Mini Flashlight LED ZOOM Torch Hunting', category: 'Lighting' }), false);
+  assert.equal(isHomeDecorCandidate({ name: 'Onion Holder Slicer', category: 'Kitchen' }), false);
+  assert.equal(isHomeDecorCandidate({ name: 'OSMO Pocket 2 Handheld Tripod Holder Accessories', category: 'Home' }), false);
+  assert.equal(isHomeDecorCandidate({ name: 'Back Stretcher Pillow Massager', category: 'Home' }), false);
+  assert.equal(isHomeDecorCandidate({ name: 'Bluetooth Speaker White Noise Sleep Night Light', category: 'Lighting' }), false);
+  assert.equal(isHomeDecorCandidate({ name: 'Halloween Cloak Costumes', category: 'Holiday Decoration' }), false);
 });
