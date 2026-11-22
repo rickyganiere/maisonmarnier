@@ -349,7 +349,7 @@ td,th{border-bottom:1px solid #e4ddd2;padding:8px;text-align:left;vertical-align
         <div id="published"></div>
         <details class="catalog-maintenance">
           <summary>Catalog maintenance</summary>
-          <button class="btn secondary" type="button" id="pruneThinBtn">Unpublish products with fewer than 2 photos</button>
+          <button class="btn secondary" type="button" id="pruneThinBtn">Unpublish products with fewer than 4 photos</button>
         </details>
       </section>
 
@@ -444,7 +444,7 @@ td,th{border-bottom:1px solid #e4ddd2;padding:8px;text-align:left;vertical-align
       <legend>Product photos</legend>
       <label>Main photo URL<input name="image_url"></label>
       <label>Gallery URLs, one per line<textarea name="image_urls" rows="3"></textarea></label>
-      <p class="field-note">Published products need at least 2 distinct supplier photos.</p>
+      <p class="field-note">Published products need at least 4 distinct supplier photos.</p>
     </fieldset>
     <div class="editor-footer">
       <div class="msg" id="editorMsg" role="status"></div>
@@ -1036,13 +1036,13 @@ async function refreshMissingCosts(){
 }
 async function refreshMissingPictures(){
   const missing=catalog.filter(p=>p.status!=='live'&&p.supplier==='CJ'&&!(Number(p.image_count)>=2)).length;
-  if(!missing){msg('draftsMsg','All CJ drafts already have at least 2 photos.');return}
-  if(!confirm('Refresh galleries for up to 25 CJ drafts with fewer than 2 photos?'))return;
+  if(!missing){msg('draftsMsg','All CJ drafts already have at least 4 photos.');return}
+  if(!confirm('Refresh galleries for up to 25 CJ drafts with fewer than 4 photos?'))return;
   await runChunkedDraftRefresh({
     endpoint:'/api/lume/refresh-pictures',
     label:'Refreshing missing pictures',
     total:missing,
-    body:{minPhotos:2},
+    body:{minPhotos:4},
     successText:({updated,stillMissing,remaining})=>
       'Galleries filled '+updated+' · still thin '+stillMissing+' · remaining '+remaining,
   });
@@ -1081,7 +1081,7 @@ function productPath(product) {
 }
 
 function viewable(product) {
-  return product.status === 'live' && product.slug && product.image_count >= 2 && product.retail_price_eur > 0;
+  return product.status === 'live' && product.slug && product.image_count >= 4 && product.retail_price_eur > 0;
 }
 
 function renderCatalog(status) {
@@ -1342,7 +1342,7 @@ editor.addEventListener('cancel', event => {
 });
 
 document.getElementById('pruneThinBtn').addEventListener('click', async event => {
-  if (!confirm('Move every published product with fewer than 2 supplier photos to Draft Products?')) return;
+  if (!confirm('Move every published product with fewer than 4 supplier photos to Draft Products?')) return;
   const button = event.currentTarget;
   button.disabled = true;
   try {

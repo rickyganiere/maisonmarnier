@@ -12,7 +12,7 @@ import {
 } from '../lib/html.js';
 import { getLiveProducts, getLiveProductsBySlugs } from '../db/products.js';
 import { getLang, htmlCacheHeaders, langHref, persistLangCookieHeader, tr } from '../lib/i18n.js';
-import { CHRISTMAS_SCENES } from '../lib/seasonalAssets.js';
+import { CHRISTMAS_SCENES, HOME_STUDIO_PREVIEWS } from '../lib/seasonalAssets.js';
 import {
   DEFAULT_OG_IMAGE,
   jsonLdScript,
@@ -25,7 +25,6 @@ const CHRISTMAS_HOME_EDIT = [
   'christmas-tree-898881',
   '3-x-3-x-4-3-egg-christmas-ball-ornament-012800',
   'wooden-christmas-tree-folding-coaster-black-walnut-thick-seat-620400',
-  'christmas-tree-cups-heat-resistant-double-layer-flowing-sequins-617800',
 ];
 
 const HOME_CSS = `
@@ -93,6 +92,7 @@ ${LAYOUT_CSS}
 .mm-card-media img{width:100%;height:100%;display:block;object-fit:cover;transition:transform .5s ease}
 .mm-card:hover .mm-card-media img{transform:scale(1.04)}
 .mm-card-drop{position:absolute;top:9px;left:9px;z-index:2;padding:4px 7px;border-radius:2px;background:#7a1f28;color:#fff4e4;font:800 10px/1.1 var(--font);letter-spacing:.06em;text-transform:uppercase;pointer-events:none}
+.mm-card-studio{position:absolute;right:9px;bottom:9px;z-index:2;padding:5px 8px;border:1px solid rgba(240,201,135,.55);border-radius:999px;background:rgba(24,15,12,.86);color:#f5d7a3;font:800 9px/1 var(--font);letter-spacing:.09em;text-transform:uppercase;backdrop-filter:blur(8px);pointer-events:none}
 .mm-card-body{position:relative;display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:end;column-gap:12px;row-gap:2px;padding:12px 14px 14px;background:linear-gradient(180deg,#241c17,#171210)}
 .mm-card-name,.mm-card-meta{grid-column:1;min-width:0;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .mm-card-name{font:900 .98rem/1.25 var(--font);color:#fff8ec;letter-spacing:-.01em}
@@ -192,6 +192,10 @@ ${LAYOUT_CSS}
 }
 `;
 
+function homePreview(p) {
+  return HOME_STUDIO_PREVIEWS[p?.slug] || '';
+}
+
 function heroCarouselHtml(products, lang) {
   const empty = tr(lang, { es: 'Novedades navideñas', en: 'Holiday arrivals' });
   const piece = tr(lang, { es: 'Pieza de temporada', en: 'Holiday piece' });
@@ -204,7 +208,9 @@ function heroCarouselHtml(products, lang) {
     const name = esc(p.name || piece);
     const price = Number(p.retail_price_eur || 0);
     return `<a class="mm-carousel-slide" href="${esc(langHref(`/products/${encodeURIComponent(p.slug)}`, lang))}">
-      ${storefrontProductImage(p, { featured: i === 0, decorative: true, lang })}
+      ${homePreview(p)
+        ? `<img src="${esc(homePreview(p))}" alt="" width="1200" height="800" ${i === 0 ? 'fetchpriority="high"' : 'loading="lazy"'} decoding="async">`
+        : storefrontProductImage(p, { featured: i === 0, decorative: true, lang })}
       <div class="mm-carousel-meta">
         <span>${price > 0 ? `€${price.toFixed(2)}` : esc(shopNow)}</span>
         <strong>${name}</strong>
@@ -240,8 +246,13 @@ export async function homePage(env, request) {
     getLiveProducts(env, 12).catch(() => []),
   ]);
   const products = [...new Map([...curated, ...latest].map((p) => [p.slug, p])).values()];
-  const featuredHtml = products.length
-    ? products.slice(0, 8).map((p, i) => homeProductCard(p, { featured: i === 0, lang })).join('')
+  const featuredProducts = curated.length ? curated.slice(0, 4) : products.slice(0, 4);
+  const featuredHtml = featuredProducts.length
+    ? featuredProducts.map((p, i) => homeProductCard(p, {
+      featured: i === 0,
+      lang,
+      previewImage: homePreview(p),
+    })).join('')
     : `<p class="empty">${esc(tr(lang, { es: 'Las piezas navideñas van llegando.', en: 'Holiday pieces are arriving.' }))}</p>`;
   const carouselHtml = heroCarouselHtml(curated.length ? curated : products, lang);
 
@@ -298,7 +309,7 @@ ${storefrontHeaderHtml({ search: false, lang, path: '/' })}
   <section class="mm-section" id="featured">
     <div class="mm-section-inner">
       <div class="mm-section-head">
-        <h2>${esc(tr(lang, { es: 'Novedades de temporada', en: 'Holiday arrivals' }))}</h2>
+        <h2>${esc(tr(lang, { es: 'Selección Maison', en: 'The Maison edit' }))}</h2>
         <a href="${h('/collections/new')}">${esc(tr(lang, { es: 'Ver todas →', en: 'View all arrivals →' }))}</a>
       </div>
       <div class="mm-products" data-home-listings>${featuredHtml}</div>

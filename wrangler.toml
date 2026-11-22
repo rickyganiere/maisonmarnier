@@ -18,6 +18,9 @@ enabled = true
 [observability.traces]
 enabled = true
 
+[triggers]
+crons = ["10 5 * * *"]
+
 # Secrets (set in Cloudflare dashboard or `wrangler secret put`, never in git):
 #   CJ_API_KEY, LUME_ADMIN_TOKEN, LUME_IMPORT_CODE
 #   STRIPE_SECRET_KEY, STRIPE_WEBHOOK_SECRET
@@ -26,5 +29,5 @@ enabled = true
 
 [[rules]]
 type = "Data"
-globs = ["**/christmas-*.webp"]
+globs = ["**/christmas-*.webp", "**/home-studio-*.webp"]
 fallthrough = true

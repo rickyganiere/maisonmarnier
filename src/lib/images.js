@@ -31,18 +31,18 @@ export function productImages(p, { max = 8, allowStock = false } = {}) {
   return out.slice(0, max);
 }
 
-/** Live catalog rule: at least 2 real (non-stock) photos. */
-export function hasMultiRealPhotos(p, { min = 2 } = {}) {
+/** Live catalog rule: at least 4 real (non-stock) photos. */
+export function hasMultiRealPhotos(p, { min = 4 } = {}) {
   return productImages(p, { max: 12, allowStock: false }).length >= min;
 }
 
 /** Storefront listing gate: price + multi real photos (no empty/stock-only). */
-export function isStorefrontListable(p, { minPhotos = 2 } = {}) {
+export function isStorefrontListable(p, { minPhotos = 4 } = {}) {
   if (!(Number(p?.retail_price_eur || 0) > 0)) return false;
   return hasMultiRealPhotos(p, { min: minPhotos });
 }
 
-export function galleryValidationError(p, { min = 2 } = {}) {
+export function galleryValidationError(p, { min = 4 } = {}) {
   const imgs = productImages(p, { max: 12, allowStock: false });
   if (imgs.length < min) {
     return `Need at least ${min} real product photos (CJ/supplier). Unsplash/stock images do not count.`;

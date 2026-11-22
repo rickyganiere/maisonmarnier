@@ -250,13 +250,13 @@ export async function importChristmasCatalog(request, env) {
       }
     }
 
-    // Enrich from CJ detail/variants so every live SKU has ≥2 real supplier photos.
+    // Enrich from CJ detail/variants so every live SKU has at least 4 real supplier photos.
     const enriched = [];
     for (const p of byId.values()) {
       if (enriched.length >= target) break;
       try {
         let images = Array.isArray(p.images) ? p.images.slice() : [];
-        if (images.length < 2) {
+        if (images.length < 4) {
           const fresh = await refreshProductFromCJ(env, p.id);
           if (fresh?.images?.length) images = fresh.images;
           if (fresh?.image) p.image = fresh.image;
@@ -266,7 +266,7 @@ export async function importChristmasCatalog(request, env) {
           await new Promise((r) => setTimeout(r, 120));
         }
         images = images.filter((u) => u && !/unsplash\.com|pexels\.com|picsum\.photos/i.test(u));
-        if (images.length < 2) continue;
+        if (images.length < 4) continue;
         if (!(p.stock > 0)) continue;
         p.images = images.slice(0, 12);
         p.image = images[0];

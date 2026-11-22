@@ -109,7 +109,7 @@ export async function sitemapProductsXml(env) {
       .bind(PRODUCT_CAP * 3)
       .all();
     for (const p of r.results || []) {
-      if (!isStorefrontListable(p, { minPhotos: 2 })) continue;
+      if (!isStorefrontListable(p, { minPhotos: 4 })) continue;
       entries.push(
         urlEntry(`${SITE_ORIGIN}/products/${encodeURIComponent(p.slug)}`, formatLastmod(p.published_at)),
       );

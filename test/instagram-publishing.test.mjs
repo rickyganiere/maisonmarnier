@@ -22,7 +22,12 @@ function setup(t) {
   }
   sqlite.prepare(`INSERT INTO products(lume_sku,supplier_product_id,name,slug,image_url,image_urls,
     retail_price_eur,supplier_cost_usd,status) VALUES ('PRIVATE-SKU','1','Basket','basket',?,?,12.95,4.11,'live')`)
-    .run(image, JSON.stringify([image, 'https://other.example/side.jpg']));
+    .run(image, JSON.stringify([
+      image,
+      'https://other.example/side.jpg',
+      'https://other.example/detail.jpg',
+      'https://other.example/room.jpg',
+    ]));
   const env = {
     LUME_ADMIN_TOKEN: 'local-admin-fixture',
     INSTAGRAM_TOKEN_KEY: Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString('base64'),
@@ -118,7 +123,7 @@ test('preview is admin-only and contains only public product information', async
   assert.equal((await call('product?id=1', null, false)).status, 401);
   const preview = await call('product?id=1');
   assert.equal(preview.connected, false);
-  assert.equal(preview.photos.length, 2);
+  assert.equal(preview.photos.length, 4);
   assert.match(preview.caption, /Basket/);
   assert.match(preview.caption, /#MaisonMarnier/);
   assert.doesNotMatch(JSON.stringify(preview), /4\.11|PRIVATE-SKU|supplier_cost/);
@@ -256,7 +261,7 @@ test('publishes selected product photos as one Instagram carousel', async t => {
   await call('account', { token });
   const result = await call('publish', {
     productId: 1,
-    photoKeys: preview.photos.map(photo => photo.key),
+    photoKeys: preview.photos.slice(0, 2).map(photo => photo.key),
     caption: body.caption,
   });
   assert.equal(result.published, true);
