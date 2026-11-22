@@ -10,7 +10,7 @@ import {
   storefrontHeaderHtml,
   storefrontProductImage,
 } from '../lib/html.js';
-import { getLiveProducts, getLiveProductsBySlugs } from '../db/products.js';
+import { getLiveProductsBySlugs } from '../db/products.js';
 import { getLang, htmlCacheHeaders, langHref, persistLangCookieHeader, tr } from '../lib/i18n.js';
 import { CHRISTMAS_SCENES, HOME_STUDIO_PREVIEWS } from '../lib/seasonalAssets.js';
 import {
@@ -26,6 +26,71 @@ const CHRISTMAS_HOME_EDIT = [
   '3-x-3-x-4-3-egg-christmas-ball-ornament-012800',
   'wooden-christmas-tree-folding-coaster-black-walnut-thick-seat-620400',
 ];
+
+const HOME_CATEGORY_LINES = [
+  {
+    id: 'holiday',
+    title: { es: 'Navidad Maison', en: 'The Holiday Edit' },
+    hint: { es: 'La selección de temporada', en: 'The seasonal selection' },
+    href: '/collections/seasonal',
+    categories: ['Seasonal'],
+    slugs: CHRISTMAS_HOME_EDIT,
+  },
+  {
+    id: 'lighting',
+    title: { es: 'Iluminación', en: 'Lighting' },
+    hint: { es: 'Brillo cálido para casa', en: 'A warm glow at home' },
+    href: '/collections/lighting',
+    categories: ['Lighting'],
+    slugs: [
+      'creative-lighted-robin-christmas-wreath',
+      'pvc-mini-christmas-tree-led-lights-decoration-desktop-ornaments',
+      'christmas-portable-oil-lamp-santa-claus-led-night-lights-battery',
+      'small-night-light-small-wax-lamp-creative-decoration',
+    ],
+  },
+  {
+    id: 'candles',
+    title: { es: 'Velas y atmósfera', en: 'Candles & atmosphere' },
+    hint: { es: 'Luz suave y detalles dorados', en: 'Soft light and golden details' },
+    href: '/collections/candles',
+    categories: ['Candles'],
+    slugs: [
+      'european-style-round-black-and-golden-aromatherapy-candle',
+      'light-luxury-crescent-moon-star-moon-black-gold-metal-candle',
+      'crushed-diamond-mirrored-candle-holder-set-with-3-clear-glass-589121',
+      'crystal-dried-flower-fragrance-tin-can-tinplate-candle-622200',
+    ],
+  },
+  {
+    id: 'objects',
+    title: { es: 'Objetos y jarrones', en: 'Objects & vases' },
+    hint: { es: 'Formas escultóricas', en: 'Sculptural forms' },
+    href: '/collections/objects',
+    categories: ['Objects', 'Decor'],
+    slugs: [
+      'vase-nordic-home-decorations-maison-flower-pot',
+      'stoneware-zen-chinese-flower-arrangement-vase',
+      'vintage-ceramic-vase-620200',
+      'jingdezhen-retro-black-stoneware-handmade-ceramic-vase-623500',
+    ],
+  },
+  {
+    id: 'textiles',
+    title: { es: 'Textiles', en: 'Textiles' },
+    hint: { es: 'Capas suaves para el salón', en: 'Soft layers for the living room' },
+    href: '/collections/textiles',
+    categories: ['Textiles'],
+    slugs: [
+      'fashionable-personality-french-vintage-pillow-cover',
+      'home-fashion-simple-corduroy-couch-pillow',
+      'plain-cotton-linen-sofa-cushion-thickened-square-pillow',
+      'retro-bohemian-style-pillow-cover-linen-printed-home-ornament',
+    ],
+  },
+];
+
+const HOME_EDIT_SLUGS = HOME_CATEGORY_LINES.flatMap((line) => line.slugs);
 
 const HOME_CSS = `
 ${LAYOUT_CSS}
@@ -81,6 +146,10 @@ ${LAYOUT_CSS}
 .mm-section-head{display:flex;justify-content:space-between;align-items:end;gap:12px;margin-bottom:9px}
 .mm-section-head h2{margin:0;font:700 clamp(1.35rem,2.4vw,1.85rem)/1.05 Georgia,serif;letter-spacing:-.025em;color:#fff3e0}
 .mm-section-head a{font:800 12px/1 var(--font);letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.mm-product-line{padding-block:9px 22px}
+.mm-product-line + .mm-product-line{margin-top:10px;padding-top:28px;border-top:1px solid rgba(112,81,61,.62)}
+.mm-line-title{display:flex;flex-direction:column;gap:5px}
+.mm-line-hint{font:800 10px/1 var(--font);letter-spacing:.12em;text-transform:uppercase;color:#d3ad71}
 .mm-products{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;padding-top:0}
 .mm-card{position:relative;display:block;min-height:0;overflow:hidden;border:1px solid #574033;border-radius:8px;background:#1a1411;box-shadow:0 14px 34px rgba(0,0,0,.28);text-decoration:none;color:inherit;transition:border-color .3s ease,transform .3s ease,box-shadow .3s ease}
 .mm-card::after{content:"";position:absolute;left:0;right:0;top:0;height:1px;background:linear-gradient(90deg,transparent,#c9a46a,transparent);opacity:0;transition:opacity .3s ease;pointer-events:none}
@@ -99,7 +168,7 @@ ${LAYOUT_CSS}
 .mm-card-meta{margin-top:2px;color:#b3a89a;font:600 .72rem/1.3 var(--font)}
 .mm-card-price{grid-column:2;grid-row:1 / span 3;align-self:end;margin:0;color:#fff8ec;font:900 1.12rem/1.3 var(--font);white-space:nowrap;text-align:right}
 .mm-card-was{display:block;margin-top:1px;color:#8a7d70;font:600 .72rem/1 var(--font);text-decoration:line-through;text-align:right}
-.mm-cats{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px;margin-top:8px}
+.mm-cats{display:grid;grid-template-columns:repeat(5,minmax(0,1fr));gap:12px;margin-top:8px}
 .mm-cat{position:relative;isolation:isolate;overflow:hidden;min-height:132px;border-radius:14px;border:1px solid #8a6848;display:flex;align-items:flex-end;padding:18px 16px 16px;background:#241812;box-shadow:inset 0 1px 0 rgba(255,232,196,.12);transition:border-color .3s ease,transform .35s cubic-bezier(.2,.7,.2,1),box-shadow .35s ease}
 .mm-cat-media,.mm-cat-glow{position:absolute;inset:0;z-index:-2;width:100%;height:100%;object-fit:cover;object-position:center 42%;transform:scale(1.02);transition:transform .55s cubic-bezier(.2,.7,.2,1),filter .35s ease;pointer-events:none}
 .mm-cat::after{content:"";position:absolute;inset:0;z-index:-1;background:
@@ -196,6 +265,34 @@ function homePreview(p) {
   return HOME_STUDIO_PREVIEWS[p?.slug] || '';
 }
 
+function categoryLinesHtml(products, lang) {
+  const bySlug = new Map(products.map((product) => [product.slug, product]));
+  return HOME_CATEGORY_LINES.map((line, lineIndex) => {
+    const lineProducts = line.slugs
+      .map((slug) => bySlug.get(slug))
+      .filter((product) => product && homePreview(product))
+      .slice(0, 4);
+    if (!lineProducts.length) return '';
+    const cards = lineProducts.map((product, cardIndex) => homeProductCard(product, {
+      featured: lineIndex === 0 && cardIndex === 0,
+      lang,
+      previewImage: homePreview(product),
+    })).join('');
+    const title = tr(lang, line.title);
+    const view = tr(lang, { es: 'Ver colección →', en: 'View collection →' });
+    return `<section class="mm-product-line" data-product-line="${esc(line.id)}">
+      <div class="mm-section-head">
+        <div class="mm-line-title">
+          <span class="mm-line-hint">${esc(tr(lang, line.hint))}</span>
+          <h2>${esc(title)}</h2>
+        </div>
+        <a href="${esc(langHref(line.href, lang))}">${esc(view)}</a>
+      </div>
+      <div class="mm-products" data-home-listings="${esc(line.id)}">${cards}</div>
+    </section>`;
+  }).join('');
+}
+
 function heroCarouselHtml(products, lang) {
   const empty = tr(lang, { es: 'Novedades navideñas', en: 'Holiday arrivals' });
   const piece = tr(lang, { es: 'Pieza de temporada', en: 'Holiday piece' });
@@ -241,20 +338,12 @@ function snowFlakesHtml(count = 26) {
 export async function homePage(env, request) {
   const lang = getLang(request);
   const h = (path) => esc(langHref(path, lang));
-  const [curated, latest] = await Promise.all([
-    getLiveProductsBySlugs(env, CHRISTMAS_HOME_EDIT).catch(() => []),
-    getLiveProducts(env, 12).catch(() => []),
-  ]);
-  const products = [...new Map([...curated, ...latest].map((p) => [p.slug, p])).values()];
-  const featuredProducts = curated.length ? curated.slice(0, 4) : products.slice(0, 4);
-  const featuredHtml = featuredProducts.length
-    ? featuredProducts.map((p, i) => homeProductCard(p, {
-      featured: i === 0,
-      lang,
-      previewImage: homePreview(p),
-    })).join('')
-    : `<p class="empty">${esc(tr(lang, { es: 'Las piezas navideñas van llegando.', en: 'Holiday pieces are arriving.' }))}</p>`;
-  const carouselHtml = heroCarouselHtml(curated.length ? curated : products, lang);
+  const curated = await getLiveProductsBySlugs(env, HOME_EDIT_SLUGS).catch(() => []);
+  const bySlug = new Map(curated.map((product) => [product.slug, product]));
+  const holidayProducts = CHRISTMAS_HOME_EDIT.map((slug) => bySlug.get(slug)).filter(Boolean);
+  const categoryLines = categoryLinesHtml(curated, lang) ||
+    `<p class="empty">${esc(tr(lang, { es: 'Las piezas Maison van llegando.', en: 'Maison pieces are arriving.' }))}</p>`;
+  const carouselHtml = heroCarouselHtml(holidayProducts, lang);
 
   const homeTitle = tr(lang, {
     es: 'Maison Marnier — Edición hogar de Navidad',
@@ -308,12 +397,8 @@ ${storefrontHeaderHtml({ search: false, lang, path: '/' })}
 
   <section class="mm-section" id="featured">
     <div class="mm-section-inner">
-      <div class="mm-section-head">
-        <h2>${esc(tr(lang, { es: 'Selección Maison', en: 'The Maison edit' }))}</h2>
-        <a href="${h('/collections/new')}">${esc(tr(lang, { es: 'Ver todas →', en: 'View all arrivals →' }))}</a>
-      </div>
-      <div class="mm-products" data-home-listings>${featuredHtml}</div>
-      <nav class="mm-cats" style="margin-top:22px" aria-label="${esc(tr(lang, { es: 'Comprar por categoría', en: 'Shop by category' }))}">
+      ${categoryLines}
+      <nav class="mm-cats" style="margin-top:26px" aria-label="${esc(tr(lang, { es: 'Comprar por categoría', en: 'Shop by category' }))}">
         <a class="mm-cat mm-cat--holiday" href="${h('/collections/seasonal')}">
           <img class="mm-cat-media" src="${CHRISTMAS_SCENES.living}" alt="" width="640" height="400" loading="lazy" decoding="async">
           <span class="mm-cat-copy"><span class="mm-cat-name">${esc(tr(lang, { es: 'Navidad', en: 'Holiday' }))}</span><span class="mm-cat-hint">${esc(tr(lang, { es: 'Edición de temporada', en: 'Seasonal edit' }))}</span></span>
@@ -329,6 +414,10 @@ ${storefrontHeaderHtml({ search: false, lang, path: '/' })}
         <a class="mm-cat mm-cat--objects" href="${h('/collections/objects')}">
           <img class="mm-cat-media" src="${CHRISTMAS_SCENES.table}" alt="" width="640" height="400" loading="lazy" decoding="async">
           <span class="mm-cat-copy"><span class="mm-cat-name">${esc(tr(lang, { es: 'Objetos', en: 'Objects' }))}</span><span class="mm-cat-hint">${esc(tr(lang, { es: 'Mesa y decoración', en: 'Table & décor' }))}</span></span>
+        </a>
+        <a class="mm-cat mm-cat--objects" href="${h('/collections/textiles')}">
+          <img class="mm-cat-media" src="${HOME_STUDIO_PREVIEWS['fashionable-personality-french-vintage-pillow-cover']}" alt="" width="640" height="400" loading="lazy" decoding="async">
+          <span class="mm-cat-copy"><span class="mm-cat-name">${esc(tr(lang, { es: 'Textiles', en: 'Textiles' }))}</span><span class="mm-cat-hint">${esc(tr(lang, { es: 'Capas suaves', en: 'Soft layers' }))}</span></span>
         </a>
       </nav>
     </div>
