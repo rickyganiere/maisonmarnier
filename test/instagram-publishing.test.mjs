@@ -8,11 +8,16 @@ import { instagramPhotoResponse } from '../src/instagram-photos.js';
 const apiRoot = 'https://maisonmarnier.com/api/lume/instagram/';
 const image = 'https://cf.cjdropshipping.com/gallery/basket.png';
 const token = 'local-fixture-token';
+const unified = 'local-unified-fixture';
+const pageToken = 'local-pages-fixture';
+const expired = 'local-expired-fixture';
+const appUsername = 'maison.marnier';
+const metaError = (code, error_subcode) => Response.json({ error: { code, error_subcode } }, { status: 400 });
 
 function setup(t) {
   const sqlite = new DatabaseSync(':memory:');
   t.after(() => sqlite.close());
-  for (const file of ['0001_init.sql', '0004_product_images.sql', '0006_instagram_publishing.sql']) {
+  for (const file of ['0001_init.sql', '0004_product_images.sql', '0006_instagram_publishing.sql', '0007_instagram_login_method.sql']) {
     sqlite.exec(readFileSync(new URL('../migrations/' + file, import.meta.url), 'utf8'));
   }
   sqlite.prepare(`INSERT INTO products(lume_sku,supplier_product_id,name,slug,image_url,image_urls,
@@ -29,23 +34,49 @@ function setup(t) {
       return { ...bind(), bind };
     } },
   };
-  const meta = { username: 'maison.marnier', status: 'FINISHED', creates: 0, publishes: 0, loseReply: false, calls: 0 };
+  const meta = { username: appUsername, status: 'FINISHED', creates: 0, publishes: 0, loseReply: false, calls: 0, paths: [] };
   t.mock.method(globalThis, 'fetch', async (url, options) => {
     const u = new URL(url);
-    assert.equal(u.origin, 'https://graph.instagram.com');
+    const isUnified = u.origin === 'https://graph.facebook.com';
+    assert.equal(u.origin, isUnified ? 'https://graph.facebook.com' : 'https://graph.instagram.com');
     assert.equal(options.redirect, 'manual');
-    assert.equal(options.headers.Authorization, 'Bearer ' + token);
     meta.calls++;
-    switch (u.pathname.replace('/v26.0/', '')) {
-      case 'me': return Response.json({ user_id: '12345', username: meta.username });
-      case '12345/content_publishing_limit':
-        return meta.deny ? Response.json({ error: { code: 10 } }, { status: 403 }) : Response.json({ data: [{ quota_usage: 0 }] });
-      case '12345/media':
+    meta.paths.push(u.origin + u.pathname);
+    const credential = options.headers.Authorization;
+    const version = isUnified ? '/v27.0/' : '/v26.0/';
+    assert.ok(u.pathname.startsWith(version));
+    const path = u.pathname.slice(version.length);
+    const id = isUnified ? '67890' : (meta.numericId || '12345');
+    if (!isUnified && credential !== 'Bearer ' + token)
+      return metaError(190, credential === 'Bearer ' + expired ? 463 : undefined);
+    if (isUnified && credential !== 'Bearer ' + unified)
+      return credential === 'Bearer ' + pageToken ? metaError(100) : metaError(190);
+    if (path === 'me/assigned_instagram_accounts') {
+      assert.ok(isUnified);
+      assert.equal(u.searchParams.get('fields'), 'id,username');
+      if (!u.searchParams.has('after')) return Response.json({
+        data: [{ id: '1', username: 'another.shop' }],
+        paging: { next: 'https://unused.example/next', cursors: { after: 'page/2+' } },
+      });
+      assert.equal(u.searchParams.get('after'), 'page/2+');
+      return Response.json({ data: [{ id, username: meta.username }] });
+    }
+    switch (path) {
+      case 'me':
+        assert.ok(!isUnified);
+        if (meta.numericId) return new Response('{"user_id":' + id + ',"username":"maison.marnier"}');
+        return Response.json({ user_id: id, username: meta.username });
+      case '67890':
+        assert.ok(isUnified);
+        return Response.json({ id, username: meta.username });
+      case id + '/content_publishing_limit':
+        return meta.deny ? metaError(10) : Response.json(meta.emptyQuota ? { data: [] } : { data: [{ quota_usage: 0 }] });
+      case id + '/media':
         meta.creates++;
         assert.match(options.body.get('image_url'), /^https:\/\/maisonmarnier\.com\/instagram\/product-photo\/1\/[0-9a-f]+\.jpg$/);
         return Response.json({ id: '1001' });
       case '1001': return Response.json({ status_code: meta.status });
-      case '12345/media_publish':
+      case id + '/media_publish':
         assert.equal(options.body.get('creation_id'), '1001');
         meta.publishes++;
         meta.status = 'PUBLISHED';
@@ -95,6 +126,91 @@ test('connection verifies the handle and publishing scope and stores only a seal
   assert.ok(!sqlite.prepare('SELECT sealed_token FROM instagram_account').get().sealed_token.includes(token));
   assert.equal((await call('account', null, true, 'DELETE')).connected, false);
   assert.equal(meta.publishes, 0);
+});
+
+test('a numeric Instagram user ID retains every digit when Meta returns a JSON integer', async t => {
+  const { call, meta, sqlite } = setup(t);
+  meta.numericId = '17841405822304919';
+  assert.equal((await call('account', { token })).connected, true);
+  assert.equal(sqlite.prepare('SELECT user_id FROM instagram_account').get().user_id, meta.numericId);
+});
+
+test('read-only Facebook credentials and confirmed expiration give distinct instructions and preserve an existing connection', async t => {
+  const { call, meta, sqlite } = setup(t);
+  const rejected = await call('account', { token: pageToken });
+  assert.equal(rejected.status, 403);
+  assert.match(rejected.error, /Facebook Page-read/);
+  assert.doesNotMatch(rejected.error, /expired/i);
+  assert.equal((await call('account')).connected, false);
+
+  assert.equal((await call('account', { token })).connected, true);
+  const before = sqlite.prepare('SELECT * FROM instagram_account').get();
+  const attempted = meta.paths.length;
+  const expiredResult = await call('account', { token: expired });
+  assert.equal(expiredResult.status, 403);
+  assert.match(expiredResult.error, /has expired/);
+  assert.equal(meta.paths.length, attempted + 1);
+  assert.deepEqual(sqlite.prepare('SELECT * FROM instagram_account').get(), before);
+  assert.equal(meta.creates + meta.publishes, 0);
+});
+
+test('Unified Login checks the assigned handle and the publishing permission before saving', async t => {
+  const { call, meta, sqlite } = setup(t);
+  meta.username = 'a.different.account';
+  assert.equal((await call('account', { token: unified })).status, 403);
+  meta.username = appUsername;
+  meta.deny = true;
+  const permission = await call('account', { token: unified });
+  assert.equal(permission.status, 403);
+  assert.match(permission.error, /publishing access/);
+  meta.deny = false;
+  meta.emptyQuota = true;
+  assert.equal((await call('account', { token: unified })).status, 502);
+  assert.equal((await call('account')).connected, false);
+  meta.emptyQuota = false;
+  assert.equal((await call('account', { token: unified })).connected, true);
+  const row = sqlite.prepare('SELECT * FROM instagram_account').get();
+  assert.equal(row.login_method, 'unified');
+  assert.equal(row.user_id, '67890');
+  assert.ok(!row.sealed_token.includes(unified));
+  assert.equal(meta.creates + meta.publishes, 0);
+});
+
+test('Unified Login publishes on its own host and retries after switching login do not duplicate a post', async t => {
+  const { call, meta, sqlite, payload } = setup(t);
+  const body = await payload();
+  await call('account', { token: unified });
+  sqlite.exec("UPDATE instagram_account SET refreshed_at=0");
+  const start = meta.paths.length;
+  const published = await call('publish', body);
+  assert.equal(published.published, true);
+  assert.equal(published.permalink, 'https://www.instagram.com/p/abc123/');
+  assert.deepEqual(meta.paths.slice(start), ['67890', '67890/media', '1001', '67890/media_publish', '1002']
+    .map(path => 'https://graph.facebook.com/v27.0/' + path));
+  await call('account', { token });
+  // Rows saved before the migration used a different fingerprint format.
+  sqlite.exec("UPDATE instagram_posts SET fingerprint='old-fingerprint'");
+  assert.equal((await call('publish', body)).published, true);
+  assert.equal(meta.creates, 1);
+  assert.equal(meta.publishes, 1);
+});
+
+test('a pending container can only be resumed through its original login', async t => {
+  const { call, meta, payload } = setup(t);
+  const body = await payload();
+  await call('account', { token });
+  meta.status = 'IN_PROGRESS';
+  assert.equal((await call('publish', body)).pending, true);
+  await call('account', { token: unified });
+  const switched = await call('publish', body);
+  assert.equal(switched.status, 409);
+  assert.match(switched.error, /previous Meta login/);
+  assert.equal(meta.creates, 1);
+  assert.equal(meta.publishes, 0);
+  await call('account', { token });
+  meta.status = 'FINISHED';
+  assert.equal((await call('publish', body)).published, true);
+  assert.equal(meta.publishes, 1);
 });
 
 test('preparing, concurrent confirmation and retry create one feed post', async t => {

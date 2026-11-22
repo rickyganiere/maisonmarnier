@@ -127,7 +127,8 @@ td,th{border-bottom:1px solid #e4ddd2;padding:8px;text-align:left;vertical-align
 .ig-picks input:focus-visible+img{outline:2px solid #694b2f;outline-offset:2px}
 .ig-compose textarea{margin-top:6px;min-height:145px}
 #igCaptionCount{text-align:right}
-.ig-connection p{line-height:1.5}
+.ig-connection ol{padding-inline-start:1.4em;line-height:1.5}
+.ig-connection li+li{margin-top:.45em}
 .ig-connection input{margin:6px 0 12px}
 .ig-history{margin:8px 0;color:#6e665d}
 @media(max-width:600px){.ig-compose{grid-template-columns:1fr}.ig-photo{max-height:30dvh}}
@@ -480,9 +481,12 @@ td,th{border-bottom:1px solid #e4ddd2;padding:8px;text-align:left;vertical-align
   <form class="editor-form ig-connection" id="igConnectForm">
     <div class="editor-heading"><h2 id="igConnectionTitle">Connect @maison.marnier</h2>
       <button class="btn secondary" id="igConnectionClose" type="button">Close</button></div>
-    <p>Open the <a href="https://developers.facebook.com/apps/" target="_blank" rel="noopener">Meta App Dashboard</a>.
-      In your app’s Instagram API setup with Instagram Login, add the Maison Marnier Business or Creator account and choose <strong>Generate token</strong>. The app needs basic access and content publishing.</p>
-    <label>Instagram access token<input id="igToken" type="password" required autocomplete="off" spellcheck="false" maxlength="8192"></label>
+    <ol id="igConnectSteps">
+      <li>Open the <a href="https://developers.facebook.com/apps/1142354558336214/dashboard/" target="_blank" rel="noopener">MaisonMarnier app dashboard</a> and select <strong>Customize</strong> on the existing <strong>Manage messaging &amp; content on Instagram</strong> use case.</li>
+      <li>Open <strong>API setup with Unified login</strong> or <strong>API setup with Instagram login</strong>, whichever your app shows. Enable content publishing in the configuration.</li>
+      <li>Under <strong>Generate access tokens</strong>, add <strong>@maison.marnier</strong>. Accept the <a href="https://www.instagram.com/accounts/manage_access/" target="_blank" rel="noopener">Instagram tester invitation</a> if prompted, then select <strong>Generate token</strong> beside the account.</li>
+    </ol>
+    <label>Instagram access token<input id="igToken" type="password" required autocomplete="off" spellcheck="false" maxlength="8192" aria-describedby="igConnectSteps"></label>
     <div class="msg" id="igConnectMessage" role="status"></div>
     <div class="editor-actions"><button class="btn secondary" type="button" id="igDisconnect" hidden>Disconnect account</button>
       <button class="btn save" type="submit" id="igSaveConnection">Verify and connect</button></div>
