@@ -56,7 +56,7 @@ function normalizeCj(x) {
   const image = safeUrl(images[0] || x.bigImage || x.productImage || '', '');
   if (!image) return null;
   // Prefer SKUs that ship with real multi-angle product photos
-  if (images.length < 2) return null;
+  if (images.length < 4) return null;
   const name = cleanProductName(rawName) || rawName;
   const category = mapMaisonCategory(name, x.threeCategoryName || x.twoCategoryName || x.oneCategoryName || '');
   // Skip apparel-ish categories after mapping if still junk

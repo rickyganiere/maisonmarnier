@@ -46,6 +46,7 @@ import {
   saveJournalArticle,
 } from './db/journal.js';
 import { importChristmasCatalog } from './jobs/importChristmasCatalog.js';
+import { importDailyHomeDecor } from './jobs/importDailyHomeDecor.js';
 import { replaceSeedWithCj } from './jobs/replaceSeedWithCj.js';
 import { syncProductGalleries } from './jobs/syncGalleries.js';
 import { BRAND_ICON_PATH, BRAND_LOGO_PATH, BRAND_LOGO_LIGHT_PATH, brandImageResponse, brandLockupResponse } from './lib/brandAsset.js';
@@ -268,6 +269,12 @@ export async function handleRequest(request, env, ctx) {
   if (pathname === '/api/lume/import-christmas') {
     if (method !== 'POST') return methodNotAllowed();
     return importChristmasCatalog(request, env);
+  }
+  if (pathname === '/api/lume/import-home-decor-daily') {
+    if (method !== 'POST') return methodNotAllowed();
+    const denied = await requireAdmin(request, env);
+    if (denied) return denied;
+    return importDailyHomeDecor(request, env);
   }
   if (pathname === '/api/lume/sync-galleries') {
     if (method !== 'POST') return methodNotAllowed();

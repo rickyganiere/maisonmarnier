@@ -474,7 +474,7 @@ export function productCard(p, lang = DEFAULT_LANG) {
  * Home product card — same structure as CarLuxHub home listings
  * (media + body with name / meta / price), themed for Maison Marnier.
  */
-export function homeProductCard(p, { featured = false, lang = DEFAULT_LANG } = {}) {
+export function homeProductCard(p, { featured = false, lang = DEFAULT_LANG, previewImage = '' } = {}) {
   const href = esc(langHref('/products/' + encodeURIComponent(p.slug || ''), lang));
   const name = String(p.name || 'Maison Marnier');
   const retail = Number(p.retail_price_eur || 0);
@@ -494,9 +494,15 @@ export function homeProductCard(p, { featured = false, lang = DEFAULT_LANG } = {
     ? `<s class="mm-card-was">€${compareAt.toFixed(2)}</s>`
     : '';
   const drop = onSale ? `<span class="mm-card-drop">${esc(t(lang, 'badge_edit'))}</span>` : '';
+  const preview = previewImage
+    ? `<img src="${esc(previewImage)}" alt="${esc(name)}" width="1200" height="800" ${featured ? 'fetchpriority="high"' : 'loading="lazy"'} decoding="async">`
+    : storefrontProductImage(p, { featured, lang });
+  const studio = previewImage
+    ? `<span class="mm-card-studio">${lang === 'en' ? 'Styled preview' : 'Vista ambientada'}</span>`
+    : '';
   const viewLabel = lang === 'en' ? 'View' : 'Ver';
   return `<a class="mm-card" href="${href}" aria-label="${esc(name)}">
-    <span class="mm-card-media">${storefrontProductImage(p, { featured, lang })}${drop}</span>
+    <span class="mm-card-media">${preview}${drop}${studio}</span>
     <span class="mm-card-body">
       <span class="mm-card-name">${esc(name)}</span>
       <span class="mm-card-meta">${esc(metaParts.join(' · '))}</span>

@@ -27,7 +27,7 @@ const PRODUCT_COLS =
 function publishValidationError(row) {
   if (!row) return 'Product not found';
   if (!row.name || !row.image_url) return 'Title and image are required before publishing';
-  const galleryErr = galleryValidationError(row, { min: 2 });
+  const galleryErr = galleryValidationError(row, { min: 4 });
   if (galleryErr) return galleryErr;
   if (!(Number(row.retail_price_eur) > 0)) return 'Set a retail price before publishing';
   if (!(Number(row.supplier_cost_usd) > 0)) {
@@ -82,7 +82,7 @@ export async function listPublishedProducts(env, { q = '', limit = 48 } = {}) {
         .all();
     }
     const products = (r.results || [])
-      .filter((p) => isStorefrontListable(p, { minPhotos: 2 }))
+      .filter((p) => isStorefrontListable(p, { minPhotos: 4 }))
       .slice(0, lim)
       .map(withGalleryMeta);
     return json({ ok: true, products, q: query || undefined });
@@ -322,7 +322,7 @@ export async function updateLumeProduct(request, env) {
     }
     if (live) {
       if (retail <= 0) return json({ ok: false, error: 'Published products need a retail price above zero.' }, 400);
-      const galleryError = galleryValidationError({ image_url: image, image_urls: gallery }, { min: 2 });
+      const galleryError = galleryValidationError({ image_url: image, image_urls: gallery }, { min: 4 });
       if (galleryError) return json({ ok: false, error: galleryError }, 400);
     }
 
@@ -470,7 +470,7 @@ export async function pruneThinLiveProducts(env) {
   ).results || [];
   let demoted = 0;
   for (const row of live) {
-    if (hasMultiRealPhotos(row, { min: 2 })) continue;
+    if (hasMultiRealPhotos(row, { min: 4 })) continue;
     await env.LUME_DB.prepare(
       `UPDATE products SET status='draft', updated_at=CURRENT_TIMESTAMP WHERE id=?`,
     )
@@ -639,7 +639,7 @@ export async function refreshMissingCjPictures(request, env) {
   try {
     const body = await request.json().catch(() => ({}));
     const limit = Math.max(1, Math.min(40, Number(body?.limit || 25) || 25));
-    const minPhotos = Math.max(2, Math.min(8, Number(body?.minPhotos || 2) || 2));
+    const minPhotos = Math.max(4, Math.min(8, Number(body?.minPhotos || 4) || 4));
     const candidates = (
       await env.LUME_DB.prepare(
         `SELECT id,supplier_product_id,supplier_cost_usd,retail_price_eur,compare_at_price_eur,
@@ -738,7 +738,7 @@ export async function getLiveProducts(env, limit = 100) {
     .bind(Math.min(600, lim * 4))
     .all();
   return (r.results || [])
-    .filter((p) => isStorefrontListable(p, { minPhotos: 2 }))
+    .filter((p) => isStorefrontListable(p, { minPhotos: 4 }))
     .slice(0, lim)
     .map(withGalleryMeta);
 }
@@ -748,7 +748,7 @@ export async function getLiveProductsBySlugs(env, slugs) {
     `SELECT id,name,slug,image_url,image_urls,retail_price_eur,compare_at_price_eur,category,description,stock,published_at
      FROM products WHERE status='live' AND slug IN (${slugs.map(() => '?').join(',')})`,
   ).bind(...slugs).all();
-  const bySlug = new Map(results.filter((p) => isStorefrontListable(p, { minPhotos: 2 }))
+  const bySlug = new Map(results.filter((p) => isStorefrontListable(p, { minPhotos: 4 }))
     .map((p) => [p.slug, withGalleryMeta(p)]));
   return slugs.map((slug) => bySlug.get(slug)).filter(Boolean);
 }
@@ -761,7 +761,7 @@ export async function getLiveProductBySlug(env, slug) {
     .bind(slug)
     .first();
   if (!row) return null;
-  if (!isStorefrontListable(row, { minPhotos: 2 })) return null;
+  if (!isStorefrontListable(row, { minPhotos: 4 })) return null;
   return withGalleryMeta(row);
 }
 
