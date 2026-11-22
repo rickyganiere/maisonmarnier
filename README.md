@@ -128,6 +128,6 @@ In `/admin#instagram`, connect the store’s Business or Creator account, `@mais
 
 Unified Login uses `instagram_basic` and `instagram_content_publish`. Instagram Login uses `instagram_business_basic` and `instagram_business_content_publish`. The admin verifies the handle and the publishing permission before saving the token encrypted. Instagram Login long-lived tokens refresh on use after 30 days. Unified Login tokens follow the expiry selected in Meta. Reconnect in Settings when a token expires.
 
-Open **Published → Post to Instagram**, or use the same action in **Edit**. Choose a product photo, review the caption, and press **Publish to Instagram** to create a single-photo feed post. The composer resumes pending submissions and links to the published post when Meta supplies its permalink.
+Open **Published → Post to Instagram**, or use the same action in **Edit**. Select one photo for a single-image post or several photos for one carousel, review the social-focused caption, and press **Publish to Instagram**. The composer resumes pending submissions and links to the published post when Meta supplies its permalink. Carousel posts can contain up to 20 media items and count as one published post against Meta’s daily limit.
 
 Deployment requires migrations through `0007_instagram_login_method.sql` and the Worker secret `INSTAGRAM_TOKEN_KEY` (32 random bytes, base64 encoded). Keep the key stable across deployments. Reconnect the Instagram account after replacing it.
