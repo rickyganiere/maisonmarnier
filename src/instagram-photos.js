@@ -12,10 +12,31 @@ export async function digest(text) {
   return Array.from(new Uint8Array(bytes), b => b.toString(16).padStart(2, '0')).join('');
 }
 
+function plainDescription(value) {
+  return String(value || '').replace(/<[^>]*>/g, ' ').replace(/\s+/g, ' ').trim();
+}
+
+function socialAudience(category) {
+  const value = String(category || '').toLowerCase();
+  if (/candle|lighting|light/.test(value)) return 'slow evenings and warm, considered spaces';
+  if (/textile|linen|fabric|bed|bath/.test(value)) return 'quiet comfort and beautifully finished everyday rituals';
+  if (/furniture|storage|kitchen/.test(value)) return 'a home that feels calm, useful and beautifully put together';
+  return 'people who want useful pieces with a warm, considered feel';
+}
+
+function socialCaption(row, price, url) {
+  const description = plainDescription(row.description);
+  const opening = description ? description.replace(/[.!?]+$/, '').slice(0, 280) :
+    `A considered piece for ${socialAudience(row.category)}`;
+  const category = String(row.category || 'home').toLowerCase().replace(/[^a-z0-9]+/g, '');
+  const tag = category ? ` #${category}` : '';
+  return `${row.name}\n\n${opening}.\n\nMade for ${socialAudience(row.category)}.\n\nDiscover it at Maison Marnier · ${price}\n${url}\n\n#MaisonMarnier #QuietLiving${tag}`;
+}
+
 export async function instagramProduct(env, id) {
   if (!Number.isSafeInteger(id) || id < 1) return null;
   const row = await env.LUME_DB.prepare(
-    "SELECT id,name,slug,retail_price_eur,image_url,image_urls FROM products WHERE id=? AND status='live'"
+    "SELECT id,name,slug,description,category,retail_price_eur,image_url,image_urls FROM products WHERE id=? AND status='live'"
   ).bind(id).first();
   if (!row?.slug || !isStorefrontListable(row)) return null;
   const photos = await Promise.all(productImages(row, { max: 12 }).map(async raw => {
@@ -30,7 +51,7 @@ export async function instagramProduct(env, id) {
   const price = new Intl.NumberFormat('en-IE', { style: 'currency', currency: 'EUR' }).format(row.retail_price_eur);
   return {
     id, name: row.name, photos: photos.filter(Boolean),
-    caption: row.name + ' · ' + price + '\n\n' + storefront + '/products/' + encodeURIComponent(row.slug),
+    caption: socialCaption(row, price, storefront + '/products/' + encodeURIComponent(row.slug)),
   };
 }
 

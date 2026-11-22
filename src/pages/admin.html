@@ -465,8 +465,10 @@ td,th{border-bottom:1px solid #e4ddd2;padding:8px;text-align:left;vertical-align
     <p id="igProductName"></p>
     <div class="ig-compose" id="igContent" hidden>
       <div><img class="ig-photo" id="igPreview" alt="Selected product photo">
-        <fieldset class="ig-picks" id="igPhotos"><legend>Product photo</legend></fieldset></div>
-      <div><label for="igCaption">Caption</label><textarea id="igCaption" rows="6"></textarea>
+        <fieldset class="ig-picks" id="igPhotos"><legend>Product photos · select one or more for a carousel</legend></fieldset>
+        <p class="field-note" id="igSelectionCount">1 photo selected</p></div>
+      <div><label for="igCaption">Social caption</label><textarea id="igCaption" rows="8"></textarea>
+        <p class="field-note">Written for people who value warm, useful pieces for a considered home. You can edit it before publishing.</p>
         <p class="field-note" id="igCaptionCount"></p></div>
     </div>
     <p class="ig-history" id="igHistory"></p>
@@ -1537,7 +1539,7 @@ function updateInstagramControls() {
   const locked = !!(session?.sending || session?.pending || session?.published);
   igCaption.readOnly = locked;
   igById('igPhotos').disabled = locked;
-  igPublish.disabled = !session?.loaded || !session.key || !igConnected || count > 2200 || session.sending || session.published;
+  igPublish.disabled = !session?.loaded || !session.keys?.length || !igConnected || count > 2200 || session.sending || session.published;
   igPublish.textContent = session?.published ? 'Published' : session?.sending ? 'Sending…' : session?.pending ? 'Check post status' : 'Publish to Instagram';
 }
 
@@ -1553,18 +1555,20 @@ function displayInstagramPost(row) {
   history.append('Published on Instagram. ', link);
 }
 
-function selectInstagramPhoto(session, key) {
-  const photo = session.photos.find(p => p.key === key);
-  if (!photo) return;
-  session.key = photo.key;
-  igById('igPreview').src = photo.url;
-  const radio = [...igById('igPhotos').querySelectorAll('input')].find(input => input.value === key);
-  if (radio) radio.checked = true;
+function selectInstagramPhotos(session, keys) {
+  const allowed = new Set(session.photos.map(photo => photo.key));
+  session.keys = [...new Set(keys)].filter(key => allowed.has(key));
+  session.key = session.keys[0] || '';
+  const photo = session.photos.find(item => item.key === session.key);
+  if (photo) igById('igPreview').src = photo.url;
+  [...igById('igPhotos').querySelectorAll('input')].forEach(input => { input.checked = session.keys.includes(input.value); });
+  igById('igSelectionCount').textContent = session.keys.length === 1
+    ? '1 photo selected' : session.keys.length + ' photos selected · carousel post';
   updateInstagramControls();
 }
 
 async function openInstagramComposer(product) {
-  const session = { id: product.id, key: '', photos: [], loaded: false, sending: false, pending: false, published: false, checks: 0 };
+  const session = { id: product.id, key: '', keys: [], photos: [], loaded: false, sending: false, pending: false, published: false, checks: 0 };
   igSession = session;
   igById('igContent').hidden = true;
   igById('igProductName').textContent = product.name;
@@ -1578,17 +1582,18 @@ async function openInstagramComposer(product) {
     if (igSession !== session) return;
     const last = data.lastPost;
     session.photos = data.photos;
-    session.pending = ['creating', 'ready', 'publishing'].includes(last?.state) && session.photos.some(p => p.key === last.photoKey);
+    const savedKeys = Array.isArray(last?.photoKeys) ? last.photoKeys : [last?.photoKey];
+    session.pending = ['creating', 'ready', 'publishing'].includes(last?.state) && savedKeys.length > 0 && savedKeys.every(key => session.photos.some(p => p.key === key));
     session.loaded = true;
     igById('igProductName').textContent = data.name;
     igCaption.value = session.pending ? last.caption : data.caption;
-    igById('igPhotos').innerHTML = '<legend>Product photo</legend>' + data.photos.map((p, i) =>
-      '<label><input type="radio" name="igPhoto" value="' + esc(p.key) + '" aria-label="Photo ' + (i + 1) + '">' +
+    igById('igPhotos').innerHTML = '<legend>Product photos · select one or more for a carousel</legend>' + data.photos.map((p, i) =>
+      '<label><input type="checkbox" name="igPhoto" value="' + esc(p.key) + '" aria-label="Photo ' + (i + 1) + '">' +
       '<img src="' + esc(p.url) + '" alt="" loading="lazy"></label>'
     ).join('');
     igById('igPreview').removeAttribute('src');
     igById('igContent').hidden = !session.photos.length;
-    selectInstagramPhoto(session, session.pending ? last.photoKey : session.photos[0]?.key);
+    selectInstagramPhotos(session, session.pending ? savedKeys : [session.photos[0]?.key]);
     setInstagramConnection(data.connected);
     displayInstagramPost(last);
     const notice = !session.photos.length ? 'Add a public JPEG or CJ product photo to the gallery to post.'
@@ -1606,7 +1611,7 @@ async function submitInstagram(session) {
   msg('igMessage', 'Checking publication with Instagram…');
   try {
     const result = await igApi('publish', { method: 'POST', body: JSON.stringify({
-      productId: session.id, photoKey: session.key, caption: igCaption.value,
+      productId: session.id, photoKeys: session.keys, caption: igCaption.value,
     }) });
     if (igSession !== session) return;
     session.pending = !!result.pending;
@@ -1634,7 +1639,9 @@ async function submitInstagram(session) {
 }
 
 igById('igForm').onsubmit = event => { event.preventDefault(); submitInstagram(igSession); };
-igById('igPhotos').onchange = event => { if (igSession) selectInstagramPhoto(igSession, event.target.value); };
+igById('igPhotos').onchange = () => {
+  if (igSession) selectInstagramPhotos(igSession, [...igById('igPhotos').querySelectorAll('input:checked')].map(input => input.value));
+};
 igCaption.oninput = updateInstagramControls;
 igById('igClose').onclick = () => igComposer.close();
 igComposer.onclose = () => { clearTimeout(igSession?.timer); igSession = null; };

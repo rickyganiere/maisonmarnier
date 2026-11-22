@@ -34,7 +34,7 @@ function setup(t) {
       return { ...bind(), bind };
     } },
   };
-  const meta = { username: appUsername, status: 'FINISHED', creates: 0, publishes: 0, loseReply: false, calls: 0, paths: [] };
+  const meta = { username: appUsername, status: 'FINISHED', creates: 0, carouselChildren: 0, carouselParents: 0, publishes: 0, loseReply: false, calls: 0, paths: [] };
   t.mock.method(globalThis, 'fetch', async (url, options) => {
     const u = new URL(url);
     const isUnified = u.origin === 'https://graph.facebook.com';
@@ -72,17 +72,30 @@ function setup(t) {
       case id + '/content_publishing_limit':
         return meta.deny ? metaError(10) : Response.json(meta.emptyQuota ? { data: [] } : { data: [{ quota_usage: 0 }] });
       case id + '/media':
+        if (options.body.get('media_type') === 'CAROUSEL') {
+          meta.carouselParents++;
+          assert.equal(options.body.get('children'), '2001,2002');
+          assert.match(options.body.get('caption'), /#MaisonMarnier/);
+          return Response.json({ id: '2003' });
+        }
+        if (options.body.get('is_carousel_item') === 'true') {
+          meta.carouselChildren++;
+          assert.match(options.body.get('image_url'), /^(https:\/\/maisonmarnier\.com\/instagram\/product-photo\/1\/[0-9a-f]+\.jpg|https:\/\/other\.example\/side\.jpg)$/);
+          return Response.json({ id: meta.carouselChildren === 1 ? '2001' : '2002' });
+        }
         meta.creates++;
         assert.match(options.body.get('image_url'), /^https:\/\/maisonmarnier\.com\/instagram\/product-photo\/1\/[0-9a-f]+\.jpg$/);
         return Response.json({ id: '1001' });
       case '1001': return Response.json({ status_code: meta.status });
+      case '2003': return Response.json({ status_code: meta.status });
       case id + '/media_publish':
-        assert.equal(options.body.get('creation_id'), '1001');
+        assert.ok(['1001', '2003'].includes(options.body.get('creation_id')));
         meta.publishes++;
         meta.status = 'PUBLISHED';
         if (meta.loseReply) throw new Error('Response lost after publication');
-        return Response.json({ id: '1002' });
+        return Response.json({ id: options.body.get('creation_id') === '2003' ? '2004' : '1002' });
       case '1002': return Response.json({ permalink: 'https://www.instagram.com/p/abc123/' });
+      case '2004': return Response.json({ permalink: 'https://www.instagram.com/p/carousel123/' });
       default: throw new Error('Unexpected Graph request ' + u.pathname);
     }
   });
@@ -106,7 +119,8 @@ test('preview is admin-only and contains only public product information', async
   const preview = await call('product?id=1');
   assert.equal(preview.connected, false);
   assert.equal(preview.photos.length, 2);
-  assert.match(preview.caption, /Basket · €12.95/);
+  assert.match(preview.caption, /Basket/);
+  assert.match(preview.caption, /#MaisonMarnier/);
   assert.doesNotMatch(JSON.stringify(preview), /4\.11|PRIVATE-SKU|supplier_cost/);
   assert.equal(meta.calls, 0);
   sqlite.exec("UPDATE products SET status='draft'");
@@ -233,6 +247,24 @@ test('preparing, concurrent confirmation and retry create one feed post', async 
   assert.equal(repeat.permalink, 'https://www.instagram.com/p/abc123/');
   assert.equal((await call('product?id=1')).lastPost.state, 'published');
   assert.equal(meta.publishes, 1);
+});
+
+test('publishes selected product photos as one Instagram carousel', async t => {
+  const { call, meta, payload } = setup(t);
+  const body = await payload();
+  const preview = await call('product?id=1');
+  await call('account', { token });
+  const result = await call('publish', {
+    productId: 1,
+    photoKeys: preview.photos.map(photo => photo.key),
+    caption: body.caption,
+  });
+  assert.equal(result.published, true);
+  assert.equal(result.permalink, 'https://www.instagram.com/p/carousel123/');
+  assert.equal(meta.carouselChildren, 2);
+  assert.equal(meta.carouselParents, 1);
+  assert.equal(meta.publishes, 1);
+  assert.equal((await call('product?id=1')).lastPost.photoKeys.length, 2);
 });
 
 test('a lost publish reply is reconciled with the saved container', async t => {
