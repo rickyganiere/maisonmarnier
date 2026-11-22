@@ -18,6 +18,23 @@ export const COLLECTION_RULES = {
       es: 'La edición ampliada — objetos, luz y detalle silencioso.',
       en: 'The broader edit — objects, light, and quiet detail.',
     },
+    seoDescription: {
+      es: 'Decoración para el hogar seleccionada por Maison Marnier: luz, textiles, velas y objetos con fotos reales y envíos en la UE.',
+      en: 'Curated home decor from Maison Marnier: lighting, textiles, candles and objects with real photos and EU shipping.',
+    },
+    intro: {
+      es: `Explora decoración para el hogar pensada para combinarse sin recargar la estancia. Maison Marnier reúne iluminación cálida, textiles, velas, jarrones y pequeños objetos que ayudan a construir un salón sereno por capas.
+
+Cada producto publicado incluye precio visible y una galería de al menos cuatro fotografías reales del proveedor. Puedes empezar por una categoría concreta o recorrer la edición completa para encontrar piezas que funcionen juntas.`,
+      en: `Explore home decor designed to work together without crowding a room. Maison Marnier brings warm lighting, textiles, candles, vases, and small objects into one calm, layered edit.
+
+Every published product includes a visible price and a gallery of at least four real supplier photos. Start with a specific category or browse the full edit for pieces that sit naturally together.`,
+    },
+    relatedCollections: [
+      { slug: 'lighting', label: { es: 'Lámparas decorativas', en: 'Decorative lighting' } },
+      { slug: 'textiles', label: { es: 'Cojines y textiles', en: 'Cushions and textiles' } },
+      { slug: 'objects', label: { es: 'Objetos y jarrones', en: 'Objects and vases' } },
+    ],
   },
   textiles: {
     categories: ['Textiles'],
@@ -26,6 +43,22 @@ export const COLLECTION_RULES = {
       es: 'Capas suaves para sofás, camas y rincones de lectura.',
       en: 'Soft layers for sofas, beds, and reading corners.',
     },
+    seoDescription: {
+      es: 'Cojines decorativos y textiles para salón y dormitorio, con galerías reales, precios visibles y envío en la Unión Europea.',
+      en: 'Decorative cushions and textiles for living rooms and bedrooms, with real galleries, visible prices, and EU shipping.',
+    },
+    intro: {
+      es: `Los cojines decorativos cambian la lectura de un sofá o una cama sin exigir una reforma. Esta selección combina fundas, texturas y tonos fáciles de superponer, desde acabados lisos y acanalados hasta motivos de aire vintage o bohemio.
+
+Compara las fotografías de cada producto antes de elegir y utiliza color, tacto y escala para crear profundidad. Para un resultado equilibrado, mezcla una pieza con carácter con textiles más tranquilos y repite uno de sus tonos en el resto de la habitación.`,
+      en: `Decorative cushions can change how a sofa or bed feels without remaking the whole room. This edit combines covers, textures, and easy-to-layer tones, from plain ribbed finishes to vintage and bohemian patterns.
+
+Compare each product gallery before choosing, then use colour, texture, and scale to build depth. For a balanced result, pair one expressive piece with quieter textiles and repeat one of its tones elsewhere in the room.`,
+    },
+    relatedCollections: [
+      { slug: 'decor', label: { es: 'Decoración para el hogar', en: 'Home decor' } },
+      { slug: 'objects', label: { es: 'Objetos decorativos', en: 'Decorative objects' } },
+    ],
   },
   objects: {
     categories: ['Objects'],
@@ -34,6 +67,22 @@ export const COLLECTION_RULES = {
       es: 'Pequeñas piezas escultóricas que asientan una estantería.',
       en: 'Small sculptural pieces that settle a shelf.',
     },
+    seoDescription: {
+      es: 'Objetos y jarrones decorativos modernos para estanterías, mesas y rincones del hogar. Selección Maison Marnier con envío UE.',
+      en: 'Modern decorative objects and vases for shelves, tables, and quiet corners. Maison Marnier selection with EU shipping.',
+    },
+    intro: {
+      es: `Los objetos y jarrones decorativos modernos aportan un punto focal sin ocupar toda la escena. La selección reúne cerámica, formas escultóricas y piezas de mesa que funcionan solas, con flores o dentro de una composición de libros y luz.
+
+Mira la escala y las distintas vistas de la galería antes de decidir dónde colocar cada pieza. En una estantería, alterna alturas y deja espacio vacío; sobre una mesa, un solo jarrón bien elegido suele tener más presencia que muchos adornos pequeños.`,
+      en: `Modern decorative objects and vases create a focal point without taking over the room. This edit brings together ceramics, sculptural forms, and table pieces that work alone, with flowers, or alongside books and soft light.
+
+Check scale and the different gallery views before deciding where a piece belongs. On a shelf, vary heights and leave breathing room; on a table, one well-chosen vase often has more presence than many small ornaments.`,
+    },
+    relatedCollections: [
+      { slug: 'decor', label: { es: 'Decoración para el hogar', en: 'Home decor' } },
+      { slug: 'lighting', label: { es: 'Lámparas decorativas', en: 'Decorative lighting' } },
+    ],
   },
   candles: {
     categories: ['Candles'],
@@ -42,6 +91,22 @@ export const COLLECTION_RULES = {
       es: 'Luz cálida y fragancia serena para las noches.',
       en: 'Warm light and quiet fragrance for evening rooms.',
     },
+    seoDescription: {
+      es: 'Velas decorativas, portavelas y aromas para crear luz cálida en casa. Compra la selección Maison Marnier con envío en la UE.',
+      en: 'Decorative candles, holders, and fragrance for a warm glow at home. Shop the Maison Marnier edit with EU shipping.',
+    },
+    intro: {
+      es: `Las velas decorativas añaden luz, color y un ritmo más lento a la habitación. Aquí encontrarás velas aromáticas, portavelas y piezas de sobremesa pensadas para una mesa de cena, una consola o un rincón de lectura.
+
+Combina distintas alturas, mantén una distancia segura entre llamas y textiles y utiliza grupos impares para una composición natural. Las galerías muestran cada artículo desde varios ángulos para que puedas valorar su forma y acabado antes de comprar.`,
+      en: `Decorative candles add light, colour, and a slower rhythm to a room. This edit includes scented candles, holders, and tabletop pieces for a dinner table, console, or reading corner.
+
+Mix different heights, keep a safe distance from fabrics, and use odd-numbered groups for a natural composition. Product galleries show every item from several angles so you can judge its shape and finish before buying.`,
+    },
+    relatedCollections: [
+      { slug: 'lighting', label: { es: 'Lámparas decorativas', en: 'Decorative lighting' } },
+      { slug: 'seasonal', label: { es: 'Decoración de Navidad', en: 'Christmas decor' } },
+    ],
   },
   'wall-decor': {
     categories: ['Wall Decor'],
@@ -106,6 +171,22 @@ Start with the season’s hero pieces, then browse lighting or candles for a sof
       es: 'Brillo suave para escritorios, ventanas y mesitas.',
       en: 'Soft glow for desks, windows, and night tables.',
     },
+    seoDescription: {
+      es: 'Lámparas decorativas y luces cálidas para salón, dormitorio y mesa. Selección Maison Marnier con fotos reales y envío UE.',
+      en: 'Decorative lamps and warm lights for living rooms, bedrooms, and tables. Maison Marnier edit with real photos and EU shipping.',
+    },
+    intro: {
+      es: `Las lámparas decorativas hacen algo más que iluminar: marcan la temperatura visual de la estancia. Esta selección reúne luces de sobremesa, faroles y puntos LED pensados para acompañar, no dominar, el salón o el dormitorio.
+
+Antes de elegir, piensa en el lugar, la intensidad y el color de luz que necesitas. Una iluminación cálida funciona bien junto a madera, textiles y velas; varias fuentes pequeñas suelen crear una atmósfera más agradable que una única luz central intensa.`,
+      en: `Decorative lamps do more than illuminate: they set the visual temperature of a room. This selection gathers table lights, lanterns, and LED accents designed to support rather than dominate a living room or bedroom.
+
+Before choosing, consider placement, intensity, and colour temperature. Warm light works naturally with wood, textiles, and candles; several small sources often create a calmer atmosphere than one strong central light.`,
+    },
+    relatedCollections: [
+      { slug: 'candles', label: { es: 'Velas decorativas', en: 'Decorative candles' } },
+      { slug: 'decor', label: { es: 'Decoración para el hogar', en: 'Home decor' } },
+    ],
   },
   furniture: {
     categories: ['Furniture'],
@@ -116,13 +197,13 @@ Start with the season’s hero pieces, then browse lighting or candles for a sof
 
 const COLLECTION_TITLES = {
   new: { es: 'Novedades', en: 'New Arrivals' },
-  decor: { es: 'Decoración', en: 'Decor' },
-  textiles: { es: 'Textiles', en: 'Textiles' },
-  objects: { es: 'Objetos', en: 'Objects' },
-  candles: { es: 'Velas', en: 'Candles' },
+  decor: { es: 'Decoración para el hogar', en: 'Home Decor' },
+  textiles: { es: 'Cojines y textiles decorativos', en: 'Decorative Cushions & Textiles' },
+  objects: { es: 'Objetos y jarrones decorativos', en: 'Decorative Objects & Vases' },
+  candles: { es: 'Velas decorativas', en: 'Decorative Candles' },
   'wall-decor': { es: 'Decoración de pared', en: 'Wall Decor' },
   seasonal: { es: 'Decoración de Navidad', en: 'Christmas Home Edit' },
-  lighting: { es: 'Iluminación', en: 'Lighting' },
+  lighting: { es: 'Lámparas decorativas', en: 'Decorative Lighting' },
   furniture: { es: 'Mobiliario', en: 'Furniture' },
 };
 

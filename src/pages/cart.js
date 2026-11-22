@@ -40,11 +40,11 @@ ${cancelled ? `<p class="muted" style="margin-bottom:18px">${tr(lang, { es: 'El 
 <div id="cartRoot" class="empty">${tr(lang, { es: 'Cargando carrito…', en: 'Loading cart…' })}</div>
 <script>
 (function(){
-  const HL=${JSON.stringify(lang)};
-  function withHl(path){
+  function storefrontPath(path){
     try{
       const u=new URL(path,'https://maisonmarnier.com');
-      u.searchParams.set('hl',HL);
+      u.searchParams.delete('hl');
+      u.searchParams.delete('lang');
       return u.pathname+(u.search||'')+(u.hash||'');
     }catch(e){return path}
   }
@@ -68,8 +68,8 @@ ${cancelled ? `<p class="muted" style="margin-bottom:18px">${tr(lang, { es: 'El 
         <strong>\${L.registerTitle}</strong>
         <p>\${L.registerBody}</p>
         <div class="buy-actions" style="margin:0">
-          <a class="btn" href="\${withHl('/cuenta/registro?next=/cart')}">\${L.createAccount}</a>
-          <a class="btn btn-ghost" href="\${withHl('/cuenta/entrar?next=/cart')}">\${L.haveAccount}</a>
+          <a class="btn" href="\${storefrontPath('/cuenta/registro?next=/cart')}">\${L.createAccount}</a>
+          <a class="btn btn-ghost" href="\${storefrontPath('/cuenta/entrar?next=/cart')}">\${L.haveAccount}</a>
         </div>
       </div>\`;
     root.className='cart-layout';
@@ -77,7 +77,7 @@ ${cancelled ? `<p class="muted" style="margin-bottom:18px">${tr(lang, { es: 'El 
       <div class="cart-line">
         <img src="\${String(i.image||'').replace(/"/g,'&quot;')}" alt="">
         <div>
-          <a href="\${withHl('/products/'+encodeURIComponent(i.slug||''))}"><strong>\${String(i.name||'').replace(/</g,'&lt;')}</strong></a>
+          <a href="\${storefrontPath('/products/'+encodeURIComponent(i.slug||''))}"><strong>\${String(i.name||'').replace(/</g,'&lt;')}</strong></a>
           <div class="muted">\${money(i.price)}</div>
           <label class="muted">\${L.qty} <input data-idx="\${idx}" class="qty" type="number" min="1" max="20" value="\${Number(i.qty||1)}"></label>
           <button type="button" data-rm="\${idx}" class="rm">\${L.remove}</button>

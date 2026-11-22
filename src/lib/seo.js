@@ -1,6 +1,8 @@
 /** Site-wide SEO helpers for Maison Marnier (apex host). */
 
 import { BRAND_ICON_PATH, BRAND_OG_PATH } from './brandAsset.js';
+import { productImages } from './images.js';
+import { isTemplateProductDescription } from './merch.js';
 import { FACEBOOK_URL, INSTAGRAM_URL } from './social.js';
 
 export const SITE_ORIGIN = 'https://maisonmarnier.com';
@@ -11,6 +13,73 @@ export const DEFAULT_OG_IMAGE = BRAND_OG_PATH;
 export const OG_SITE_NAME = 'Maison Marnier';
 export const OG_LOCALE_DEFAULT = 'es_ES';
 export const OG_LOCALE_ALTERNATE = 'en_GB';
+
+const PRODUCT_CATEGORY_LABELS = {
+  candles: { es: 'Velas decorativas', en: 'Decorative candles' },
+  textiles: { es: 'Cojines y textiles', en: 'Cushions and textiles' },
+  lighting: { es: 'Lámparas decorativas', en: 'Decorative lighting' },
+  objects: { es: 'Objetos decorativos', en: 'Decorative objects' },
+  'wall decor': { es: 'Decoración de pared', en: 'Wall decor' },
+  seasonal: { es: 'Decoración navideña', en: 'Christmas decor' },
+  furniture: { es: 'Muebles para el hogar', en: 'Home furniture' },
+  decor: { es: 'Decoración para el hogar', en: 'Home decor' },
+};
+
+function compactText(value) {
+  return String(value || '').replace(/\s+/g, ' ').trim();
+}
+
+function truncateAtWord(value, max) {
+  const text = compactText(value);
+  if (text.length <= max) return text;
+  const cut = text.slice(0, Math.max(1, max - 1)).replace(/\s+\S*$/, '').trim();
+  return `${cut || text.slice(0, max - 1).trim()}…`;
+}
+
+export function productCategoryLabel(category, lang = 'es') {
+  const key = compactText(category).toLowerCase();
+  const labels = PRODUCT_CATEGORY_LABELS[key] || PRODUCT_CATEGORY_LABELS.decor;
+  return String(lang).toLowerCase().startsWith('en') ? labels.en : labels.es;
+}
+
+/** Useful, readable product copy when an import still has a generic template. */
+export function productDisplayDescription(product, lang = 'es') {
+  const raw = compactText(product?.description);
+  if (raw && !isTemplateProductDescription(raw)) return raw;
+  const english = String(lang).toLowerCase().startsWith('en');
+  const name = compactText(product?.name) || (english ? 'This piece' : 'Esta pieza');
+  const label = productCategoryLabel(product?.category, lang).toLowerCase();
+  const photos = productImages(product, { max: 12 }).length;
+  const price = Number(product?.retail_price_eur || 0);
+  const priceText = price > 0
+    ? english
+      ? ` It is currently offered at €${price.toFixed(2)}.`
+      : ` Actualmente se ofrece por ${price.toFixed(2).replace('.', ',')} €.`
+    : '';
+  if (english) {
+    return `${name} is part of Maison Marnier's ${label} edit. Review the complete gallery${photos ? ` with ${photos} real product photos` : ''} to see the piece from several angles.${priceText} EU shipping and 30-day returns apply.`;
+  }
+  return `${name} forma parte de la selección de ${label} de Maison Marnier. Consulta la galería completa${photos ? ` con ${photos} fotografías reales del producto` : ''} para verla desde varios ángulos.${priceText} Disponible con envío en la UE y devolución en 30 días.`;
+}
+
+/** Product title/description sized for search snippets and unique per PDP. */
+export function productSeoMeta(product, lang = 'es') {
+  const english = String(lang).toLowerCase().startsWith('en');
+  const name = compactText(product?.name) || (english ? 'Home decor piece' : 'Pieza de decoración');
+  const label = productCategoryLabel(product?.category, lang);
+  const title = truncateAtWord(`${label}: ${name}`, 41);
+  const photos = productImages(product, { max: 12 }).length;
+  const price = Number(product?.retail_price_eur || 0);
+  const priceText = price > 0
+    ? english
+      ? ` for €${price.toFixed(2)}`
+      : ` por ${price.toFixed(2).replace('.', ',')} €`
+    : '';
+  const description = english
+    ? `Shop ${name}${priceText} at Maison Marnier. ${label}, ${photos || 'multiple'} real product photos, EU shipping and 30-day returns.`
+    : `Compra ${name}${priceText} en Maison Marnier. ${label}, ${photos || 'varias'} fotos reales, envío en la UE y devoluciones de 30 días.`;
+  return { title, description: truncateAtWord(description, 155) };
+}
 
 /** Resolve a path or absolute URL to a canonical absolute HTTPS URL. */
 export function absoluteUrl(pathOrUrl = '/') {
@@ -210,7 +279,7 @@ export function seoHeadHtml({
   const canon = absoluteUrl(canonical);
   const image = absoluteUrl(ogImage || DEFAULT_OG_IMAGE);
   const desc = description || '';
-  const robots = noindex ? '<meta name="robots" content="noindex,nofollow">\n' : '';
+  const robots = noindex ? '<meta name="robots" content="noindex,follow">\n' : '';
   const { locale, alternate } = ogLocalesForLang(lang);
   const isBrandOg = !ogImage || ogImage === DEFAULT_OG_IMAGE || ogImage === BRAND_OG_PATH;
   const imageDims = isBrandOg

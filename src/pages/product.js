@@ -2,7 +2,7 @@ import { esc } from '../lib/escape.js';
 import { htmlPage, productCard } from '../lib/html.js';
 import { getLang, langHref, t, tr } from '../lib/i18n.js';
 import { productImages } from '../lib/images.js';
-import { productJsonLd } from '../lib/seo.js';
+import { productDisplayDescription, productJsonLd, productSeoMeta } from '../lib/seo.js';
 import { getLiveProductBySlug, getLiveProducts } from '../db/products.js';
 
 export async function productPage(url, env, request) {
@@ -70,6 +70,8 @@ export async function productPage(url, env, request) {
     const canBuy = stock > 0 && retail > 0;
     const images = productImages(p);
     const mainImage = images[0] || '';
+    const displayDescription = productDisplayDescription({ ...p, image_url: mainImage, image_urls: images }, lang);
+    const seoMeta = productSeoMeta({ ...p, image_url: mainImage, image_urls: images }, lang);
     const thumbs =
       images.length > 1
         ? `<div class="product-thumbs" id="galleryThumbs" role="tablist" aria-label="${esc(tr(lang, { es: 'Imágenes del producto', en: 'Product images' }))}">
@@ -124,7 +126,7 @@ export async function productPage(url, env, request) {
           </div>
           <section aria-labelledby="product-details-title">
             <h2 id="product-details-title">${tr(lang, { es: 'Detalles del producto', en: 'Product details' })}</h2>
-            <div class="desc" style="margin-top:8px">${esc(p.description || tr(lang, { es: 'Seleccionado con cuidado para Maison Marnier.', en: 'Chosen with care for Maison Marnier.' }))}</div>
+            <div class="desc" style="margin-top:8px">${esc(displayDescription)}</div>
           </section>
           <div class="specs">
             <div><strong>${tr(lang, { es: 'Categoría', en: 'Category' })}</strong>${esc(p.category || tr(lang, { es: 'Decoración', en: 'Decor' }))}</div>
@@ -219,8 +221,8 @@ export async function productPage(url, env, request) {
 
     const productPath = `/products/${encodeURIComponent(p.slug || '')}`;
     const pForLd = { ...p, image_url: mainImage, image_urls: images };
-    return htmlPage(p.name, body, {
-      description: String(p.description || p.name || '').slice(0, 160),
+    return htmlPage(seoMeta.title, body, {
+      description: seoMeta.description,
       canonical: productPath,
       ogImage: mainImage || '',
       ogType: 'product',

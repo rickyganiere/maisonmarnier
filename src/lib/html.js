@@ -111,7 +111,6 @@ export function storefrontHeaderHtml({ search = true, lang = DEFAULT_LANG, path 
   <nav class="links" aria-label="${esc(t(lang, 'nav_aria'))}">${navHtml(lang)}</nav>
   <div class="tools">
     ${search ? `<form action="${searchAction}" method="get" role="search">
-      <input type="hidden" name="hl" value="${esc(lang)}">
       <input class="search" type="search" name="q" placeholder="${esc(t(lang, 'search_ph'))}" aria-label="${esc(t(lang, 'search_aria'))}">
     </form>` : ''}
     ${langSwitchHtml(lang, path)}

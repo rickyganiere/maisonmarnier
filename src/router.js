@@ -59,7 +59,7 @@ import {
   brandLockupResponse,
 } from './lib/brandAsset.js';
 import { brandOgImageResponse } from './lib/brandOg.js';
-import { getLang, setLangResponse, t } from './lib/i18n.js';
+import { canonicalOriginRedirect, getLang, localeQueryRedirect, setLangResponse, t } from './lib/i18n.js';
 import { json } from './lib/json.js';
 import { seasonalImageResponse } from './lib/seasonalAssets.js';
 import { accountRoute } from './pages/account.js';
@@ -73,6 +73,7 @@ import { infoPage } from './pages/info.js';
 import { instagramPage } from './pages/instagram.js';
 import {
   robotsTxt,
+  googleProductsXml,
   sitemapJournalXml,
   sitemapPagesXml,
   sitemapProductsXml,
@@ -83,24 +84,16 @@ function methodNotAllowed() {
   return json({ ok: false, error: 'Method not allowed' }, 405);
 }
 
-/** 301 www → apex; skip localhost / workers.dev / other hosts. */
-function apexRedirect(request, url) {
-  const host = (request.headers.get('Host') || url.host || '').split(':')[0].toLowerCase();
-  if (host !== 'www.maisonmarnier.com') return null;
-  const target = new URL(request.url);
-  target.protocol = 'https:';
-  target.hostname = 'maisonmarnier.com';
-  target.port = '';
-  return Response.redirect(target.toString(), 301);
-}
-
 export async function handleRequest(request, env, ctx) {
   const url = new URL(request.url);
   const { pathname } = url;
   const method = request.method.toUpperCase();
 
-  const redirected = apexRedirect(request, url);
+  const redirected = canonicalOriginRedirect(request, url);
   if (redirected) return redirected;
+
+  const localeRedirect = localeQueryRedirect(request, url);
+  if (localeRedirect) return localeRedirect;
 
   if (pathname === '/lang') return setLangResponse(request, url);
 
@@ -117,6 +110,7 @@ export async function handleRequest(request, env, ctx) {
   if (pathname === '/sitemap-pages.xml') return sitemapPagesXml();
   if (pathname === '/sitemap-products.xml') return sitemapProductsXml(env);
   if (pathname === '/sitemap-journal.xml') return sitemapJournalXml(env);
+  if (pathname === '/google-products.xml') return googleProductsXml(env);
 
   // --- Public store APIs ---
   if (pathname === '/api/store/products') {
