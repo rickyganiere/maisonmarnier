@@ -50,7 +50,7 @@ export async function instagramProduct(env, id) {
   }));
   const price = new Intl.NumberFormat('en-IE', { style: 'currency', currency: 'EUR' }).format(row.retail_price_eur);
   return {
-    id, name: row.name, photos: photos.filter(Boolean),
+    id, name: row.name, category: row.category, photos: photos.filter(Boolean),
     caption: socialCaption(row, price, storefront + '/products/' + encodeURIComponent(row.slug)),
   };
 }

@@ -3,7 +3,7 @@ import { readFileSync } from 'node:fs';
 import { DatabaseSync } from 'node:sqlite';
 import test from 'node:test';
 import { instagramAdminRoute } from '../src/instagram-publishing.js';
-import { instagramPhotoResponse } from '../src/instagram-photos.js';
+import { instagramPhotoResponse, instagramProduct } from '../src/instagram-photos.js';
 
 const apiRoot = 'https://maisonmarnier.com/api/lume/instagram/';
 const image = 'https://cf.cjdropshipping.com/gallery/basket.png';
@@ -17,7 +17,7 @@ const metaError = (code, error_subcode) => Response.json({ error: { code, error_
 function setup(t) {
   const sqlite = new DatabaseSync(':memory:');
   t.after(() => sqlite.close());
-  for (const file of ['0001_init.sql', '0004_product_images.sql', '0006_instagram_publishing.sql', '0007_instagram_login_method.sql']) {
+  for (const file of ['0001_init.sql', '0004_product_images.sql', '0006_instagram_publishing.sql', '0007_instagram_login_method.sql', '0009_instagram_studio.sql']) {
     sqlite.exec(readFileSync(new URL('../migrations/' + file, import.meta.url), 'utf8'));
   }
   sqlite.prepare(`INSERT INTO products(lume_sku,supplier_product_id,name,slug,image_url,image_urls,
@@ -34,7 +34,7 @@ function setup(t) {
     LUME_DB: { prepare(query) {
       const sql = sqlite.prepare(query);
       function bind(...args) {
-        return { first: async () => sql.get(...args), run: async () => ({ meta: sql.run(...args) }) };
+        return { first: async () => sql.get(...args), all: async () => ({ results: sql.all(...args) }), run: async () => ({ meta: sql.run(...args) }) };
       }
       return { ...bind(), bind };
     } },
@@ -112,7 +112,10 @@ function setup(t) {
     return { status: res.status, ...await res.json() };
   }
   async function payload() {
-    const product = await call('product?id=1');
+    const product = await instagramProduct(env, 1);
+    // Exercise recovery of publications already started before the studio upgrade.
+    sqlite.prepare(`INSERT INTO instagram_posts(fingerprint,product_id,photo_key,caption,state,lease,login_method,updated_at)
+      VALUES('legacy-fixture',1,?,?,'creating','old','instagram',0)`).run(product.photos[0].key, product.caption);
     return { productId: 1, photoKey: product.photos[0].key, caption: product.caption };
   }
   return { sqlite, env, meta, call, payload };
@@ -123,7 +126,8 @@ test('preview is admin-only and contains only public product information', async
   assert.equal((await call('product?id=1', null, false)).status, 401);
   const preview = await call('product?id=1');
   assert.equal(preview.connected, false);
-  assert.equal(preview.photos.length, 4);
+  assert.equal(preview.photos.length, 0);
+  assert.equal(preview.studio.configured, false);
   assert.match(preview.caption, /Basket/);
   assert.match(preview.caption, /#MaisonMarnier/);
   assert.doesNotMatch(JSON.stringify(preview), /4\.11|PRIVATE-SKU|supplier_cost/);
@@ -200,6 +204,7 @@ test('Unified Login publishes on its own host and retries after switching login 
   const body = await payload();
   await call('account', { token: unified });
   sqlite.exec("UPDATE instagram_account SET refreshed_at=0");
+  sqlite.exec("UPDATE instagram_posts SET login_method='unified'");
   const start = meta.paths.length;
   const published = await call('publish', body);
   assert.equal(published.published, true);
@@ -254,10 +259,11 @@ test('preparing, concurrent confirmation and retry create one feed post', async 
   assert.equal(meta.publishes, 1);
 });
 
-test('publishes selected product photos as one Instagram carousel', async t => {
-  const { call, meta, payload } = setup(t);
+test('resumes a legacy two-photo carousel without creating an extra post', async t => {
+  const { call, meta, payload, sqlite } = setup(t);
   const body = await payload();
   const preview = await call('product?id=1');
+  sqlite.prepare('UPDATE instagram_posts SET photo_key=?').run(JSON.stringify(preview.photos.slice(0, 2).map(photo => photo.key)));
   await call('account', { token });
   const result = await call('publish', {
     productId: 1,
@@ -286,7 +292,7 @@ test('a lost publish reply is reconciled with the saved container', async t => {
 
 test('a CJ PNG is served to Meta as a JPEG and a removed photo cannot be fetched', async t => {
   const { call, env, sqlite } = setup(t);
-  const photo = (await call('product?id=1')).photos[0];
+  const photo = (await instagramProduct(env, 1)).photos[0];
   const request = new Request(photo.url);
   const match = new URL(photo.url).pathname.match(/product-photo\/(\d+)\/([0-9a-f]+)\.jpg$/);
   t.mock.method(globalThis, 'fetch', async (url, options) => {
