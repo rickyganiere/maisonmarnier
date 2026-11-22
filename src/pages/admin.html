@@ -543,6 +543,15 @@ td,th{padding:16px;font-size:14px}th{font-weight:500;color:#b0bea4}table{backgro
           <p id="igSettingsStatus" role="status">Checking connection…</p>
           <button class="btn secondary" type="button" id="igManage">Connect Instagram</button>
         </section>
+        <section class="editor-section" id="openaiSettings" aria-labelledby="openaiSettingsTitle">
+          <h3 id="openaiSettingsTitle">OpenAI · Instagram mockups</h3>
+          <p class="field-note">Already copied your new OpenAI API key? Paste it here once. The key is encrypted before storage; it is never shown again.</p>
+          <p id="igKeyStatus" role="status">Checking OpenAI connection…</p>
+          <label for="igKeyField">OpenAI API key</label>
+          <input id="igKeyField" type="password" autocomplete="off" spellcheck="false" placeholder="Paste your sk-proj-… key here">
+          <button class="btn save" id="igKeyConnect" type="button">Save OpenAI API key</button>
+          <p id="igKeyMessage" class="msg" role="status"></p>
+        </section>
       </section>
     </main>
   </div>
@@ -1676,6 +1685,12 @@ function setInstagramConnection(connected) {
 async function loadInstagramSettings() {
   try { setInstagramConnection((await igApi('account')).connected); }
   catch (error) { igById('igSettingsStatus').textContent = error.message; }
+  try {
+    const data = await igApi('studio-connection');
+    igById('igKeyStatus').textContent = data.configured
+      ? 'OpenAI key connected. Instagram mockups are ready to generate.'
+      : 'No OpenAI key connected yet. Paste the key you have already copied below.';
+  } catch (error) { igById('igKeyStatus').textContent = error.message; }
 }
 
 function manageInstagram() {
@@ -1761,23 +1776,36 @@ function renderStudioGallery(session) {
   ).join('');
 }
 
-igById('igStudioConnect').onclick = async () => {
-  const session = igSession;
-  const field = igById('igStudioKey');
+async function connectOpenAIKey(fieldId, buttonId, messageId) {
+  const field = igById(fieldId);
+  const button = igById(buttonId);
   const key = field.value.trim();
-  field.value = '';
-  igById('igStudioConnect').disabled = true;
-  msg('igStudioKeyMessage', 'Verifying your existing key…');
+  if (!key) { msg(messageId, 'Paste your copied OpenAI API key into the field above.', true); field.focus(); return; }
+  button.disabled = true;
+  msg(messageId, 'Connecting your copied API key…');
   try {
     const data = await igApi('studio-connection', { method: 'POST', body: JSON.stringify({ key }) });
-    if (igSession !== session || !session) return;
-    session.studio = { ...session.studio, configured: data.configured, storageReady: data.storageReady };
-    msg('igStudioKeyMessage', 'Connected. You can now generate your mockups.');
-    igById('igStudioConnection').open = false;
-    updateInstagramControls();
-  } catch (error) { msg('igStudioKeyMessage', error.message, true); }
-  finally { igById('igStudioConnect').disabled = false; }
-};
+    field.value = '';
+    const message = data.validation === 'restricted'
+      ? 'Key saved securely. Model-list access is restricted; actual image access will be checked when generating.'
+      : 'OpenAI key saved securely. You can now generate Instagram mockups.';
+    msg(messageId, message);
+    igById('igKeyStatus').textContent = 'OpenAI key connected.';
+    if (igSession) {
+      igSession.studio = { ...igSession.studio, configured: data.configured, storageReady: data.storageReady };
+      updateInstagramControls();
+      igById('igStudioConnection').open = false;
+      if (fieldId !== 'igStudioKey') msg('igStudioKeyMessage', 'OpenAI key connected.');
+    }
+  } catch (error) {
+    // Keep the pasted key in the field after an error so users can retry without regenerating it.
+    msg(messageId, error.message, true);
+    field.focus();
+  } finally { button.disabled = false; }
+}
+
+igById('igKeyConnect').onclick = () => connectOpenAIKey('igKeyField', 'igKeyConnect', 'igKeyMessage');
+igById('igStudioConnect').onclick = () => connectOpenAIKey('igStudioKey', 'igStudioConnect', 'igStudioKeyMessage');
 
 igById('igGenerate').onclick = async () => {
   const session = igSession;
