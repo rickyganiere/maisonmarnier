@@ -172,14 +172,14 @@ async function publish(request, env) {
   return markPublished(db, fingerprint, account, String(published.id));
 }
 
-export async function instagramAdminRoute(request, env, url) {
+export async function instagramAdminRoute(request, env, url, styleImage) {
   const denied = await requireAdmin(request, env);
   if (denied) return denied;
   try {
     const path = url.pathname.slice('/api/lume/instagram/'.length);
     if (path === 'account') return await instagramAccountRoute(request, env);
     if (path === 'studio-connection') return await studioConnection(request, env);
-    if (path === 'mockups' && request.method === 'POST') return await generateStudioPhoto(request, env);
+    if (path === 'mockups' && request.method === 'POST') return await generateStudioPhoto(request, env, styleImage);
     if (path === 'product' && request.method === 'GET') return await composer(env, Number(url.searchParams.get('id')));
     if (path === 'publish' && request.method === 'POST') return await publish(request, env);
     return json({ ok: false, error: 'Method not allowed' }, 405);

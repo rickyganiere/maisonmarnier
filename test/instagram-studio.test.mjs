@@ -36,6 +36,7 @@ function setup(t) {
   t.mock.method(globalThis, 'fetch', async (url, options = {}) => {
     const u = new URL(url);
     if (u.origin === 'https://api.openai.com') {
+      assert.equal(options.redirect, 'manual');
       assert.equal(options.headers.Authorization, 'Bearer ' + key);
       if (u.pathname.startsWith('/v1/models/')) return new Response('{}', { status: provider.badKey ? 403 : 200 });
       assert.equal(u.pathname, '/v1/images/edits');
@@ -49,8 +50,8 @@ function setup(t) {
       if (provider.fail) return Response.json({ error: { code: 'insufficient_quota' } }, { status: 429 });
       return Response.json({ data: [{ b64_json: Buffer.from(jpeg).toString('base64') }] });
     }
-    if (u.hostname === 'cf.cjdropshipping.com' || u.origin === 'https://maisonmarnier.com') {
-      assert.equal(options.redirect, 'error');
+    if (u.hostname === 'cf.cjdropshipping.com') {
+      assert.equal(options.redirect, 'manual');
       return new Response(jpeg, { headers: { 'content-type': u.pathname.endsWith('.webp') ? 'image/webp' : 'image/png' } });
     }
     assert.equal(u.origin, 'https://graph.instagram.com');
@@ -77,7 +78,7 @@ function setup(t) {
     const response = await instagramAdminRoute(new Request(url, {
       method: body ? 'POST' : 'GET', headers: authorized ? { authorization: 'Bearer ' + env.LUME_ADMIN_TOKEN } : {},
       body: body ? JSON.stringify(body) : undefined,
-    }), env, url);
+    }), env, url, () => new Response(jpeg, { headers: { 'content-type': 'image/webp' } }));
     return { httpStatus: response.status, ...await response.json() };
   }
   async function generate(slot) {

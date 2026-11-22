@@ -189,7 +189,8 @@ export async function handleRequest(request, env, ctx) {
   if (instagramMockup) return studioPhotoResponse(request, env, instagramMockup);
 
   // --- Lume admin APIs ---
-  if (pathname.startsWith('/api/lume/instagram/')) return instagramAdminRoute(request, env, url);
+  if (pathname.startsWith('/api/lume/instagram/')) return instagramAdminRoute(request, env, url,
+    () => seasonalImageResponse('/images/christmas-living.webp'));
   if (pathname === '/api/lume/products') {
     const denied = await requireAdmin(request, env);
     if (denied) return denied;

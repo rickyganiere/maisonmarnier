@@ -48,7 +48,7 @@ export async function studioConnection(request, env) {
   let response;
   try {
     response = await fetch('https://api.openai.com/v1/models/' + model, {
-      headers: { Authorization: 'Bearer ' + key }, redirect: 'error', signal: AbortSignal.timeout(15000),
+      headers: { Authorization: 'Bearer ' + key }, redirect: 'manual', signal: AbortSignal.timeout(15000),
     });
   } catch { throw new InstagramError('OpenAI did not respond. Your saved connection has not changed.', 503); }
   if (!response.ok) throw new InstagramError('OpenAI could not verify image-model access with this key. Check its project and permissions.', 422);
@@ -82,9 +82,9 @@ The product is the unmistakable focal point. This is a distinct photograph, not 
 async function imageBlob(url) {
   const parsed = new URL(url);
   if (parsed.protocol !== 'https:' || parsed.username || parsed.password || parsed.port ||
-      !(supplierHosts.has(parsed.hostname) || (parsed.origin === origin && /^\/images\/[a-z0-9-]+\.webp$/.test(parsed.pathname))))
+      !supplierHosts.has(parsed.hostname))
     throw new InstagramError('This product needs a supported reference photo before mockups can be created.', 422);
-  const result = await fetch(parsed, { redirect: 'error', signal: AbortSignal.timeout(20000) });
+  const result = await fetch(parsed, { redirect: 'manual', signal: AbortSignal.timeout(20000) });
   if (!result.ok || Number(result.headers.get('content-length')) > 12_000_000)
     throw new InstagramError('A reference photo could not be loaded. Refresh the product gallery and try again.', 422);
   const bytes = new Uint8Array(await result.arrayBuffer());
@@ -117,7 +117,7 @@ function imageTaskResponse(task) {
   return new Response(body, { headers: { 'content-type': 'application/json', 'cache-control': 'no-store', 'x-content-type-options': 'nosniff' } });
 }
 
-export async function generateStudioPhoto(request, env) {
+export async function generateStudioPhoto(request, env, styleImage) {
   if (!env.INSTAGRAM_MEDIA) throw new InstagramError('Instagram Studio image storage is not available.', 503);
   const input = await request.json().catch(() => null);
   const slot = input?.slot;
@@ -148,12 +148,17 @@ export async function generateStudioPhoto(request, env) {
       form.set('n', '1'); form.set('size', '1024x1280'); form.set('quality', 'high');
       form.set('output_format', 'jpeg'); form.set('output_compression', '90');
       for (let i = 0; i < sources.length; i++) form.append('image[]', await imageBlob(sources[i].source), 'product-' + i + '.png');
-      form.append('image[]', await imageBlob(origin + '/images/christmas-living.webp'), 'maison-interior-style.webp');
+      // Read the bundled homepage asset directly. A public fetch to this same
+      // Worker would require special same-zone routing and can fail with 1042.
+      const style = styleImage?.();
+      if (!style?.ok || style.headers.get('content-type') !== 'image/webp')
+        throw new InstagramError('The homepage style reference is not available.', 503);
+      form.append('image[]', await style.blob(), 'maison-interior-style.webp');
       let result;
       try {
         result = await fetch('https://api.openai.com/v1/images/edits', {
           method: 'POST', headers: { Authorization: 'Bearer ' + key }, body: form,
-          redirect: 'error', signal: AbortSignal.timeout(240000),
+          redirect: 'manual', signal: AbortSignal.timeout(240000),
         });
       } catch { throw new InstagramError('OpenAI did not finish this scene. Completed mockups are saved; try this scene again.', 503); }
       if (!result.ok) {
