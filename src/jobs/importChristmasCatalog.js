@@ -2,6 +2,7 @@ import { json } from '../lib/json.js';
 import { extractCjCostUsd, extractCjImages, getCJToken, refreshProductFromCJ } from '../cj.js';
 import {
   cleanProductName,
+  curatedCopyUpsertSql,
   mapMaisonCategory,
   suggestedCompareEur,
   suggestedRetailEur,
@@ -136,7 +137,7 @@ async function upsertLive(env, p) {
      ON CONFLICT(supplier_product_id) DO UPDATE SET
        supplier='CJ',
        supplier_sku=excluded.supplier_sku,
-       name=excluded.name,
+       ${curatedCopyUpsertSql()},
        image_url=excluded.image_url,
        image_urls=excluded.image_urls,
        supplier_cost_usd=excluded.supplier_cost_usd,
@@ -146,8 +147,6 @@ async function upsertLive(env, p) {
        stock=excluded.stock,
        delivery_days=excluded.delivery_days,
        status='live',
-       slug=excluded.slug,
-       description=excluded.description,
        published_at=COALESCE(products.published_at, CURRENT_TIMESTAMP),
        updated_at=CURRENT_TIMESTAMP`,
   )

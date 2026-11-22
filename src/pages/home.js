@@ -25,6 +25,7 @@ const CHRISTMAS_HOME_EDIT = [
   'christmas-tree-898881',
   '3-x-3-x-4-3-egg-christmas-ball-ornament-012800',
   'wooden-christmas-tree-folding-coaster-black-walnut-thick-seat-620400',
+  'creative-lighted-robin-christmas-wreath',
 ];
 
 const HOME_CATEGORY_LINES = [
