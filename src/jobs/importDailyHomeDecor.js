@@ -20,8 +20,8 @@ const SEARCHES = [
   'christmas home decoration',
 ];
 
-const HOME_DECOR = /\b(vase|candle|candlestick|holder|lantern|lamp|light|mirror|wall decor|wall art|sculpture|statue|figurine|ornament|decorative|decoration|home decor|tray|coaster|cushion|pillow|throw|blanket|rug|doormat|basket|planter|flower|wreath|garland|clock|frame|tapestry|centerpiece|christmas|xmas|holiday|santa|tree decor)\b/i;
-const REJECT = /\b(car|auto|automotive|vehicle|motorcycle|truck|trunk|phone|tablet|computer|camera|headphone|charger|cable|gaming|drone|baby|infant|stroller|diaper|pet|dog|cat|aquarium|jewelry|necklace|earring|bracelet|makeup|wig|shoe|clothing|shirt|dress|underwear|tool|drill|saw|replacement|spare part|engine|filter|rack|bracket|mount|cabinet hardware|faucet|pipe|toilet|sex|adult)\b/i;
+const HOME_DECOR = /\b(vase|candle|candlestick|lantern|lamp|light|mirror|wall decor|wall art|sculpture|statue|figurine|ornament|decorative|decoration|home decor|tray|coaster|cushion|pillow|throw|blanket|rug|doormat|basket|planter|flower|wreath|garland|clock|frame|tapestry|centerpiece|christmas|xmas|holiday|santa|tree decor)\b/i;
+const REJECT = /\b(car|auto|automotive|vehicle|motorcycle|truck|trunk|phone|tablet|computer|camera|headphone|charger|cable|gaming|drone|baby|infant|stroller|diaper|pet|dog|cat|aquarium|jewelry|necklace|earring|bracelet|makeup|wig|shoe|clothing|shirt|dress|underwear|tool|drill|saw|replacement|spare part|engine|filter|rack|bracket|mount|cabinet hardware|faucet|pipe|toilet|sex|adult|flashlight|torch|hunting|tripod|accessories|onion holder|knife holder|slicer|cutter|anti-slip floor|floor sticker|twine|craft rope|camping|massager|stretcher|wire organizer|clip holder|bluetooth speaker|speaker|cover plate|liquid crystal|costume|cloak|cape)\b/i;
 
 export function isHomeDecorCandidate(product) {
   const text = `${product?.name || ''} ${product?.category || ''}`.replace(/\s+/g, ' ').trim();
@@ -182,16 +182,18 @@ export async function runDailyHomeDecorImport(env, { target = DAILY_TARGET, sour
         if (!prepared.product) {
           skipped += 1;
           reasons[prepared.skip] = (reasons[prepared.skip] || 0) + 1;
-          continue;
+        } else {
+          const row = await insertLiveProduct(env, prepared.product);
+          if (row?.id) imported += 1;
+          else skipped += 1;
         }
-        const row = await insertLiveProduct(env, prepared.product);
-        if (row?.id) imported += 1;
-        else skipped += 1;
       } catch (error) {
         skipped += 1;
         errors.push({ id: String(product?.id || ''), error: error?.message || String(error) });
+      } finally {
+        // CJ throttles product-detail requests at roughly one request per second.
+        await sleep(1050);
       }
-      await sleep(120);
     }
 
     await env.LUME_DB.prepare(
