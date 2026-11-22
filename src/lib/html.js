@@ -424,6 +424,7 @@ ${seoHeadHtml({
   ogImage: ogImage || DEFAULT_OG_IMAGE,
   ogType,
   noindex,
+  lang: resolvedLang,
 })}
 ${jsonLdScript(jsonLd)}
 ${fontLinksHtml()}

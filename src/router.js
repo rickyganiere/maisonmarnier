@@ -49,7 +49,15 @@ import { importChristmasCatalog } from './jobs/importChristmasCatalog.js';
 import { importDailyHomeDecor } from './jobs/importDailyHomeDecor.js';
 import { replaceSeedWithCj } from './jobs/replaceSeedWithCj.js';
 import { syncProductGalleries } from './jobs/syncGalleries.js';
-import { BRAND_ICON_PATH, BRAND_LOGO_PATH, BRAND_LOGO_LIGHT_PATH, brandImageResponse, brandLockupResponse } from './lib/brandAsset.js';
+import {
+  BRAND_ICON_PATH,
+  BRAND_LOGO_PATH,
+  BRAND_LOGO_LIGHT_PATH,
+  BRAND_OG_PATH,
+  brandImageResponse,
+  brandLockupResponse,
+} from './lib/brandAsset.js';
+import { brandOgImageResponse } from './lib/brandOg.js';
 import { getLang, setLangResponse, t } from './lib/i18n.js';
 import { json } from './lib/json.js';
 import { seasonalImageResponse } from './lib/seasonalAssets.js';
@@ -101,6 +109,7 @@ export async function handleRequest(request, env, ctx) {
   if (seasonalImage) return seasonalImage;
   if (pathname === BRAND_LOGO_PATH) return brandLockupResponse();
   if (pathname === BRAND_LOGO_LIGHT_PATH) return brandLockupResponse({ light: true });
+  if (pathname === BRAND_OG_PATH) return brandOgImageResponse();
   if (['/brand/maison-marnier-christmas.jpg', '/logo.jpg', '/logo.png', '/logo.svg'].includes(pathname)) return brandImageResponse();
   if ([BRAND_ICON_PATH, '/favicon.ico', '/favicon.svg'].includes(pathname)) return brandImageResponse({ icon: true });
   if (pathname === '/sitemap.xml' || pathname === '/sitemap_index.xml') return sitemapXml();
