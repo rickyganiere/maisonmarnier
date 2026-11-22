@@ -243,12 +243,47 @@ hello@maisonmarnier.com`,
   },
 };
 
+const SEO_DESCRIPTIONS = {
+  shipping: {
+    es: 'Información de envíos Maison Marnier: entregas en la Unión Europea, tarifa estándar de 6,90 € y envío gratuito desde 100 €.',
+    en: 'Maison Marnier shipping information: EU delivery, €6.90 standard shipping, and free shipping on orders over €100.',
+  },
+  returns: {
+    es: 'Política de devoluciones Maison Marnier: 30 días desde la entrega para artículos sin usar y en su estado original.',
+    en: 'Maison Marnier returns policy: 30 days from delivery for unused items in their original condition.',
+  },
+  contact: {
+    es: 'Contacta con Maison Marnier para consultas sobre productos, pedidos, envíos o colaboraciones. Respuesta en dos días laborables.',
+    en: 'Contact Maison Marnier about products, orders, shipping, or collaborations. We reply within two business days.',
+  },
+  sourcing: {
+    es: 'Cómo selecciona Maison Marnier su decoración: precio, stock, entrega, calidad visual y coherencia con la edición del hogar.',
+    en: 'How Maison Marnier curates home decor: price, stock, delivery, imagery, and fit with the wider home edit.',
+  },
+  about: {
+    es: 'Conoce Maison Marnier, una selección europea de decoración para hogares serenos: luz suave, textiles y objetos que merecen quedarse.',
+    en: 'Meet Maison Marnier, a European home decor edit for calm rooms: soft light, textiles, and objects worth keeping.',
+  },
+  privacidad: {
+    es: 'Política de privacidad de Maison Marnier: datos tratados, finalidades, conservación, proveedores y derechos conforme al RGPD.',
+    en: 'Maison Marnier privacy policy: data processing, purposes, retention, providers, and rights under GDPR.',
+  },
+  cookies: {
+    es: 'Política de cookies de Maison Marnier: cookies esenciales, analítica opcional, consentimiento y opciones de gestión.',
+    en: 'Maison Marnier cookie policy: essential cookies, optional analytics, consent, and management choices.',
+  },
+  terminos: {
+    es: 'Términos y condiciones de Maison Marnier para compras, pagos, envíos, devoluciones y uso de la tienda online en la UE.',
+    en: 'Maison Marnier terms for purchases, payments, shipping, returns, and use of the online store in the EU.',
+  },
+};
+
 export function infoPage(path, request) {
   const lang = getLang(request);
   const key = path.replace(/^\//, '');
   const entry = PAGES[key] || PAGES.about;
   const [title, body] = entry[lang] || entry.es || entry.en;
-  const description = String(body).split('\n\n')[0].slice(0, 160);
+  const description = (SEO_DESCRIPTIONS[key]?.[lang] || SEO_DESCRIPTIONS[key]?.es || String(body).split('\n\n')[0]).slice(0, 160);
   return htmlPage(
     title,
     `<nav class="crumbs" aria-label="${t(lang, 'crumbs_aria')}"><a href="${esc(langHref('/', lang))}">${t(lang, 'home')}</a><span class="sep">/</span><span>${esc(title)}</span></nav>

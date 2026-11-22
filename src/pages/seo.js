@@ -1,6 +1,6 @@
 import { COLLECTION_RULES } from './collection.js';
-import { isStorefrontListable } from '../lib/images.js';
-import { SITE_ORIGIN, escXml, formatLastmod } from '../lib/seo.js';
+import { isStorefrontListable, productImages } from '../lib/images.js';
+import { productDisplayDescription, SITE_ORIGIN, escXml, formatLastmod } from '../lib/seo.js';
 
 const INFO_PATHS = [
   '/about',
@@ -140,4 +140,61 @@ export async function sitemapJournalXml(env) {
     /* optional journal table */
   }
   return xmlResponse(urlset(entries));
+}
+
+/** Google Merchant Center RSS 2.0 feed for live, sellable catalog items. */
+export async function googleProductsXml(env) {
+  const items = [];
+  try {
+    const r = await env.LUME_DB.prepare(
+      `SELECT id, slug, name, description, category, retail_price_eur, stock, image_url, image_urls
+       FROM products
+       WHERE status='live' AND slug IS NOT NULL AND slug!=''
+         AND retail_price_eur > 0
+       ORDER BY published_at DESC, id DESC LIMIT ?`,
+    )
+      .bind(PRODUCT_CAP)
+      .all();
+    for (const p of r.results || []) {
+      if (!isStorefrontListable(p, { minPhotos: 4 })) continue;
+      const images = productImages(p, { max: 10 });
+      const link = `${SITE_ORIGIN}/products/${encodeURIComponent(p.slug)}`;
+      const title = String(p.name || 'Maison Marnier home decor').replace(/\s+/g, ' ').trim().slice(0, 150);
+      const description = productDisplayDescription({ ...p, image_url: images[0], image_urls: images }, 'es').slice(0, 5000);
+      const availability = Number(p.stock || 0) > 0 ? 'in_stock' : 'out_of_stock';
+      items.push(`<item>
+<g:id>${escXml(p.id || p.slug)}</g:id>
+<g:title>${escXml(title)}</g:title>
+<g:description>${escXml(description)}</g:description>
+<g:link>${escXml(link)}</g:link>
+<g:image_link>${escXml(images[0])}</g:image_link>
+${images.slice(1).map((src) => `<g:additional_image_link>${escXml(src)}</g:additional_image_link>`).join('\n')}
+<g:condition>new</g:condition>
+<g:availability>${availability}</g:availability>
+<g:price>${Number(p.retail_price_eur).toFixed(2)} EUR</g:price>
+<g:product_type>${escXml(p.category || 'Home Decor')}</g:product_type>
+<g:identifier_exists>false</g:identifier_exists>
+</item>`);
+    }
+  } catch {
+    /* D1 unavailable — valid empty feed keeps the endpoint reliable. */
+  }
+  const body = `<?xml version="1.0" encoding="UTF-8"?>
+<rss xmlns:g="http://base.google.com/ns/1.0" version="2.0">
+<channel>
+<title>Maison Marnier product catalog</title>
+<link>${SITE_ORIGIN}</link>
+<description>Curated home decoration from Maison Marnier</description>
+${items.join('\n')}
+</channel>
+</rss>
+`;
+  return new Response(body, {
+    headers: {
+      'content-type': 'application/xml; charset=UTF-8',
+      'cache-control': 'public, max-age=900',
+      'x-robots-tag': 'noindex',
+      'x-content-type-options': 'nosniff',
+    },
+  });
 }

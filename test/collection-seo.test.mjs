@@ -14,6 +14,17 @@ test('seasonal hub has bilingual intro, seo description, and internal link seeds
   assert.ok(seasonal.relatedCollections.length >= 1);
 });
 
+test('priority category hubs target proven Spanish shopping intent', () => {
+  for (const slug of ['decor', 'textiles', 'objects', 'candles', 'lighting']) {
+    const rule = COLLECTION_RULES[slug];
+    assert.ok(rule.intro.es.length > 250, `${slug} needs useful Spanish intro copy`);
+    assert.ok(rule.intro.en.length > 250, `${slug} needs useful English intro copy`);
+    assert.ok(rule.seoDescription.es.length <= 160, `${slug} Spanish meta must fit a snippet`);
+    assert.ok(rule.seoDescription.en.length <= 160, `${slug} English meta must fit a snippet`);
+    assert.ok(rule.relatedCollections.length >= 2, `${slug} needs internal collection links`);
+  }
+});
+
 test('collectionPageJsonLd emits CollectionPage + ItemList graph', () => {
   const ld = collectionPageJsonLd({
     name: 'Decoración de Navidad',

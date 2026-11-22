@@ -169,9 +169,14 @@ export function safeNextPath(next, fallback = '/') {
   return n.slice(0, 500);
 }
 
-/** Append/replace hl= on a relative path so browser cache keys differ per language. */
-export function withLangQuery(path, lang) {
-  const l = normalizeLang(lang);
+/**
+ * Return a clean storefront path.
+ *
+ * Language is persisted in the mm_lang cookie, so internal links must not
+ * manufacture ?hl= variants. Keeping one crawlable URL per page avoids
+ * splitting canonicals and internal-link signals across duplicate URLs.
+ */
+export function withLangQuery(path, _lang) {
   let pathname = '/';
   let search = '';
   let hash = '';
@@ -185,9 +190,77 @@ export function withLangQuery(path, lang) {
   }
   const params = new URLSearchParams(search.startsWith('?') ? search.slice(1) : search);
   params.delete('lang');
-  params.set('hl', l);
+  params.delete('hl');
   const q = params.toString();
   return `${pathname}${q ? `?${q}` : ''}${hash}`;
+}
+
+function isPublicStorefrontPath(pathname) {
+  return (
+    pathname === '/' ||
+    pathname.startsWith('/collections/') ||
+    pathname.startsWith('/products/') ||
+    pathname === '/journal' ||
+    pathname.startsWith('/journal/') ||
+    pathname === '/instagram' ||
+    pathname === '/cart' ||
+    pathname.startsWith('/checkout/') ||
+    pathname.startsWith('/cuenta') ||
+    ['/shipping', '/returns', '/contact', '/sourcing', '/about', '/privacidad', '/cookies', '/terminos'].includes(
+      pathname,
+    )
+  );
+}
+
+/**
+ * Permanently consolidate legacy ?hl= / ?lang= storefront URLs.
+ * The requested language is kept in a cookie before redirecting to the clean
+ * URL, so visitors retain their choice while crawlers see a single canonical.
+ */
+export function localeQueryRedirect(request, url = null) {
+  const method = String(request?.method || 'GET').toUpperCase();
+  if (method !== 'GET' && method !== 'HEAD') return null;
+  let current;
+  try {
+    current = url instanceof URL ? url : new URL(request.url);
+  } catch {
+    return null;
+  }
+  if (!isPublicStorefrontPath(current.pathname)) return null;
+  if (!current.searchParams.has('hl') && !current.searchParams.has('lang')) return null;
+
+  const lang = normalizeLang(current.searchParams.get('hl') || current.searchParams.get('lang'));
+  const target = new URL(current.toString());
+  target.searchParams.delete('hl');
+  target.searchParams.delete('lang');
+  const secure = target.protocol === 'https:';
+  return new Response(null, {
+    status: 301,
+    headers: {
+      Location: target.toString(),
+      'Set-Cookie': langCookieHeader(lang, { secure }),
+      'Cache-Control': 'no-store',
+      'Content-Language': lang,
+    },
+  });
+}
+
+/** 301 http/www requests to the one canonical HTTPS apex origin. */
+export function canonicalOriginRedirect(request, url = null) {
+  let current;
+  try {
+    current = url instanceof URL ? url : new URL(request.url);
+  } catch {
+    return null;
+  }
+  const host = (request?.headers?.get?.('Host') || current.host || '').split(':')[0].toLowerCase();
+  if (!['maisonmarnier.com', 'www.maisonmarnier.com'].includes(host)) return null;
+  if (host === 'maisonmarnier.com' && current.protocol === 'https:') return null;
+  const target = new URL(current.toString());
+  target.protocol = 'https:';
+  target.hostname = 'maisonmarnier.com';
+  target.port = '';
+  return Response.redirect(target.toString(), 301);
 }
 
 export function setLangResponse(request, url) {
@@ -254,7 +327,7 @@ export function syncLangCookieHeader(request, lang) {
   return persistLangCookieHeader(request, fromUrl);
 }
 
-/** Storefront href that keeps the active language across page changes. */
+/** Storefront href; the active language persists in the mm_lang cookie. */
 export function langHref(path, lang) {
   return withLangQuery(path, lang);
 }
