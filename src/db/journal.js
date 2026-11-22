@@ -25,7 +25,7 @@ export async function listPublishedArticles(env) {
 
 export async function getArticleBySlug(env, slug) {
   return env.LUME_DB.prepare(
-    `SELECT id,slug,title,excerpt,body,image_url,status,published_at
+    `SELECT id,slug,title,excerpt,body,image_url,status,published_at,updated_at
      FROM journal_articles WHERE slug=? LIMIT 1`,
   )
     .bind(slug)

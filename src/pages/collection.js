@@ -79,17 +79,31 @@ Start with the season’s hero pieces, then browse lighting or candles for a sof
     ],
     journalLinks: [
       {
+        path: '/journal/mesa-navidad-sin-ruido-visual',
+        label: {
+          es: 'Mesa de Navidad sin ruido visual',
+          en: 'A calm Christmas table',
+        },
+      },
+      {
+        path: '/journal/luces-calidas-salones-pequenos',
+        label: {
+          es: 'Luces cálidas para salones pequeños',
+          en: 'Warm lights for small living rooms',
+        },
+      },
+      {
+        path: '/journal/guia-adornos-menos-piezas',
+        label: {
+          es: 'Guía de adornos: menos piezas',
+          en: 'Ornament guide: fewer pieces',
+        },
+      },
+      {
         path: '/journal/quiet-living-room',
         label: {
           es: 'Salón sereno en invierno',
           en: 'A quiet living room in winter',
-        },
-      },
-      {
-        path: '/journal/objects-worth-keeping',
-        label: {
-          es: 'Objetos que merecen quedarse',
-          en: 'Objects worth keeping',
         },
       },
     ],
