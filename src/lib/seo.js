@@ -204,6 +204,55 @@ export function collectionPageJsonLd({
   };
 }
 
+/** Normalize D1 timestamps to ISO-8601 for JSON-LD. */
+function toIsoDate(value) {
+  const s = String(value || '').trim();
+  if (!s) return undefined;
+  if (/^\d{4}-\d{2}-\d{2}$/.test(s)) return `${s}T00:00:00Z`;
+  if (s.includes('T')) return s.endsWith('Z') || /[+-]\d{2}:?\d{2}$/.test(s) ? s : `${s}Z`;
+  return `${s.replace(' ', 'T')}Z`;
+}
+
+/**
+ * BlogPosting (+ BreadcrumbList) for `/journal/{slug}` articles.
+ */
+export function blogPostingJsonLd({
+  title,
+  description = '',
+  url = '/',
+  image = '',
+  datePublished = '',
+  dateModified = '',
+} = {}) {
+  const pageUrl = absoluteUrl(url);
+  const img = image ? absoluteUrl(image) : undefined;
+  const published = String(datePublished || '').trim() || undefined;
+  const modified = String(dateModified || datePublished || '').trim() || published;
+  const posting = {
+    '@context': 'https://schema.org',
+    '@type': 'BlogPosting',
+    '@id': `${pageUrl}#article`,
+    headline: title || '',
+    description: String(description || '').slice(0, 5000),
+    url: pageUrl,
+    mainEntityOfPage: pageUrl,
+    isPartOf: { '@id': `${SITE_ORIGIN}/#website` },
+    author: { '@id': `${SITE_ORIGIN}/#organization` },
+    publisher: { '@id': `${SITE_ORIGIN}/#organization` },
+    inLanguage: 'es',
+  };
+  if (img) posting.image = [img];
+  if (published) posting.datePublished = toIsoDate(published);
+  if (modified) posting.dateModified = toIsoDate(modified);
+
+  const crumbs = breadcrumbJsonLd([
+    { name: 'Home', path: '/' },
+    { name: 'Diario', path: '/journal' },
+    { name: title || 'Artículo', path: url },
+  ]);
+  return [posting, crumbs];
+}
+
 export function productJsonLd(p, { url, collectionPath } = {}) {
   const retail = Number(p.retail_price_eur || 0);
   const stock = Number(p.stock || 0);

@@ -275,6 +275,11 @@ img:not([hidden]) + .product-image-unavailable{display:none}
 .journal-card img{width:100%;aspect-ratio:16/10;object-fit:cover;border-radius:8px;border:1px solid var(--line);background:var(--panel2)}
 .journal-card h2{font:900 1.45rem/1.15 var(--font);margin:0 0 8px;letter-spacing:-.03em;color:#fff}
 .journal-card:hover h2{color:var(--accent2)}
+.journal-body{line-height:1.7;color:var(--soft);margin:20px 0 4px;max-width:46ch;font-size:14.5px;font-weight:500}
+.journal-body p{margin:0 0 1.05em}
+.journal-body h2{font:800 1.15rem/1.25 var(--font);letter-spacing:-.02em;color:#fff;margin:1.6em 0 .55em}
+.journal-body a{color:var(--accent2);text-decoration:underline;text-underline-offset:3px}
+.journal-cta{margin-top:28px}
 .article-hero{width:100%;max-height:420px;object-fit:cover;border-radius:10px;border:1px solid var(--line);margin:12px 0 24px;background:var(--panel2)}
 .site-footer{margin-top:56px;border-top:1px solid var(--line);padding:40px var(--pad) 24px;background:#0c0b0a}
 .footer-grid{max-width:var(--max);margin:auto;display:grid;grid-template-columns:2fr 1fr 1fr 1fr;gap:28px}
