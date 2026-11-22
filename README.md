@@ -124,8 +124,10 @@ Shipping: €6.90 flat, free from €100.
 
 ## Instagram product publishing
 
-In `/admin#instagram`, connect the store’s Instagram Business or Creator account, `@maison.marnier`. Use the Instagram User access token generated in the [Meta App Dashboard](https://developers.facebook.com/apps/) with `instagram_business_basic` and `instagram_business_content_publish`. The admin verifies the handle and publishing access before saving the encrypted token. An active long-lived token is refreshed on use after 30 days. Reconnect here if it expires during inactivity.
+In `/admin#instagram`, connect the store’s Business or Creator account, `@maison.marnier`. Open the existing **Manage messaging & content on Instagram** use case in the [MaisonMarnier app dashboard](https://developers.facebook.com/apps/1142354558336214/dashboard/). In its API setup, add the account under **Generate access tokens**, accept its Instagram tester invitation if prompted, and select **Generate token** next to the handle. Paste the token in the admin’s private connection field.
+
+Unified Login uses `instagram_basic` and `instagram_content_publish`. Instagram Login uses `instagram_business_basic` and `instagram_business_content_publish`. The admin verifies the handle and the publishing permission before saving the token encrypted. Instagram Login long-lived tokens refresh on use after 30 days. Unified Login tokens follow the expiry selected in Meta. Reconnect in Settings when a token expires.
 
 Open **Published → Post to Instagram**, or use the same action in **Edit**. Choose a product photo, review the caption, and press **Publish to Instagram** to create a single-photo feed post. The composer resumes pending submissions and links to the published post when Meta supplies its permalink.
 
-Deployment requires migration `0006_instagram_publishing.sql` and the Worker secret `INSTAGRAM_TOKEN_KEY` (32 random bytes, base64 encoded). Keep the key stable across deployments. Reconnect the Instagram account after replacing it.
+Deployment requires migrations through `0007_instagram_login_method.sql` and the Worker secret `INSTAGRAM_TOKEN_KEY` (32 random bytes, base64 encoded). Keep the key stable across deployments. Reconnect the Instagram account after replacing it.

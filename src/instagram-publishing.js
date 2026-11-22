@@ -2,7 +2,7 @@ import { requireAdmin } from './auth.js';
 import { json } from './lib/json.js';
 import {
   connectionStatus, getInstagramAccount, instagramAccountRoute, InstagramError,
-  instagramRequest, verifyInstagramIdentity,
+  instagramHandle, instagramRequest, verifyInstagramIdentity,
 } from './instagram-account.js';
 import { digest, instagramProduct } from './instagram-photos.js';
 
@@ -38,7 +38,7 @@ async function markPublished(db, fingerprint, account, mediaId) {
   let permalink = null;
   if (mediaId) {
     try {
-      const media = await instagramRequest(mediaId + '?fields=permalink', account.token);
+      const media = await instagramRequest(mediaId + '?fields=permalink', account);
       if (/^https:\/\/(?:www\.)?instagram\.com\/p\/[\w-]+\/?$/.test(media.permalink || '')) {
         permalink = media.permalink;
         await db.prepare('UPDATE instagram_posts SET permalink=? WHERE fingerprint=?').bind(permalink, fingerprint).run();
@@ -59,24 +59,29 @@ async function publish(request, env) {
 
   const db = env.LUME_DB;
   const account = await getInstagramAccount(env);
-  const fingerprint = await digest(JSON.stringify([account.id, product.id, photo.key, caption]));
+  // Older posts use the login-specific account ID in their fingerprint.
+  const previous = await db.prepare(`SELECT fingerprint, state, permalink FROM instagram_posts
+    WHERE product_id=? AND photo_key=? AND caption=? ORDER BY (state='published') DESC, updated_at DESC LIMIT 1`)
+    .bind(product.id, photo.key, caption).first();
+  const fingerprint = previous?.fingerprint || await digest(JSON.stringify([instagramHandle, product.id, photo.key, caption]));
   const read = () => db.prepare('SELECT * FROM instagram_posts WHERE fingerprint=?').bind(fingerprint).first();
-  let row = await read();
-  if (row?.state === 'published') return json({ ok: true, published: true, permalink: row.permalink });
-  if (await verifyInstagramIdentity(account.token) !== account.id)
+  if (previous?.state === 'published') return json({ ok: true, published: true, permalink: previous.permalink });
+  if (await verifyInstagramIdentity(account) !== account.id)
     throw new InstagramError('Reconnect the store’s Instagram account in Settings.', 409);
 
   // A lease may recreate an orphaned, unpublished container. Once its ID has
   // been saved, all retries operate on that same one-use Meta container.
   const lease = crypto.randomUUID();
   const claim = await db.prepare(`INSERT INTO instagram_posts
-    (fingerprint,product_id,photo_key,caption,state,lease) VALUES (?,?,?,?,'creating',?)
-    ON CONFLICT(fingerprint) DO UPDATE SET state='creating',lease=excluded.lease,container_id=NULL,updated_at=unixepoch()
-    WHERE instagram_posts.state='failed' OR (instagram_posts.state='creating' AND instagram_posts.updated_at<unixepoch()-90)`)
-    .bind(fingerprint, product.id, photo.key, caption, lease).run();
+    (fingerprint,product_id,photo_key,caption,state,lease,login_method) VALUES (?,?,?,?,'creating',?,?)
+    ON CONFLICT(fingerprint) DO UPDATE SET state='creating',lease=excluded.lease,login_method=excluded.login_method,
+      container_id=NULL,updated_at=unixepoch()
+    WHERE instagram_posts.state='failed' OR (instagram_posts.state='creating'
+      AND instagram_posts.login_method=excluded.login_method AND instagram_posts.updated_at<unixepoch()-90)`)
+    .bind(fingerprint, product.id, photo.key, caption, lease, account.loginMethod).run();
   if (claim.meta.changes) {
     try {
-      const container = await instagramRequest(account.id + '/media', account.token,
+      const container = await instagramRequest(account.id + '/media', account,
         { image_url: photo.url, caption, alt_text: product.name.slice(0, 1000) });
       if (!container.id) throw new InstagramError('Instagram did not return a photo container. Try again.', 502);
       await db.prepare("UPDATE instagram_posts SET state='ready', container_id=?, updated_at=unixepoch() WHERE fingerprint=? AND lease=?")
@@ -87,13 +92,15 @@ async function publish(request, env) {
       throw error;
     }
   }
-  row = await read();
+  const row = await read();
   if (!row) throw new InstagramError('Reopen the product to check its Instagram post.', 503);
   if (row.state === 'published') return json({ ok: true, published: true, permalink: row.permalink });
   if (row.state === 'failed') throw new InstagramError('Instagram could not prepare this post. Review the photo and try again.', 422);
+  if (row.login_method !== account.loginMethod)
+    throw new InstagramError('This post is pending with the previous Meta login. Reconnect with that login to check its status.', 409);
   if (!row.container_id) return pending();
 
-  const status = await instagramRequest(row.container_id + '?fields=status_code', account.token);
+  const status = await instagramRequest(row.container_id + '?fields=status_code', account);
   if (status.status_code === 'PUBLISHED') return markPublished(db, fingerprint, account, row.media_id);
   if (['ERROR', 'EXPIRED'].includes(status.status_code)) {
     await db.prepare("UPDATE instagram_posts SET state='failed', updated_at=unixepoch() WHERE fingerprint=? AND container_id=? AND state!='published'")
@@ -106,7 +113,7 @@ async function publish(request, env) {
     WHERE fingerprint=? AND container_id=? AND (state='ready' OR (state='publishing' AND updated_at<unixepoch()-90))`)
     .bind(fingerprint, row.container_id).run();
   if (!send.meta.changes) return pending();
-  const published = await instagramRequest(account.id + '/media_publish', account.token, { creation_id: row.container_id });
+  const published = await instagramRequest(account.id + '/media_publish', account, { creation_id: row.container_id });
   if (!published.id) return pending();
   return markPublished(db, fingerprint, account, String(published.id));
 }
