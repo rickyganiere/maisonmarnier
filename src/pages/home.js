@@ -370,6 +370,7 @@ ${seoHeadHtml({
   canonical: '/',
   ogImage: DEFAULT_OG_IMAGE,
   ogType: 'website',
+  lang,
 })}
 ${jsonLdScript(organizationWebsiteJsonLd())}
 ${fontLinksHtml()}

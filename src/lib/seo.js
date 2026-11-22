@@ -1,12 +1,16 @@
 /** Site-wide SEO helpers for Maison Marnier (apex host). */
 
-import { BRAND_ICON_PATH } from './brandAsset.js';
+import { BRAND_ICON_PATH, BRAND_OG_PATH } from './brandAsset.js';
 import { FACEBOOK_URL, INSTAGRAM_URL } from './social.js';
 
 export const SITE_ORIGIN = 'https://maisonmarnier.com';
 
-export const DEFAULT_OG_IMAGE =
-  'https://images.unsplash.com/photo-1618221195710-dd6b41faaea6?auto=format&fit=crop&w=1200&q=80';
+/** Self-hosted 1200×630 Christmas edit card (replaces Unsplash default). */
+export const DEFAULT_OG_IMAGE = BRAND_OG_PATH;
+
+export const OG_SITE_NAME = 'Maison Marnier';
+export const OG_LOCALE_DEFAULT = 'es_ES';
+export const OG_LOCALE_ALTERNATE = 'en_GB';
 
 /** Resolve a path or absolute URL to a canonical absolute HTTPS URL. */
 export function absoluteUrl(pathOrUrl = '/') {
@@ -185,6 +189,13 @@ function escapeAttr(value) {
     .replace(/>/g, '&gt;');
 }
 
+/** Map storefront lang (es|en) to Open Graph locale tags. */
+export function ogLocalesForLang(lang = 'es') {
+  const primary = String(lang || 'es').toLowerCase().startsWith('en') ? OG_LOCALE_ALTERNATE : OG_LOCALE_DEFAULT;
+  const alternate = primary === OG_LOCALE_DEFAULT ? OG_LOCALE_ALTERNATE : OG_LOCALE_DEFAULT;
+  return { locale: primary, alternate };
+}
+
 /** Build head meta tags (canonical, robots, Open Graph, Twitter). */
 export function seoHeadHtml({
   title,
@@ -193,19 +204,30 @@ export function seoHeadHtml({
   ogImage = '',
   ogType = 'website',
   noindex = false,
+  lang = 'es',
 } = {}) {
   const pageTitle = title || 'Maison Marnier';
   const canon = absoluteUrl(canonical);
   const image = absoluteUrl(ogImage || DEFAULT_OG_IMAGE);
   const desc = description || '';
   const robots = noindex ? '<meta name="robots" content="noindex,nofollow">\n' : '';
+  const { locale, alternate } = ogLocalesForLang(lang);
+  const isBrandOg = !ogImage || ogImage === DEFAULT_OG_IMAGE || ogImage === BRAND_OG_PATH;
+  const imageDims = isBrandOg
+    ? `<meta property="og:image:width" content="1200">
+<meta property="og:image:height" content="630">
+`
+    : '';
   return `${robots}<link rel="canonical" href="${escapeAttr(canon)}">
+<meta property="og:site_name" content="${escapeAttr(OG_SITE_NAME)}">
+<meta property="og:locale" content="${escapeAttr(locale)}">
+<meta property="og:locale:alternate" content="${escapeAttr(alternate)}">
 <meta property="og:title" content="${escapeAttr(pageTitle)}">
 <meta property="og:description" content="${escapeAttr(desc)}">
 <meta property="og:url" content="${escapeAttr(canon)}">
 <meta property="og:type" content="${escapeAttr(ogType)}">
 <meta property="og:image" content="${escapeAttr(image)}">
-<meta name="twitter:card" content="summary_large_image">
+${imageDims}<meta name="twitter:card" content="summary_large_image">
 <meta name="twitter:title" content="${escapeAttr(pageTitle)}">
 <meta name="twitter:description" content="${escapeAttr(desc)}">
 <meta name="twitter:image" content="${escapeAttr(image)}">`;

@@ -29,5 +29,5 @@ crons = ["10 5 * * *"]
 
 [[rules]]
 type = "Data"
-globs = ["**/christmas-*.webp", "**/home-studio-*.webp"]
+globs = ["**/christmas-*.webp", "**/home-studio-*.webp", "**/maison-marnier-og.jpg"]
 fallthrough = true
