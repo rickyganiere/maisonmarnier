@@ -1,5 +1,40 @@
 /** Light merchandising helpers for CJ → Maison titles/categories/pricing. */
 
+/** True when description still looks like an import template (safe to overwrite). */
+export function isTemplateProductDescription(description) {
+  const d = String(description || '').trim();
+  if (!d) return true;
+  return (
+    /^A festive piece for the holidays\b/i.test(d) ||
+    /^A considered piece for calm interiors\b/i.test(d) ||
+    /^A considered home decoration piece\b/i.test(d)
+  );
+}
+
+/**
+ * On CJ upsert, keep curated live name/description/slug.
+ * Import templates may refresh; hand-written Wave copy must survive re-import.
+ */
+export function curatedCopyUpsertSql() {
+  return `name=CASE
+       WHEN products.status='live' AND NOT (
+         products.description IS NULL OR trim(products.description)=''
+         OR products.description LIKE 'A festive piece for the holidays%'
+         OR products.description LIKE 'A considered piece for calm interiors%'
+         OR products.description LIKE 'A considered home decoration piece%'
+       ) THEN products.name ELSE excluded.name END,
+       slug=CASE
+       WHEN products.status='live' AND products.slug IS NOT NULL AND trim(products.slug)!=''
+       THEN products.slug ELSE excluded.slug END,
+       description=CASE
+       WHEN products.status='live' AND NOT (
+         products.description IS NULL OR trim(products.description)=''
+         OR products.description LIKE 'A festive piece for the holidays%'
+         OR products.description LIKE 'A considered piece for calm interiors%'
+         OR products.description LIKE 'A considered home decoration piece%'
+       ) THEN products.description ELSE excluded.description END`;
+}
+
 export function cleanProductName(name) {
   let n = String(name || '').replace(/\s+/g, ' ').trim();
   if (!n) return '';
