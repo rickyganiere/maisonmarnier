@@ -180,6 +180,15 @@ img{max-width:100%;display:block}
   linear-gradient(180deg, #1a1714 0%, var(--bg) 100%);
   border-bottom:1px solid var(--line)}
 .collection-top .head{margin:0}
+.collection-intro{max-width:62ch;margin:22px 0 0;color:var(--soft);font:500 15px/1.6 var(--font)}
+.collection-intro p{margin:0 0 12px}
+.collection-intro p:last-child{margin-bottom:0}
+.collection-hub{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:22px;margin-top:28px;padding-top:22px;border-top:1px solid #3a322b}
+.hub-block h2{margin:0 0 12px;font:800 11px/1.2 var(--font);letter-spacing:.1em;text-transform:uppercase;color:var(--accent)}
+.hub-links{list-style:none;margin:0;padding:0;display:grid;gap:8px}
+.hub-links a{color:var(--ink);font:600 14px/1.35 var(--font);text-decoration:underline;text-decoration-color:transparent;text-underline-offset:3px;transition:color .2s,text-decoration-color .2s}
+.hub-links a:hover{color:var(--accent2);text-decoration-color:var(--accent2)}
+@media(max-width:900px){.collection-hub{grid-template-columns:1fr}}
 .head{display:flex;justify-content:space-between;align-items:end;gap:20px;margin:28px 0 24px;flex-wrap:wrap}
 .head-meta{color:var(--muted);font:700 12px/1.3 var(--font);letter-spacing:.1em;text-transform:uppercase}
 h1{font:900 clamp(34px,4.6vw,56px)/.98 var(--font);margin:0;letter-spacing:-.045em;color:#fff}

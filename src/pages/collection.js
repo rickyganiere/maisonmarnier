@@ -1,8 +1,8 @@
 import { esc } from '../lib/escape.js';
 import { htmlPage, productCard } from '../lib/html.js';
 import { getLang, langHref, t, tr } from '../lib/i18n.js';
-import { breadcrumbJsonLd } from '../lib/seo.js';
-import { getLiveProducts } from '../db/products.js';
+import { breadcrumbJsonLd, collectionPageJsonLd } from '../lib/seo.js';
+import { getLiveProducts, getLiveProductsBySlugs } from '../db/products.js';
 
 /** Exact Maison category labels preferred; keyword fallbacks for older rows. */
 export const COLLECTION_RULES = {
@@ -55,9 +55,49 @@ export const COLLECTION_RULES = {
     categories: ['Seasonal'],
     keywords: ['christmas', 'seasonal', 'holiday', 'xmas', 'santa'],
     blurb: {
-      es: 'Acentos de temporada sin ruido visual.',
-      en: 'Seasonal accents without the visual noise.',
+      es: 'Decoración navideña para hogares europeos — luces cálidas, coronas y detalles elegidos con calma.',
+      en: 'Christmas décor for European homes — warm lights, wreaths, and quiet seasonal details.',
     },
+    seoDescription: {
+      es: 'Decoración de Navidad para el hogar: luces cálidas, coronas, adornos y velas. Edición Maison Marnier · envíos UE.',
+      en: 'Christmas home décor: warm lights, wreaths, ornaments and candles. Maison Marnier edit · EU shipping.',
+    },
+    intro: {
+      es: `La edición Navidad de Maison Marnier reúne decoración navideña para interiores serenos: iluminación cálida, coronas para la puerta, adornos para el árbol y piezas de mesa que no saturan la habitación. Elegimos objetos festivos con presencia clara — menos ruido visual, más atmósfera — pensados para salones europeos y envíos dentro de la UE.
+
+Empieza por las piezas hero de la temporada, sigue hacia iluminación o velas si buscas brillo suave, y lee el Diario para ideas de cómo vestir la casa sin prisa.`,
+      en: `Maison Marnier’s Christmas edit gathers holiday décor for calm interiors: warm lighting, door wreaths, tree ornaments, and table pieces that don’t crowd the room. We favour festive objects with quiet presence — less visual noise, more atmosphere — chosen for European homes and EU shipping.
+
+Start with the season’s hero pieces, then browse lighting or candles for a softer glow, and read the Journal for unhurried ways to dress the house.`,
+    },
+    heroSlugs: [
+      'christmas-candle-lights-led-small-lanterns-wind-lights-793600',
+      'creative-lighted-robin-christmas-wreath',
+      'pvc-mini-christmas-tree-led-lights-decoration-desktop-ornaments',
+      'christmas-decoration-3d-lamp-acrylic-led-night-lights-new-year',
+      'christmas-candle-led-indoor-holiday-christmas-tree-ornaments',
+    ],
+    journalLinks: [
+      {
+        path: '/journal/quiet-living-room',
+        label: {
+          es: 'Salón sereno en invierno',
+          en: 'A quiet living room in winter',
+        },
+      },
+      {
+        path: '/journal/objects-worth-keeping',
+        label: {
+          es: 'Objetos que merecen quedarse',
+          en: 'Objects worth keeping',
+        },
+      },
+    ],
+    relatedCollections: [
+      { slug: 'lighting', label: { es: 'Iluminación', en: 'Lighting' } },
+      { slug: 'candles', label: { es: 'Velas', en: 'Candles' } },
+      { slug: 'objects', label: { es: 'Objetos', en: 'Objects' } },
+    ],
   },
   lighting: {
     categories: ['Lighting'],
@@ -81,7 +121,7 @@ const COLLECTION_TITLES = {
   objects: { es: 'Objetos', en: 'Objects' },
   candles: { es: 'Velas', en: 'Candles' },
   'wall-decor': { es: 'Decoración de pared', en: 'Wall Decor' },
-  seasonal: { es: 'Navidad', en: 'Holiday' },
+  seasonal: { es: 'Decoración de Navidad', en: 'Christmas Home Edit' },
   lighting: { es: 'Iluminación', en: 'Lighting' },
   furniture: { es: 'Mobiliario', en: 'Furniture' },
 };
@@ -107,6 +147,63 @@ function matchesCollection(p, rule) {
   return rule.keywords.some((w) => text.includes(w));
 }
 
+function introParagraphsHtml(introText) {
+  const parts = String(introText || '')
+    .split(/\n\s*\n/)
+    .map((p) => p.trim())
+    .filter(Boolean);
+  if (!parts.length) return '';
+  return `<div class="collection-intro">${parts.map((p) => `<p>${esc(p)}</p>`).join('')}</div>`;
+}
+
+/** Internal links: hero PDPs + Journal + related collections. */
+function collectionHubLinksHtml(rule, heroProducts, lang) {
+  const heroItems = (heroProducts || []).slice(0, 5);
+  const journal = rule.journalLinks || [];
+  const related = rule.relatedCollections || [];
+  if (!heroItems.length && !journal.length && !related.length) return '';
+
+  const heroList = heroItems.length
+    ? `<div class="hub-block">
+        <h2>${esc(tr(lang, { es: 'Piezas hero de la temporada', en: 'Season hero picks' }))}</h2>
+        <ul class="hub-links">${heroItems
+          .map(
+            (p) =>
+              `<li><a href="${esc(langHref(`/products/${encodeURIComponent(p.slug)}`, lang))}">${esc(p.name || p.slug)}</a></li>`,
+          )
+          .join('')}</ul>
+      </div>`
+    : '';
+
+  const journalList = journal.length
+    ? `<div class="hub-block">
+        <h2>${esc(tr(lang, { es: 'Del Diario', en: 'From the Journal' }))}</h2>
+        <ul class="hub-links">${journal
+          .map(
+            (j) =>
+              `<li><a href="${esc(langHref(j.path, lang))}">${esc(tr(lang, j.label))}</a></li>`,
+          )
+          .join('')}</ul>
+      </div>`
+    : '';
+
+  const relatedList = related.length
+    ? `<div class="hub-block">
+        <h2>${esc(tr(lang, { es: 'Seguir explorando', en: 'Keep exploring' }))}</h2>
+        <ul class="hub-links">${related
+          .map(
+            (c) =>
+              `<li><a href="${esc(langHref(`/collections/${c.slug}`, lang))}">${esc(tr(lang, c.label))}</a></li>`,
+          )
+          .join('')}</ul>
+      </div>`
+    : '';
+
+  return `<section class="collection-hub" aria-label="${esc(tr(lang, { es: 'Guía de la colección', en: 'Collection guide' }))}">
+    ${heroList}${journalList}${relatedList}
+  </section>`;
+}
+
 export async function collectionPage(url, env, request) {
   const lang = getLang(request);
   try {
@@ -122,6 +219,7 @@ export async function collectionPage(url, env, request) {
       );
     }
 
+    const rule = COLLECTION_RULES[slug];
     let all = await getLiveProducts(env, 200);
     if (q) {
       const qq = q.toLowerCase();
@@ -131,11 +229,15 @@ export async function collectionPage(url, env, request) {
       });
     }
 
-    const rule = COLLECTION_RULES[slug];
     const ps =
       slug === 'new' || (!rule.categories.length && !rule.keywords.length)
         ? all
         : all.filter((p) => matchesCollection(p, rule));
+
+    const heroProducts =
+      !q && rule.heroSlugs?.length
+        ? await getLiveProductsBySlugs(env, rule.heroSlugs).catch(() => [])
+        : [];
 
     const title = q
       ? tr(lang, { es: `Búsqueda: ${q}`, en: `Search: ${q}` })
@@ -163,12 +265,31 @@ export async function collectionPage(url, env, request) {
           es: `Resultados de búsqueda para “${q}” en Maison Marnier.`,
           en: `Search results for “${q}” at Maison Marnier.`,
         })
-      : `${blurb} ${tr(lang, { es: `Compra ${title} en Maison Marnier.`, en: `Shop ${title} at Maison Marnier.` })}`;
-    const jsonLd = breadcrumbJsonLd([
+      : rule.seoDescription
+        ? tr(lang, rule.seoDescription)
+        : `${blurb} ${tr(lang, { es: `Compra ${title} en Maison Marnier.`, en: `Shop ${title} at Maison Marnier.` })}`;
+
+    const crumbs = breadcrumbJsonLd([
       { name: t(lang, 'home'), path: '/' },
       { name: t(lang, 'shop'), path: '/collections/new' },
       { name: title, path: collectionPath },
     ]);
+    const jsonLd = q
+      ? crumbs
+      : [
+          collectionPageJsonLd({
+            name: title,
+            description,
+            url: collectionPath,
+            products: ps,
+          }),
+          crumbs,
+        ];
+
+    const hubCopy =
+      !q && rule.intro
+        ? `${introParagraphsHtml(tr(lang, rule.intro))}${collectionHubLinksHtml(rule, heroProducts, lang)}`
+        : '';
 
     return htmlPage(
       title,
@@ -185,6 +306,7 @@ export async function collectionPage(url, env, request) {
            </div>
            <div class="head-meta">${ps.length} ${tr(lang, { es: `pieza${ps.length === 1 ? '' : 's'}`, en: `piece${ps.length === 1 ? '' : 's'}` })}</div>
          </div>
+         ${hubCopy}
        </section>
        <div class="toolbar">
          <div class="chips" role="navigation" aria-label="${tr(lang, { es: 'Colecciones', en: 'Collections' })}">${chips}</div>
