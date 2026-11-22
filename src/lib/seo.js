@@ -86,6 +86,51 @@ export function breadcrumbJsonLd(items) {
   };
 }
 
+/**
+ * CollectionPage + ItemList for collection hubs (seasonal, etc.).
+ * Cap list length to keep JSON-LD compact for crawlers.
+ */
+export function collectionPageJsonLd({
+  name,
+  description = '',
+  url = '/',
+  products = [],
+  itemListCap = 48,
+} = {}) {
+  const pageUrl = absoluteUrl(url);
+  const list = (products || []).slice(0, itemListCap);
+  const itemListId = `${pageUrl}#itemlist`;
+  return {
+    '@context': 'https://schema.org',
+    '@graph': [
+      {
+        '@type': 'CollectionPage',
+        '@id': `${pageUrl}#collection`,
+        name: name || '',
+        description: String(description || '').slice(0, 5000),
+        url: pageUrl,
+        isPartOf: { '@id': `${SITE_ORIGIN}/#website` },
+        mainEntity: { '@id': itemListId },
+      },
+      {
+        '@type': 'ItemList',
+        '@id': itemListId,
+        name: name || '',
+        numberOfItems: list.length,
+        itemListElement: list.map((p, i) => {
+          const path = `/products/${encodeURIComponent(p.slug || '')}`;
+          return {
+            '@type': 'ListItem',
+            position: i + 1,
+            url: absoluteUrl(path),
+            name: p.name || '',
+          };
+        }),
+      },
+    ],
+  };
+}
+
 export function productJsonLd(p, { url, collectionPath } = {}) {
   const retail = Number(p.retail_price_eur || 0);
   const stock = Number(p.stock || 0);
