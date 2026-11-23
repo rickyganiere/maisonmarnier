@@ -44,27 +44,35 @@ export async function studioConnection(request, env) {
   if (request.method !== 'POST') return json({ ok: false, error: 'Method not allowed' }, 405);
   const input = await request.json().catch(() => null);
   const key = typeof input?.key === 'string' ? input.key.trim() : '';
-  if (!/^sk-[\w-]{30,500}$/.test(key)) throw new InstagramError('Enter your existing OpenAI API key in this private field.');
-  // A key can be valid while access to one specific image model is still pending.
-  // Verify authentication without blocking credential storage on model entitlements.
-  let response;
+  // Project keys are long (sk-proj-…); keep the shape check, not a live entitlement gate.
+  if (!/^sk-[A-Za-z0-9_-]{20,700}$/.test(key)) throw new InstagramError('Enter your existing OpenAI API key in this private field.');
+  // Probe authentication when reachable. Never block encrypt+store on outbound network failures —
+  // Workers can intermittently fail reaching api.openai.com while Instagram Graph still works.
+  let response = null;
+  let validation = 'unverified';
   try {
     response = await fetch('https://api.openai.com/v1/models', {
-      headers: { Authorization: 'Bearer ' + key }, redirect: 'manual', signal: AbortSignal.timeout(15000),
+      headers: { Authorization: 'Bearer ' + key, Accept: 'application/json' },
+      redirect: 'manual',
+      signal: AbortSignal.timeout(15000),
     });
-  } catch { throw new InstagramError('Could not reach OpenAI. Your key was not saved; try again.', 503); }
-  if (response.status === 401) throw new InstagramError('OpenAI rejected the API key (401). Paste the full key copied from your OpenAI project.', 422);
-  if (response.status === 429) throw new InstagramError('OpenAI is rate-limiting connection checks. Try saving again shortly.', 429);
-  if (response.status >= 500) throw new InstagramError('OpenAI is temporarily unavailable. Your key was not saved; retry.', 503);
-  // Restricted API keys can generate images even when model listing is disallowed.
-  // Authentication is not fully verified on HTTP 403/404: save with a clear notice.
-  if (!response.ok && ![403, 404].includes(response.status))
-    throw new InstagramError('OpenAI could not accept this connection (HTTP ' + response.status + '). Check the key permissions.', 422);
+  } catch (error) {
+    console.error('openai-key-probe-failed', error?.name || 'Error', String(error?.message || error).slice(0, 180));
+  }
+  if (response) {
+    if (response.status === 401) throw new InstagramError('OpenAI rejected the API key (401). Paste the full key copied from your OpenAI project.', 422);
+    if (response.status === 429) throw new InstagramError('OpenAI is rate-limiting connection checks. Try saving again shortly.', 429);
+    if (response.ok) validation = 'verified';
+    else if ([403, 404].includes(response.status)) validation = 'restricted';
+    else if (response.status < 500)
+      throw new InstagramError('OpenAI could not accept this connection (HTTP ' + response.status + '). Check the key permissions.', 422);
+    // 5xx from OpenAI: still save — image generation will re-check the key.
+    else validation = 'unverified';
+  }
   await env.LUME_DB.prepare(`INSERT INTO instagram_studio_connection(singleton,sealed_key) VALUES(1,?)
     ON CONFLICT(singleton) DO UPDATE SET sealed_key=excluded.sealed_key,updated_at=unixepoch()`)
     .bind(await sealedKey(env, key)).run();
-  return json({ ok: true, configured: true, storageReady: !!env.INSTAGRAM_MEDIA,
-    validation: response.ok ? 'verified' : 'restricted' });
+  return json({ ok: true, configured: true, storageReady: !!env.INSTAGRAM_MEDIA, validation });
 }
 
 export async function studioGallery(env, product) {

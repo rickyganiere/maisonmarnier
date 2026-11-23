@@ -32,14 +32,17 @@ function setup(t) {
       get: async path => objects.has(path) ? { body: objects.get(path), size: objects.get(path).length } : null,
     },
   };
-  const provider = { edits: 0, children: [], publishes: 0, fail: false, wait: null, badKey: false, restrictedKey: false };
+  const provider = { edits: 0, children: [], publishes: 0, fail: false, wait: null, badKey: false, restrictedKey: false, unreachable: false };
   t.mock.method(globalThis, 'fetch', async (url, options = {}) => {
     const u = new URL(url);
     assert.equal(options.redirect, 'manual', 'Workers must reject redirects without using unsupported redirect:error');
     if (u.origin === 'https://api.openai.com') {
       assert.equal(options.headers.Authorization, 'Bearer ' + key);
       if (provider.redirectApi) return new Response('', { status: 302, headers: { location: 'https://example.com/' } });
-      if (u.pathname === '/v1/models') return new Response('{}', { status: provider.badKey ? 401 : provider.restrictedKey ? 403 : 200 });
+      if (u.pathname === '/v1/models') {
+        if (provider.unreachable) throw new TypeError('Network connection lost.');
+        return new Response('{}', { status: provider.badKey ? 401 : provider.restrictedKey ? 403 : 200 });
+      }
       assert.equal(u.pathname, '/v1/images/edits');
       provider.edits++;
       assert.equal(options.body.get('size'), '1024x1280');
@@ -107,6 +110,12 @@ test('studio connection is admin-only, validates the key and returns no credenti
   assert.equal(restricted.configured, true, 'restricted model-list access must not block saving a valid image key');
   assert.equal(restricted.validation, 'restricted');
   assert.ok(!JSON.stringify(restricted).includes(key));
+  provider.restrictedKey = false;
+  provider.unreachable = true;
+  const offline = await call('studio-connection', { key });
+  assert.equal(offline.configured, true, 'outbound OpenAI probe failures must not block encrypting the pasted key');
+  assert.equal(offline.validation, 'unverified');
+  assert.ok(db.prepare('SELECT sealed_key FROM instagram_studio_connection').get().sealed_key);
 });
 
 test('new posts require four or five generated mockups; partial packs cannot publish', async t => {
