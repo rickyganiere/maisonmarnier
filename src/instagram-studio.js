@@ -117,6 +117,47 @@ async function imageBlob(url) {
   return new Blob([bytes], { type });
 }
 
+const sleep = ms => new Promise(resolve => setTimeout(resolve, ms));
+
+function rateLimitWaitMs(response, attempt) {
+  const retryAfter = Number(response.headers.get('retry-after'));
+  if (Number.isFinite(retryAfter) && retryAfter > 0) return Math.min(Math.ceil(retryAfter * 1000), 90_000);
+  return Math.min(8_000 * (2 ** attempt), 60_000);
+}
+
+/** Submit one image edit, retrying transient OpenAI rate limits with backoff. */
+export async function requestStudioImageEdit(key, formOrFactory, { attempts = 4, fetchImpl = fetch, wait = sleep } = {}) {
+  let lastRateLimit = null;
+  for (let attempt = 0; attempt < attempts; attempt++) {
+    const form = typeof formOrFactory === 'function' ? formOrFactory() : formOrFactory;
+    let result;
+    try {
+      result = await fetchImpl('https://api.openai.com/v1/images/edits', {
+        method: 'POST', headers: { Authorization: 'Bearer ' + key }, body: form,
+        redirect: 'manual', signal: AbortSignal.timeout(240000),
+      });
+    } catch { throw new InstagramError('OpenAI did not finish this scene. Completed mockups are saved; try this scene again.', 503); }
+    if (result.ok) return result;
+    const error = await result.json().catch(() => ({}));
+    const code = error.error?.code;
+    if (code === 'insufficient_quota' || code === 'billing_hard_limit_reached')
+      throw new InstagramError('The OpenAI project has no available credit. Check billing before continuing.', 422);
+    if ([401, 403].includes(result.status)) throw new InstagramError('Reconnect an OpenAI key with image-generation access.', 422);
+    if (result.status === 429) {
+      lastRateLimit = result;
+      if (attempt === attempts - 1) break;
+      await wait(rateLimitWaitMs(result, attempt));
+      continue;
+    }
+    throw new InstagramError('OpenAI could not create this scene. Completed mockups are saved; try again.', 422);
+  }
+  const retryAfter = Number(lastRateLimit?.headers?.get?.('retry-after'));
+  const waitHint = Number.isFinite(retryAfter) && retryAfter > 0
+    ? ` Wait about ${Math.ceil(retryAfter)} seconds, then resume.`
+    : ' Wait a minute, then resume.';
+  throw new InstagramError('OpenAI is rate limiting image generation.' + waitHint, 429);
+}
+
 // Whitespace is a valid JSON prefix. Send it while the image is rendering so
 // long edits do not leave the browser/CDN waiting for the first response byte.
 function imageTaskResponse(task) {
@@ -166,36 +207,28 @@ export async function generateStudioPhoto(request, env, styleImage) {
     try {
       const sources = product.photos.filter(p => supplierHosts.has(new URL(p.source).hostname)).slice(0, 2);
       if (!sources.length) throw new InstagramError('Refresh this product with its supplier reference photos first.', 422);
-      const form = new FormData();
-      form.set('model', model); form.set('prompt', studioPrompt(product, slot));
-      form.set('n', '1'); form.set('size', '1024x1280'); form.set('quality', 'high');
-      form.set('output_format', 'jpeg'); form.set('output_compression', '90');
+      const productImages = [];
       for (let i = 0; i < sources.length; i++) {
         const photo = await imageBlob(sources[i].source);
         const extension = photo.type === 'image/jpeg' ? 'jpg' : photo.type === 'image/webp' ? 'webp' : 'png';
-        form.append('image[]', photo, 'product-' + i + '.' + extension);
+        productImages.push({ photo, name: 'product-' + i + '.' + extension });
       }
       // Reuse the bundled homepage asset instead of fetching back into this Worker.
       const style = styleImage?.();
       if (!style?.ok || style.headers.get('content-type') !== 'image/webp')
         throw new InstagramError('The homepage style reference is not available.', 503);
-      form.append('image[]', await style.blob(), 'maison-interior-style.webp');
-      let result;
-      try {
-        result = await fetch('https://api.openai.com/v1/images/edits', {
-          method: 'POST', headers: { Authorization: 'Bearer ' + key }, body: form,
-          redirect: 'manual', signal: AbortSignal.timeout(240000),
-        });
-      } catch { throw new InstagramError('OpenAI did not finish this scene. Completed mockups are saved; try this scene again.', 503); }
-      if (!result.ok) {
-        const error = await result.json().catch(() => ({}));
-        const code = error.error?.code;
-        if (code === 'insufficient_quota' || code === 'billing_hard_limit_reached')
-          throw new InstagramError('The OpenAI project has no available credit. Check billing before continuing.', 422);
-        if ([401, 403].includes(result.status)) throw new InstagramError('Reconnect an OpenAI key with image-generation access.', 422);
-        if (result.status === 429) throw new InstagramError('OpenAI is rate limiting image generation. Wait a minute, then resume.', 429);
-        throw new InstagramError('OpenAI could not create this scene. Completed mockups are saved; try again.', 422);
-      }
+      const styleBlob = await style.blob();
+      // Rebuild FormData per attempt so retries do not reuse a consumed body.
+      const buildForm = () => {
+        const form = new FormData();
+        form.set('model', model); form.set('prompt', studioPrompt(product, slot));
+        form.set('n', '1'); form.set('size', '1024x1280'); form.set('quality', 'high');
+        form.set('output_format', 'jpeg'); form.set('output_compression', '90');
+        for (const image of productImages) form.append('image[]', image.photo, image.name);
+        form.append('image[]', styleBlob, 'maison-interior-style.webp');
+        return form;
+      };
+      const result = await requestStudioImageEdit(key, buildForm);
       const data = await result.json();
       const encoded = data.data?.[0]?.b64_json;
       if (typeof encoded !== 'string' || encoded.length > 12_000_000) throw new InstagramError('OpenAI returned an invalid image.', 502);
