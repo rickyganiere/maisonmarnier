@@ -4,7 +4,7 @@ import { DatabaseSync } from 'node:sqlite';
 import test from 'node:test';
 import { instagramAdminRoute } from '../src/instagram-publishing.js';
 import { instagramProduct } from '../src/instagram-photos.js';
-import { studioGallery, studioPhotoResponse } from '../src/instagram-studio.js';
+import { requestStudioImageEdit, studioGallery, studioPhotoResponse } from '../src/instagram-studio.js';
 
 const root = 'https://maisonmarnier.com/api/lume/instagram/';
 const key = 'sk-proj-' + 'local-key-fixture-'.repeat(5);
@@ -32,7 +32,7 @@ function setup(t) {
       get: async path => objects.has(path) ? { body: objects.get(path), size: objects.get(path).length } : null,
     },
   };
-  const provider = { edits: 0, children: [], publishes: 0, fail: false, wait: null, badKey: false, restrictedKey: false, unreachable: false };
+  const provider = { edits: 0, children: [], publishes: 0, fail: false, wait: null, badKey: false, restrictedKey: false, unreachable: false, rateLimitsLeft: 0 };
   t.mock.method(globalThis, 'fetch', async (url, options = {}) => {
     const u = new URL(url);
     assert.equal(options.redirect, 'manual', 'Workers must reject redirects without using unsupported redirect:error');
@@ -52,6 +52,10 @@ function setup(t) {
       assert.match(options.body.get('prompt'), /No text, logo/);
       if (provider.wait) await provider.wait;
       if (provider.fail) return Response.json({ error: { code: 'insufficient_quota' } }, { status: 429 });
+      if (provider.rateLimitsLeft > 0) {
+        provider.rateLimitsLeft--;
+        return Response.json({ error: { code: 'rate_limit_exceeded' } }, { status: 429, headers: { 'retry-after': '1' } });
+      }
       return Response.json({ data: [{ b64_json: Buffer.from(jpeg).toString('base64') }] });
     }
     if (u.hostname === 'cf.cjdropshipping.com' || u.origin === 'https://maisonmarnier.com') {
@@ -163,6 +167,52 @@ test('concurrent image requests claim one paid edit and failures preserve comple
   assert.equal(db.prepare('SELECT state FROM instagram_mockups WHERE slot=1').get().state, 'failed');
   provider.fail = false;
   assert.equal((await generate(1)).photos.length, 2);
+});
+
+test('transient OpenAI rate limits retry with backoff and then save the scene', async t => {
+  const waits = [];
+  const forms = [];
+  let edits = 0;
+  const fetchImpl = async (_url, options = {}) => {
+    edits++;
+    forms.push(options.body);
+    if (edits < 3) return Response.json({ error: { code: 'rate_limit_exceeded' } }, { status: 429, headers: { 'retry-after': '2' } });
+    return Response.json({ data: [{ b64_json: 'ok' }] });
+  };
+  const result = await requestStudioImageEdit('sk-test', () => {
+    const form = new FormData();
+    form.set('n', String(forms.length + 1));
+    return form;
+  }, { fetchImpl, wait: async ms => { waits.push(ms); } });
+  assert.equal(edits, 3);
+  assert.deepEqual(waits, [2000, 2000]);
+  assert.equal(forms.length, 3, 'each retry must rebuild a fresh FormData body');
+  assert.equal((await result.json()).data[0].b64_json, 'ok');
+});
+
+test('exhausted rate limits surface a resume error without treating billing as retryable', async t => {
+  const fetchImpl = async () => Response.json({ error: { code: 'rate_limit_exceeded' } }, { status: 429 });
+  await assert.rejects(
+    () => requestStudioImageEdit('sk-test', new FormData(), { attempts: 2, fetchImpl, wait: async () => {} }),
+    error => error.status === 429 && /rate limiting/i.test(error.message),
+  );
+  const billing = async () => Response.json({ error: { code: 'insufficient_quota' } }, { status: 429 });
+  await assert.rejects(
+    () => requestStudioImageEdit('sk-test', new FormData(), { attempts: 4, fetchImpl: billing, wait: async () => {} }),
+    error => error.status === 422 && /credit/i.test(error.message),
+  );
+});
+
+test('mockup generation resumes after transient rate limits and keeps earlier ready scenes', async t => {
+  const { db, call, generate, provider } = setup(t);
+  await call('studio-connection', { key });
+  assert.equal((await generate(0)).photos.length, 1);
+  provider.rateLimitsLeft = 2;
+  const resumed = await generate(1);
+  assert.equal(resumed.ok, true);
+  assert.equal(resumed.photos.length, 2);
+  assert.equal(provider.edits, 4, 'one ready scene plus two rate-limit probes and one successful edit');
+  assert.equal(db.prepare("SELECT COUNT(*) AS n FROM instagram_mockups WHERE state='ready'").get().n, 2);
 });
 
 test('saved JPEG is public for Meta only while its product is live; changing references invalidates the pack', async t => {

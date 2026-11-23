@@ -1809,34 +1809,81 @@ async function connectOpenAIKey(fieldId, buttonId, messageId) {
 igById('igKeyConnect').onclick = () => connectOpenAIKey('igKeyField', 'igKeyConnect', 'igKeyMessage');
 igById('igStudioConnect').onclick = () => connectOpenAIKey('igStudioKey', 'igStudioConnect', 'igStudioKeyMessage');
 
+async function refreshStudioSession(session) {
+  const data = await igApi('product?id=' + encodeURIComponent(session.id));
+  if (igSession !== session) return null;
+  session.photos = data.photos || [];
+  session.studio = { ...session.studio, ...data.studio };
+  renderStudioGallery(session);
+  selectInstagramPhotos(session, session.photos.map(photo => photo.key));
+  igById('igStudioProgress').value = session.photos.length;
+  igById('igStudioStatus').textContent = session.photos.length + ' / 5 mockups ready';
+  return data;
+}
+
+function studioResumeNotice(count, error) {
+  if (count > 0 && count < 5)
+    return (error?.message || 'Generation paused.') + ' ' + count + ' of 5 mockups are saved. Tap Complete 5 mockups to resume the rest.';
+  if (count >= 5) return 'Five mockups ready. Review each photograph, select four or five, then publish your carousel.';
+  return (error?.message || 'Generation failed.') + ' No mockups were saved yet. Wait a minute, then try again.';
+}
+
 igById('igGenerate').onclick = async () => {
   const session = igSession;
   if (!session?.loaded || session.generating || !session.studio?.configured) return;
   session.generating = true;
   updateInstagramControls();
-  msg('igMessage', 'Creating five styled photographs. Keep this window open; each completed scene is saved.');
+  const already = session.photos.length;
+  msg('igMessage', already
+    ? 'Resuming from ' + already + ' saved mockup' + (already === 1 ? '' : 's') + '. Scenes run one at a time so OpenAI is less likely to rate-limit.'
+    : 'Creating five styled photographs one at a time. Keep this window open; each completed scene is saved.');
   try {
     for (let slot = 0; slot < 5; slot++) {
       if (igSession !== session) return;
       if (session.photos.some(photo => photo.slot === slot)) continue;
-      let completed = false;
-      for (let check = 0; check < 60; check++) {
+      let slotDone = false;
+      for (let attempt = 0; attempt < 5 && !slotDone; attempt++) {
         if (igSession !== session) return;
-        igById('igStudioStatus').textContent = 'Creating scene ' + (slot + 1) + ' of 5…';
-        const data = await igApi('mockups', { method: 'POST', body: JSON.stringify({ productId: session.id, slot, revision: session.studio.revision }) });
-        if (igSession !== session) return;
-        session.photos = data.photos;
-        session.studio = { ...session.studio, ...data };
-        renderStudioGallery(session);
-        selectInstagramPhotos(session, session.photos.map(photo => photo.key));
-        if (!data.pending) { completed = true; break; }
-        await new Promise(resolve => setTimeout(resolve, 10000));
+        try {
+          let completed = false;
+          for (let check = 0; check < 60; check++) {
+            if (igSession !== session) return;
+            igById('igStudioStatus').textContent = 'Creating scene ' + (slot + 1) + ' of 5… · ' + session.photos.length + ' saved';
+            const data = await igApi('mockups', { method: 'POST', body: JSON.stringify({ productId: session.id, slot, revision: session.studio.revision }) });
+            if (igSession !== session) return;
+            session.photos = data.photos || session.photos;
+            session.studio = { ...session.studio, ...data };
+            renderStudioGallery(session);
+            selectInstagramPhotos(session, session.photos.map(photo => photo.key));
+            igById('igStudioProgress').value = session.photos.length;
+            if (!data.pending) { completed = true; break; }
+            await new Promise(resolve => setTimeout(resolve, 10000));
+          }
+          if (!completed) throw new Error('This scene is still processing. Reopen the composer to check saved mockups.');
+          slotDone = true;
+          // Throttle between scenes to avoid bursting OpenAI's image quota.
+          if (slot < 4 && session.photos.length < 5) await new Promise(resolve => setTimeout(resolve, 4000));
+        } catch (error) {
+          try { await refreshStudioSession(session); } catch { /* Keep the last known gallery. */ }
+          if (igSession !== session) return;
+          if (error.status === 429 && attempt < 4) {
+            const waitSec = Math.min(20 * (2 ** attempt), 90);
+            msg('igMessage', session.photos.length + ' of 5 mockups saved. OpenAI rate limit — waiting ' + waitSec + 's, then continuing…');
+            igById('igStudioStatus').textContent = session.photos.length + ' / 5 ready · waiting ' + waitSec + 's';
+            await new Promise(resolve => setTimeout(resolve, waitSec * 1000));
+            continue;
+          }
+          throw error;
+        }
       }
-      if (!completed) throw new Error('This scene is still processing. Reopen the composer to check saved mockups.');
+      if (!slotDone) throw new Error('OpenAI kept rate-limiting this scene.');
     }
-    msg('igMessage', 'Five mockups ready. Review each photograph, select four or five, then publish your carousel.');
+    if (igSession === session) msg('igMessage', studioResumeNotice(session.photos.length));
   } catch (error) {
-    if (igSession === session) msg('igMessage', error.message + ' Your completed scenes are saved.', true);
+    if (igSession === session) {
+      try { await refreshStudioSession(session); } catch { /* Keep the last known gallery. */ }
+      msg('igMessage', studioResumeNotice(session.photos.length, error), true);
+    }
   } finally {
     session.generating = false;
     if (igSession === session) updateInstagramControls();
