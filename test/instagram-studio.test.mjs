@@ -35,8 +35,10 @@ function setup(t) {
   const provider = { edits: 0, children: [], publishes: 0, fail: false, wait: null, badKey: false, restrictedKey: false };
   t.mock.method(globalThis, 'fetch', async (url, options = {}) => {
     const u = new URL(url);
+    assert.equal(options.redirect, 'manual', 'Workers must reject redirects without using unsupported redirect:error');
     if (u.origin === 'https://api.openai.com') {
       assert.equal(options.headers.Authorization, 'Bearer ' + key);
+      if (provider.redirectApi) return new Response('', { status: 302, headers: { location: 'https://example.com/' } });
       if (u.pathname === '/v1/models') return new Response('{}', { status: provider.badKey ? 401 : provider.restrictedKey ? 403 : 200 });
       assert.equal(u.pathname, '/v1/images/edits');
       provider.edits++;
@@ -50,7 +52,7 @@ function setup(t) {
       return Response.json({ data: [{ b64_json: Buffer.from(jpeg).toString('base64') }] });
     }
     if (u.hostname === 'cf.cjdropshipping.com' || u.origin === 'https://maisonmarnier.com') {
-      assert.equal(options.redirect, 'error');
+      if (provider.redirectReference) return new Response('', { status: 302, headers: { location: 'https://example.com/' } });
       return new Response(jpeg, { headers: { 'content-type': u.pathname.endsWith('.webp') ? 'image/webp' : 'image/png' } });
     }
     assert.equal(u.origin, 'https://graph.instagram.com');
@@ -77,7 +79,7 @@ function setup(t) {
     const response = await instagramAdminRoute(new Request(url, {
       method: body ? 'POST' : 'GET', headers: authorized ? { authorization: 'Bearer ' + env.LUME_ADMIN_TOKEN } : {},
       body: body ? JSON.stringify(body) : undefined,
-    }), env, url);
+    }), env, url, () => new Response(jpeg, { headers: { 'content-type': 'image/webp' } }));
     return { httpStatus: response.status, ...await response.json() };
   }
   async function generate(slot) {
@@ -172,4 +174,21 @@ test('saved JPEG is public for Meta only while its product is live; changing ref
   assert.equal(provider.edits, 1);
   db.exec("UPDATE products SET status='draft'");
   assert.equal((await studioPhotoResponse(new Request(photo.url), env, match)).status, 404);
+});
+
+
+test('redirected API and reference responses are rejected before saving a key or image', async t => {
+  const { db, call, generate, provider, objects } = setup(t);
+  provider.redirectApi = true;
+  assert.equal((await call('studio-connection', { key })).httpStatus, 422);
+  assert.equal(db.prepare('SELECT COUNT(*) AS n FROM instagram_studio_connection').get().n, 0);
+  provider.redirectApi = false;
+  await call('studio-connection', { key });
+  provider.redirectReference = true;
+  assert.equal((await generate(0)).status, 422);
+  assert.equal(provider.edits, 0, 'a redirected reference must not reach a paid edit');
+  provider.redirectReference = false;
+  provider.redirectApi = true;
+  assert.equal((await generate(0)).status, 422);
+  assert.equal(objects.size, 0);
 });
