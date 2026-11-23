@@ -5,7 +5,7 @@ import {
   instagramHandle, instagramRequest, verifyInstagramIdentity,
 } from './instagram-account.js';
 import { digest, instagramProduct } from './instagram-photos.js';
-import { generateStudioPhoto, studioConfigured, studioConnection, studioGallery } from './instagram-studio.js';
+import { defaultSceneCount, generateStudioPhoto, studioConfigured, studioConnection, studioGallery, studioScenes, supplierReferencePhotos } from './instagram-studio.js';
 
 const pendingStates = "('creating','ready','publishing')";
 const pending = () => json({ ok: true, pending: true, retryAfter: 60 }, 202);
@@ -49,10 +49,16 @@ async function composer(env, id) {
   const last = postForAdmin(lastPost);
   // Keep old in-flight publications recoverable after the studio upgrade.
   const legacy = ['creating', 'ready', 'publishing'].includes(last?.state) && last.photoKeys.every(key => product.photos.some(p => p.key === key));
+  const references = supplierReferencePhotos(product).map(({ key, url }) => ({ key, url }));
   return json({
     ok: true, ...account, name: product.name, caption: product.caption,
     photos: legacy ? product.photos.map(({ key, url }) => ({ key, url })) : studio.photos,
-    studio: { ...studio, configured, storageReady: !!env.INSTAGRAM_MEDIA, legacy }, lastPost: last,
+    references,
+    studio: {
+      ...studio, configured, storageReady: !!env.INSTAGRAM_MEDIA, legacy,
+      scenes: studioScenes.map(([label], slot) => ({ slot, label })),
+      defaultSceneCount: defaultSceneCount(references.length),
+    }, lastPost: last,
   });
 }
 

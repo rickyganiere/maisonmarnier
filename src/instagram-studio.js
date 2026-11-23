@@ -14,6 +14,35 @@ export const studioScenes = [
   ['The evening mood', 'An atmospheric evening photograph of the product in the same interior world: warm practical light, gentle shadows, rich burgundy accents and elegant visual depth.'],
 ];
 
+/** Fewer selected product photos → fewer default scenes (publish still wants 4–5 later). */
+export function defaultSceneCount(referenceCount) {
+  const n = Number(referenceCount) || 0;
+  if (n <= 0) return 0;
+  if (n === 1) return 2;
+  if (n === 2) return 4;
+  return studioScenes.length;
+}
+
+export function supplierReferencePhotos(product) {
+  return (product?.photos || []).filter(photo => {
+    try { return supplierHosts.has(new URL(photo.source).hostname); }
+    catch { return false; }
+  });
+}
+
+export function resolveReferencePhotos(product, photoKeys) {
+  const available = supplierReferencePhotos(product);
+  if (!available.length) throw new InstagramError('Refresh this product with its supplier reference photos first.', 422);
+  const keys = Array.isArray(photoKeys)
+    ? [...new Set(photoKeys.filter(key => typeof key === 'string' && key))]
+    : [];
+  if (!keys.length) throw new InstagramError('Choose at least one product photo to mock up before generating.', 422);
+  if (keys.length > 2) throw new InstagramError('Choose up to two product photos as references for each mockup.', 422);
+  const selected = keys.map(key => available.find(photo => photo.key === key));
+  if (selected.some(photo => !photo)) throw new InstagramError('One of the selected product photos is no longer available.', 422);
+  return selected;
+}
+
 async function encryptionKey(env) {
   if (!env.INSTAGRAM_TOKEN_KEY) throw new InstagramError('The store connection encryption key is missing.', 503);
   return crypto.subtle.importKey('raw', Uint8Array.from(atob(env.INSTAGRAM_TOKEN_KEY), c => c.charCodeAt(0)), 'AES-GCM', false, ['encrypt', 'decrypt']);
@@ -192,6 +221,7 @@ export async function generateStudioPhoto(request, env, styleImage) {
   const gallery = await studioGallery(env, product);
   if (input.revision !== gallery.revision) throw new InstagramError('The product gallery changed. Reopen Instagram Studio.', 409);
   if (gallery.photos.some(p => p.slot === slot)) return json({ ok: true, ...gallery });
+  const sources = resolveReferencePhotos(product, input?.photoKeys);
   const lease = crypto.randomUUID();
   const imageKey = crypto.randomUUID().replaceAll('-', '');
   const claim = await env.LUME_DB.prepare(`INSERT INTO instagram_mockups(product_id,revision,slot,image_key,state,lease)
@@ -205,8 +235,6 @@ export async function generateStudioPhoto(request, env, styleImage) {
   const objectKey = 'instagram/' + product.id + '/' + stored.image_key + '.jpg';
   return imageTaskResponse(async () => {
     try {
-      const sources = product.photos.filter(p => supplierHosts.has(new URL(p.source).hostname)).slice(0, 2);
-      if (!sources.length) throw new InstagramError('Refresh this product with its supplier reference photos first.', 422);
       const productImages = [];
       for (let i = 0; i < sources.length; i++) {
         const photo = await imageBlob(sources[i].source);
@@ -219,11 +247,12 @@ export async function generateStudioPhoto(request, env, styleImage) {
         throw new InstagramError('The homepage style reference is not available.', 503);
       const styleBlob = await style.blob();
       // Rebuild FormData per attempt so retries do not reuse a consumed body.
+      // Medium quality keeps carousel detail while cutting generation time vs high.
       const buildForm = () => {
         const form = new FormData();
         form.set('model', model); form.set('prompt', studioPrompt(product, slot));
-        form.set('n', '1'); form.set('size', '1024x1280'); form.set('quality', 'high');
-        form.set('output_format', 'jpeg'); form.set('output_compression', '90');
+        form.set('n', '1'); form.set('size', '1024x1280'); form.set('quality', 'medium');
+        form.set('output_format', 'jpeg'); form.set('output_compression', '85');
         for (const image of productImages) form.append('image[]', image.photo, image.name);
         form.append('image[]', styleBlob, 'maison-interior-style.webp');
         return form;

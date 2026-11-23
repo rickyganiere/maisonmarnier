@@ -119,9 +119,12 @@ td,th{border-bottom:1px solid #2b3227;padding:8px;text-align:left;vertical-align
 #igContent[hidden]{display:none}
 .ig-photo{width:100%;aspect-ratio:4/5;object-fit:contain;background:#101310;border:1px solid #2b3227;border-radius:4px}
 .ig-studio{padding:18px;border:1px solid #2b3227;border-radius:8px;background:#151a14;margin:14px 0}
-.ig-studio h3{margin:0 0 8px}.ig-studio p{line-height:1.5}.ig-studio .row{align-items:center;gap:10px}
-.ig-studio details{margin-top:14px}.ig-studio input{max-width:100%;margin:10px 0}
-.ig-studio progress{width:100%;accent-color:#c5fa68}.ig-empty{padding:28px 18px;text-align:center;background:#1d251b;border-radius:6px}
+.ig-studio h3{margin:0 0 8px}.ig-studio p{line-height:1.5}.ig-studio .row{align-items:center;gap:10px;flex-wrap:wrap}
+.ig-studio details{margin-top:14px}.ig-studio input[type=password]{max-width:100%;margin:10px 0}
+.ig-studio progress{width:100%;accent-color:#c5fa68;margin-top:10px}.ig-empty{padding:28px 18px;text-align:center;background:#1d251b;border-radius:6px}
+.ig-refs{margin:12px 0 8px}.ig-scenes{display:grid;gap:6px;margin:10px 0 4px;border:0;padding:0}
+.ig-scenes legend{margin-bottom:4px;padding:0}.ig-scenes label{display:flex;gap:8px;align-items:flex-start;font-size:13px;line-height:1.35;color:#d7ddd0}
+.ig-scenes input{margin:3px 0 0;flex:0 0 auto}
 .ig-picks{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;border:0;padding:0}
 .ig-picks legend{margin-bottom:6px;padding:0}
 .ig-picks label{position:relative;display:block;cursor:pointer}
@@ -613,10 +616,13 @@ td,th{padding:16px;font-size:14px}th{font-weight:500;color:#b0bea4}table{backgro
     <p id="igProductName"></p>
     <section class="ig-studio" aria-labelledby="igStudioTitle">
       <h3 id="igStudioTitle">Maison Marnier · Instagram Studio</h3>
-      <p>Five distinct styled photographs, inspired by our homepage: a signature room, material detail, everyday ritual, styled vignette and evening mood. Select four or five for your carousel.</p>
-      <div class="row"><button class="btn" id="igGenerate" type="button" disabled>Generate 5 mockups</button><span id="igStudioStatus" role="status"></span></div>
+      <p>Pick the product photo(s) to style, choose scenes, then generate. Carousel posts need 4 or 5 finished mockups — start with fewer if you only selected one reference.</p>
+      <fieldset class="ig-picks ig-refs" id="igRefs"><legend>Product photos to mock up · choose 1 or 2</legend></fieldset>
+      <p class="field-note" id="igRefCount">Select at least one product photo before generating.</p>
+      <fieldset class="ig-scenes" id="igScenes"><legend>Scenes to generate</legend></fieldset>
+      <div class="row"><button class="btn" id="igGenerate" type="button" disabled>Generate mockups</button><span id="igStudioStatus" role="status"></span></div>
       <progress id="igStudioProgress" max="5" value="0" hidden aria-label="Mockups completed"></progress>
-      <p class="field-note">AI-styled previews. Check the product shape, colour and details before publishing. Image generation uses your OpenAI account credits. Completed scenes are saved.</p>
+      <p class="field-note">AI-styled previews run up to two at a time. Check shape, colour and details before publishing. Credits come from your OpenAI account; completed scenes are saved.</p>
       <details id="igStudioConnection"><summary>OpenAI connection</summary>
         <p class="field-note">Connect your existing key here. It is encrypted on the server and never returned to the browser.</p>
         <label for="igStudioKey">Existing OpenAI API key</label>
@@ -1725,6 +1731,51 @@ igById('igDisconnect').onclick = async () => {
   } catch (error) { msg('igConnectMessage', error.message, true); }
 };
 
+function selectedReferenceKeys() {
+  return [...igById('igRefs').querySelectorAll('input:checked')].map(input => input.value);
+}
+
+function selectedSceneSlots() {
+  return [...igById('igScenes').querySelectorAll('input:checked')].map(input => Number(input.value)).filter(Number.isInteger);
+}
+
+function pendingSceneSlots(session) {
+  const ready = new Set((session?.photos || []).map(photo => photo.slot));
+  return selectedSceneSlots().filter(slot => !ready.has(slot));
+}
+
+function defaultSceneCountForRefs(count) {
+  if (count <= 0) return 0;
+  if (count === 1) return 2;
+  if (count === 2) return 4;
+  return 5;
+}
+
+function syncReferenceAndSceneUi(session, { resetScenes = false } = {}) {
+  const refs = selectedReferenceKeys();
+  igById('igRefCount').textContent = !session?.references?.length
+    ? 'No supplier product photos available for this item.'
+    : refs.length
+      ? refs.length + ' product photo' + (refs.length === 1 ? '' : 's') + ' selected as mockup references.'
+      : 'Select at least one product photo before generating.';
+  if (resetScenes) {
+    const scenes = session?.studio?.scenes || [];
+    const take = defaultSceneCountForRefs(refs.length);
+    [...igById('igScenes').querySelectorAll('input')].forEach(input => {
+      input.checked = Number(input.value) < take;
+    });
+    if (!scenes.length) {
+      igById('igScenes').innerHTML = '<legend>Scenes to generate</legend>' +
+        ['The signature room','The material detail','The everyday ritual','The styled vignette','The evening mood']
+          .map((label, slot) => '<label><input type="checkbox" name="igScene" value="' + slot + '"' + (slot < take ? ' checked' : '') + '>' + esc(label) + '</label>').join('');
+    }
+  }
+  const pending = pendingSceneSlots(session);
+  const target = Math.max(session?.photos?.length || 0, ...selectedSceneSlots().map(s => s + 1), 0);
+  igById('igStudioProgress').max = Math.max(target, session?.photos?.length || 0, 1);
+  return { refs, pending };
+}
+
 function updateInstagramControls() {
   const session = igSession;
   const count = [...igCaption.value].length;
@@ -1733,14 +1784,28 @@ function updateInstagramControls() {
   const locked = !!(session?.sending || session?.pending || session?.published || session?.generating);
   igCaption.readOnly = locked;
   igById('igPhotos').disabled = locked;
+  igById('igRefs').disabled = locked;
+  igById('igScenes').disabled = locked;
+  const { refs, pending } = syncReferenceAndSceneUi(session);
   const validSelection = session?.studio?.legacy ? session.keys?.length > 0 : session?.keys?.length >= 4 && session.keys.length <= 5;
   igPublish.disabled = !session?.loaded || !validSelection || !igConnected || count > 2200 || session.generating || session.sending || session.published;
   igPublish.textContent = session?.published ? 'Published' : session?.sending ? 'Sending…' : session?.pending ? 'Check post status' : 'Publish to Instagram';
-  igById('igGenerate').disabled = !session?.loaded || !session.studio?.configured || !session.studio?.storageReady || locked || session.studio?.legacy || session.photos.length === 5;
-  igById('igGenerate').textContent = session?.generating ? 'Creating mockups…' : session?.photos?.length ? 'Complete 5 mockups' : 'Generate 5 mockups';
+  const canGenerate = !!session?.loaded && !!session.studio?.configured && !!session.studio?.storageReady && !locked && !session.studio?.legacy
+    && refs.length > 0 && refs.length <= 2 && pending.length > 0;
+  igById('igGenerate').disabled = !canGenerate;
+  igById('igGenerate').textContent = session?.generating
+    ? 'Creating mockups…'
+    : pending.length
+      ? ('Generate ' + pending.length + ' mockup' + (pending.length === 1 ? '' : 's'))
+      : session?.photos?.length ? 'Mockups ready' : 'Generate mockups';
   igById('igStudioProgress').hidden = !session?.generating;
   igById('igStudioProgress').value = session?.photos?.length || 0;
-  if (!session?.generating) igById('igStudioStatus').textContent = !session?.loaded ? 'Loading…' : !session.studio?.configured ? 'Connect your existing OpenAI key below.' : !session.studio.storageReady ? 'Image storage unavailable.' : session.photos.length + ' / 5 mockups ready';
+  if (!session?.generating) igById('igStudioStatus').textContent = !session?.loaded ? 'Loading…'
+    : !session.studio?.configured ? 'Connect your existing OpenAI key below.'
+    : !session.studio.storageReady ? 'Image storage unavailable.'
+    : !refs.length ? 'Choose product photo(s) to mock up.'
+    : !pending.length ? session.photos.length + ' mockup' + (session.photos.length === 1 ? '' : 's') + ' ready'
+    : session.photos.length + ' ready · ' + pending.length + ' selected to generate';
 }
 
 function displayInstagramPost(row) {
@@ -1773,6 +1838,21 @@ function renderStudioGallery(session) {
   igById('igPhotos').innerHTML = '<legend>Styled mockups · choose 4 or 5</legend>' + session.photos.map((p, i) =>
     '<label title="' + esc(p.label || 'Photo ' + (i + 1)) + '"><input type="checkbox" name="igPhoto" value="' + esc(p.key) + '" aria-label="' + esc(p.label || 'Photo ' + (i + 1)) + '">' +
     '<img src="' + esc(p.url) + '" alt="' + esc(p.label || 'Product photo') + '" loading="lazy"></label>'
+  ).join('');
+}
+
+function renderReferencePicker(session) {
+  const references = session.references || [];
+  const preselect = references.slice(0, Math.min(2, references.length)).map(photo => photo.key);
+  igById('igRefs').innerHTML = '<legend>Product photos to mock up · choose 1 or 2</legend>' + (references.length
+    ? references.map((photo, i) => '<label title="Product photo ' + (i + 1) + '"><input type="checkbox" name="igRef" value="' + esc(photo.key) + '"' +
+      (preselect.includes(photo.key) ? ' checked' : '') + ' aria-label="Product photo ' + (i + 1) + '">' +
+      '<img src="' + esc(photo.url) + '" alt="Product photo ' + (i + 1) + '" loading="lazy" referrerpolicy="no-referrer"></label>').join('')
+    : '<p class="field-note">No supplier photos found for this product.</p>');
+  const scenes = session.studio?.scenes || [];
+  const take = defaultSceneCountForRefs(preselect.length);
+  igById('igScenes').innerHTML = '<legend>Scenes to generate</legend>' + scenes.map(scene =>
+    '<label><input type="checkbox" name="igScene" value="' + scene.slot + '"' + (scene.slot < take ? ' checked' : '') + '>' + esc(scene.label) + '</label>'
   ).join('');
 }
 
@@ -1813,76 +1893,93 @@ async function refreshStudioSession(session) {
   const data = await igApi('product?id=' + encodeURIComponent(session.id));
   if (igSession !== session) return null;
   session.photos = data.photos || [];
+  session.references = data.references || session.references || [];
   session.studio = { ...session.studio, ...data.studio };
   renderStudioGallery(session);
   selectInstagramPhotos(session, session.photos.map(photo => photo.key));
   igById('igStudioProgress').value = session.photos.length;
-  igById('igStudioStatus').textContent = session.photos.length + ' / 5 mockups ready';
   return data;
 }
 
-function studioResumeNotice(count, error) {
-  if (count > 0 && count < 5)
-    return (error?.message || 'Generation paused.') + ' ' + count + ' of 5 mockups are saved. Tap Complete 5 mockups to resume the rest.';
-  if (count >= 5) return 'Five mockups ready. Review each photograph, select four or five, then publish your carousel.';
+function studioResumeNotice(count, target, error) {
+  const goal = Math.max(target || 0, count || 0);
+  if (count > 0 && count < goal)
+    return (error?.message || 'Generation paused.') + ' ' + count + ' of ' + goal + ' mockups are saved. Adjust scenes if needed, then generate again.';
+  if (count >= 4) return count + ' mockups ready. Review each photograph, select four or five, then publish your carousel.';
+  if (count > 0) return count + ' mockup' + (count === 1 ? '' : 's') + ' ready. Select more scenes (carousel needs 4–5) and generate again.';
   return (error?.message || 'Generation failed.') + ' No mockups were saved yet. Wait a minute, then try again.';
+}
+
+async function generateOneScene(session, slot, photoKeys, target) {
+  for (let attempt = 0; attempt < 5; attempt++) {
+    if (igSession !== session) return;
+    try {
+      for (let check = 0; check < 60; check++) {
+        if (igSession !== session) return;
+        igById('igStudioStatus').textContent = 'Creating scene ' + (slot + 1) + ' · ' + session.photos.length + '/' + target + ' saved';
+        const data = await igApi('mockups', { method: 'POST', body: JSON.stringify({
+          productId: session.id, slot, revision: session.studio.revision, photoKeys,
+        }) });
+        if (igSession !== session) return;
+        session.photos = data.photos || session.photos;
+        session.studio = { ...session.studio, ...data };
+        renderStudioGallery(session);
+        selectInstagramPhotos(session, session.photos.map(photo => photo.key));
+        igById('igStudioProgress').max = Math.max(target, session.photos.length);
+        igById('igStudioProgress').value = session.photos.length;
+        if (!data.pending) return;
+        await new Promise(resolve => setTimeout(resolve, 8000));
+      }
+      throw new Error('This scene is still processing. Reopen the composer to check saved mockups.');
+    } catch (error) {
+      try { await refreshStudioSession(session); } catch { /* Keep the last known gallery. */ }
+      if (igSession !== session) return;
+      if (error.status === 429 && attempt < 4) {
+        const waitSec = Math.min(15 * (2 ** attempt), 60);
+        msg('igMessage', session.photos.length + ' of ' + target + ' mockups saved. OpenAI rate limit — waiting ' + waitSec + 's…');
+        igById('igStudioStatus').textContent = session.photos.length + '/' + target + ' ready · waiting ' + waitSec + 's';
+        await new Promise(resolve => setTimeout(resolve, waitSec * 1000));
+        continue;
+      }
+      throw error;
+    }
+  }
+  throw new Error('OpenAI kept rate-limiting this scene.');
+}
+
+async function runPool(items, limit, worker) {
+  let index = 0;
+  const runners = Array.from({ length: Math.min(limit, items.length) }, async () => {
+    while (index < items.length) {
+      const current = items[index++];
+      await worker(current);
+    }
+  });
+  await Promise.all(runners);
 }
 
 igById('igGenerate').onclick = async () => {
   const session = igSession;
   if (!session?.loaded || session.generating || !session.studio?.configured) return;
+  const photoKeys = selectedReferenceKeys();
+  const slots = pendingSceneSlots(session);
+  if (!photoKeys.length) { msg('igMessage', 'Choose at least one product photo to mock up.', true); return; }
+  if (photoKeys.length > 2) { msg('igMessage', 'Choose up to two product photos as references.', true); return; }
+  if (!slots.length) { msg('igMessage', 'Choose at least one scene to generate.', true); return; }
   session.generating = true;
+  const target = session.photos.length + slots.length;
+  igById('igStudioProgress').max = target;
   updateInstagramControls();
-  const already = session.photos.length;
-  msg('igMessage', already
-    ? 'Resuming from ' + already + ' saved mockup' + (already === 1 ? '' : 's') + '. Scenes run one at a time so OpenAI is less likely to rate-limit.'
-    : 'Creating five styled photographs one at a time. Keep this window open; each completed scene is saved.');
+  msg('igMessage', 'Creating ' + slots.length + ' styled photograph' + (slots.length === 1 ? '' : 's') +
+    ' from your selected product photo' + (photoKeys.length === 1 ? '' : 's') +
+    '. Up to two scenes run at once; each completed scene is saved.');
   try {
-    for (let slot = 0; slot < 5; slot++) {
-      if (igSession !== session) return;
-      if (session.photos.some(photo => photo.slot === slot)) continue;
-      let slotDone = false;
-      for (let attempt = 0; attempt < 5 && !slotDone; attempt++) {
-        if (igSession !== session) return;
-        try {
-          let completed = false;
-          for (let check = 0; check < 60; check++) {
-            if (igSession !== session) return;
-            igById('igStudioStatus').textContent = 'Creating scene ' + (slot + 1) + ' of 5… · ' + session.photos.length + ' saved';
-            const data = await igApi('mockups', { method: 'POST', body: JSON.stringify({ productId: session.id, slot, revision: session.studio.revision }) });
-            if (igSession !== session) return;
-            session.photos = data.photos || session.photos;
-            session.studio = { ...session.studio, ...data };
-            renderStudioGallery(session);
-            selectInstagramPhotos(session, session.photos.map(photo => photo.key));
-            igById('igStudioProgress').value = session.photos.length;
-            if (!data.pending) { completed = true; break; }
-            await new Promise(resolve => setTimeout(resolve, 10000));
-          }
-          if (!completed) throw new Error('This scene is still processing. Reopen the composer to check saved mockups.');
-          slotDone = true;
-          // Throttle between scenes to avoid bursting OpenAI's image quota.
-          if (slot < 4 && session.photos.length < 5) await new Promise(resolve => setTimeout(resolve, 4000));
-        } catch (error) {
-          try { await refreshStudioSession(session); } catch { /* Keep the last known gallery. */ }
-          if (igSession !== session) return;
-          if (error.status === 429 && attempt < 4) {
-            const waitSec = Math.min(20 * (2 ** attempt), 90);
-            msg('igMessage', session.photos.length + ' of 5 mockups saved. OpenAI rate limit — waiting ' + waitSec + 's, then continuing…');
-            igById('igStudioStatus').textContent = session.photos.length + ' / 5 ready · waiting ' + waitSec + 's';
-            await new Promise(resolve => setTimeout(resolve, waitSec * 1000));
-            continue;
-          }
-          throw error;
-        }
-      }
-      if (!slotDone) throw new Error('OpenAI kept rate-limiting this scene.');
-    }
-    if (igSession === session) msg('igMessage', studioResumeNotice(session.photos.length));
+    await runPool(slots, 2, slot => generateOneScene(session, slot, photoKeys, target));
+    if (igSession === session) msg('igMessage', studioResumeNotice(session.photos.length, target));
   } catch (error) {
     if (igSession === session) {
       try { await refreshStudioSession(session); } catch { /* Keep the last known gallery. */ }
-      msg('igMessage', studioResumeNotice(session.photos.length, error), true);
+      msg('igMessage', studioResumeNotice(session.photos.length, target, error), true);
     }
   } finally {
     session.generating = false;
@@ -1890,13 +1987,28 @@ igById('igGenerate').onclick = async () => {
   }
 };
 
+igById('igRefs').onchange = () => {
+  if (!igSession) return;
+  const checked = selectedReferenceKeys();
+  if (checked.length > 2) {
+    const inputs = [...igById('igRefs').querySelectorAll('input:checked')];
+    inputs.slice(2).forEach(input => { input.checked = false; });
+  }
+  syncReferenceAndSceneUi(igSession, { resetScenes: true });
+  updateInstagramControls();
+};
+
+igById('igScenes').onchange = () => { if (igSession) updateInstagramControls(); };
+
 async function openInstagramComposer(product) {
-  const session = { id: product.id, key: '', keys: [], photos: [], loaded: false, sending: false, pending: false, published: false, checks: 0 };
+  const session = { id: product.id, key: '', keys: [], photos: [], references: [], loaded: false, sending: false, pending: false, published: false, checks: 0 };
   igSession = session;
   igById('igContent').hidden = true;
   igById('igProductName').textContent = product.name;
   igCaption.value = '';
   displayInstagramPost(null);
+  igById('igRefs').innerHTML = '<legend>Product photos to mock up · choose 1 or 2</legend>';
+  igById('igScenes').innerHTML = '<legend>Scenes to generate</legend>';
   updateInstagramControls();
   igById('igStudioKey').value = '';
   msg('igStudioKeyMessage', '');
@@ -1907,6 +2019,7 @@ async function openInstagramComposer(product) {
     if (igSession !== session) return;
     const last = data.lastPost;
     session.photos = data.photos;
+    session.references = data.references || [];
     session.studio = data.studio;
     igById('igStudioConnection').open = !data.studio.configured;
     const savedKeys = Array.isArray(last?.photoKeys) ? last.photoKeys : [last?.photoKey];
@@ -1914,16 +2027,19 @@ async function openInstagramComposer(product) {
     session.loaded = true;
     igById('igProductName').textContent = data.name;
     igCaption.value = session.pending ? last.caption : data.caption;
+    renderReferencePicker(session);
     renderStudioGallery(session);
     igById('igPreview').removeAttribute('src');
     igById('igContent').hidden = false;
     selectInstagramPhotos(session, session.pending ? savedKeys : session.photos.map(photo => photo.key));
     setInstagramConnection(data.connected);
     displayInstagramPost(last);
-    const notice = !session.photos.length ? 'Generate your five styled mockups above, then review the carousel.'
+    const notice = !session.references.length ? 'This product needs supplier photos before mockups can be created.'
+      : !session.photos.length ? 'Choose the product photo(s) and scenes above, then generate. Carousel posts need 4 or 5 finished mockups.'
       : !igConnected ? 'Connect @maison.marnier to publish this preview.'
       : session.pending ? 'An earlier publication is processing. Check its status to continue.' : '';
     msg('igMessage', notice);
+    updateInstagramControls();
   } catch (error) { if (igSession === session) msg('igMessage', error.message, true); }
 }
 
