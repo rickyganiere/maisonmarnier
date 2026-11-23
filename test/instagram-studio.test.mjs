@@ -4,7 +4,7 @@ import { DatabaseSync } from 'node:sqlite';
 import test from 'node:test';
 import { instagramAdminRoute } from '../src/instagram-publishing.js';
 import { instagramProduct } from '../src/instagram-photos.js';
-import { requestStudioImageEdit, studioGallery, studioPhotoResponse } from '../src/instagram-studio.js';
+import { defaultSceneCount, requestStudioImageEdit, resolveReferencePhotos, studioGallery, studioPhotoResponse } from '../src/instagram-studio.js';
 
 const root = 'https://maisonmarnier.com/api/lume/instagram/';
 const key = 'sk-proj-' + 'local-key-fixture-'.repeat(5);
@@ -47,7 +47,9 @@ function setup(t) {
       provider.edits++;
       assert.equal(options.body.get('size'), '1024x1280');
       assert.equal(options.body.get('output_format'), 'jpeg');
-      assert.equal(options.body.getAll('image[]').length, 3);
+      assert.equal(options.body.get('quality'), 'medium');
+      assert.ok(options.body.getAll('image[]').length >= 2);
+      assert.ok(options.body.getAll('image[]').length <= 3);
       assert.match(options.body.get('prompt'), /EXACT product identity reference/);
       assert.match(options.body.get('prompt'), /No text, logo/);
       if (provider.wait) await provider.wait;
@@ -89,12 +91,20 @@ function setup(t) {
     }), env, url, () => new Response(jpeg, { headers: { 'content-type': 'image/webp' } }));
     return { httpStatus: response.status, ...await response.json() };
   }
-  async function generate(slot) {
+  async function generate(slot, photoKeys) {
     const product = await call('product?id=1');
-    return call('mockups', { productId: 1, slot, revision: product.studio.revision });
+    const keys = photoKeys || (product.references || []).slice(0, 2).map(photo => photo.key);
+    return call('mockups', { productId: 1, slot, revision: product.studio.revision, photoKeys: keys });
   }
   return { db, env, objects, provider, call, generate };
 }
+
+test('default scene count follows how many product photos were chosen', () => {
+  assert.equal(defaultSceneCount(0), 0);
+  assert.equal(defaultSceneCount(1), 2);
+  assert.equal(defaultSceneCount(2), 4);
+  assert.equal(defaultSceneCount(3), 5);
+});
 
 test('studio connection is admin-only, validates the key and returns no credential', async t => {
   const { db, call, provider } = setup(t);
@@ -120,6 +130,27 @@ test('studio connection is admin-only, validates the key and returns no credenti
   assert.equal(offline.configured, true, 'outbound OpenAI probe failures must not block encrypting the pasted key');
   assert.equal(offline.validation, 'unverified');
   assert.ok(db.prepare('SELECT sealed_key FROM instagram_studio_connection').get().sealed_key);
+});
+
+test('composer exposes reference photos and mockups require an explicit photo choice', async t => {
+  const { call, generate } = setup(t);
+  await call('studio-connection', { key });
+  const product = await call('product?id=1');
+  assert.equal(product.references.length, 4);
+  assert.equal(product.studio.defaultSceneCount, 5);
+  assert.equal(product.studio.scenes.length, 5);
+  assert.equal((await call('mockups', { productId: 1, slot: 0, revision: product.studio.revision })).httpStatus, 422);
+  assert.equal((await call('mockups', { productId: 1, slot: 0, revision: product.studio.revision, photoKeys: [] })).httpStatus, 422);
+  const one = await generate(0, [product.references[0].key]);
+  assert.equal(one.ok, true);
+  assert.equal(one.photos.length, 1);
+  const photos = [0, 1, 2].map(n => ({
+    key: 'ref-' + n, url: 'https://example/' + n, source: 'https://cf.cjdropshipping.com/ref-' + n + '.png',
+  }));
+  assert.equal(resolveReferencePhotos({ photos }, ['ref-0']).length, 1);
+  assert.equal(resolveReferencePhotos({ photos }, ['ref-0', 'ref-1']).length, 2);
+  assert.throws(() => resolveReferencePhotos({ photos }, ['ref-0', 'ref-1', 'ref-2']), /up to two/);
+  assert.throws(() => resolveReferencePhotos({ photos }, []), /at least one/);
 });
 
 test('new posts require four or five generated mockups; partial packs cannot publish', async t => {

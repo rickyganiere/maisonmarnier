@@ -70,7 +70,11 @@ test('Cloudflare runtime verifies the key and renders with the bundled homepage 
   const connection = await call('studio-connection', { key: apiKey });
   assert.equal(connection.configured, true, JSON.stringify(connection));
   const product = await call('product?id=1');
-  const result = await call('mockups', { productId: 1, slot: 0, revision: product.studio.revision });
+  assert.ok(product.references?.length >= 1, JSON.stringify(product));
+  const result = await call('mockups', {
+    productId: 1, slot: 0, revision: product.studio.revision,
+    photoKeys: product.references.slice(0, 2).map(photo => photo.key),
+  });
   assert.equal(result.ok, true, JSON.stringify(result));
   assert.equal(result.photos.length, 1);
   const saved = await mf.dispatchFetch(result.photos[0].url);
