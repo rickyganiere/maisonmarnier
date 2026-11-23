@@ -122,9 +122,11 @@ td,th{border-bottom:1px solid #2b3227;padding:8px;text-align:left;vertical-align
 .ig-studio h3{margin:0 0 8px}.ig-studio p{line-height:1.5}.ig-studio .row{align-items:center;gap:10px;flex-wrap:wrap}
 .ig-studio details{margin-top:14px}.ig-studio input[type=password]{max-width:100%;margin:10px 0}
 .ig-studio progress{width:100%;accent-color:#c5fa68;margin-top:10px}.ig-empty{padding:28px 18px;text-align:center;background:#1d251b;border-radius:6px}
-.ig-refs{margin:12px 0 8px}.ig-scenes{display:grid;gap:6px;margin:10px 0 4px;border:0;padding:0}
-.ig-scenes legend{margin-bottom:4px;padding:0}.ig-scenes label{display:flex;gap:8px;align-items:flex-start;font-size:13px;line-height:1.35;color:#d7ddd0}
-.ig-scenes input{margin:3px 0 0;flex:0 0 auto}
+.ig-refs{margin:12px 0 8px}.ig-scenes{display:grid;justify-items:start;gap:8px;margin:10px 0 4px;border:0;padding:0;width:100%}
+.ig-scenes legend{margin-bottom:4px;padding:0}
+/* Global `input{width:100%}` stretches checkboxes and shoves scene text to the far right — pin a tight row. */
+.ig-scenes label{display:inline-flex;align-items:center;gap:10px;width:auto;max-width:100%;margin:0;font-size:13px;line-height:1.35;color:#d7ddd0;cursor:pointer}
+.ig-scenes input[type=checkbox]{width:16px;height:16px;min-width:16px;margin:0;padding:0;flex:none;accent-color:#c5fa68;border:0;background:transparent}
 .ig-picks{display:flex;flex-wrap:wrap;gap:6px;margin-top:8px;border:0;padding:0}
 .ig-picks legend{margin-bottom:6px;padding:0}
 .ig-picks label{position:relative;display:block;cursor:pointer}
