@@ -97,8 +97,14 @@ async function imageBlob(url) {
   if (!result.ok || Number(result.headers.get('content-length')) > 12_000_000)
     throw new InstagramError('A reference photo could not be loaded. Refresh the product gallery and try again.', 422);
   const bytes = new Uint8Array(await result.arrayBuffer());
-  const type = result.headers.get('content-type')?.split(';')[0];
-  if (!['image/jpeg', 'image/png', 'image/webp'].includes(type) || bytes.length > 12_000_000 || !bytes.length)
+  // Supplier headers can say image/jpg or even image/png for JPEG bytes.
+  // Validate the file signature and send OpenAI the actual supported MIME type.
+  let type;
+  if (bytes[0] === 255 && bytes[1] === 216 && bytes[2] === 255) type = 'image/jpeg';
+  else if ([137, 80, 78, 71, 13, 10, 26, 10].every((b, i) => bytes[i] === b)) type = 'image/png';
+  else if (bytes.length >= 12 && new TextDecoder().decode(bytes.slice(0, 4)) === 'RIFF' &&
+      new TextDecoder().decode(bytes.slice(8, 12)) === 'WEBP') type = 'image/webp';
+  if (!type || bytes.length > 12_000_000)
     throw new InstagramError('A reference photo is not a supported image.', 422);
   return new Blob([bytes], { type });
 }
@@ -156,7 +162,11 @@ export async function generateStudioPhoto(request, env, styleImage) {
       form.set('model', model); form.set('prompt', studioPrompt(product, slot));
       form.set('n', '1'); form.set('size', '1024x1280'); form.set('quality', 'high');
       form.set('output_format', 'jpeg'); form.set('output_compression', '90');
-      for (let i = 0; i < sources.length; i++) form.append('image[]', await imageBlob(sources[i].source), 'product-' + i + '.png');
+      for (let i = 0; i < sources.length; i++) {
+        const photo = await imageBlob(sources[i].source);
+        const extension = photo.type === 'image/jpeg' ? 'jpg' : photo.type === 'image/webp' ? 'webp' : 'png';
+        form.append('image[]', photo, 'product-' + i + '.' + extension);
+      }
       // Reuse the bundled homepage asset instead of fetching back into this Worker.
       const style = styleImage?.();
       if (!style?.ok || style.headers.get('content-type') !== 'image/webp')

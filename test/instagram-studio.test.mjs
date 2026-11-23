@@ -53,7 +53,7 @@ function setup(t) {
     }
     if (u.hostname === 'cf.cjdropshipping.com' || u.origin === 'https://maisonmarnier.com') {
       if (provider.redirectReference) return new Response('', { status: 302, headers: { location: 'https://example.com/' } });
-      return new Response(jpeg, { headers: { 'content-type': u.pathname.endsWith('.webp') ? 'image/webp' : 'image/png' } });
+      return new Response(provider.invalidReference ? '<html>Not a photo</html>' : jpeg, { headers: { 'content-type': provider.referenceType || 'image/png' } });
     }
     assert.equal(u.origin, 'https://graph.instagram.com');
     if (u.pathname.endsWith('/me')) return Response.json({ user_id: '12345', username: 'maison.marnier' });
@@ -191,4 +191,18 @@ test('redirected API and reference responses are rejected before saving a key or
   provider.redirectApi = true;
   assert.equal((await generate(0)).status, 422);
   assert.equal(objects.size, 0);
+});
+
+
+test('supplier MIME labels are corrected from file signatures and fake images are rejected', async t => {
+  const { call, generate, provider } = setup(t);
+  await call('studio-connection', { key });
+  provider.referenceType = 'image/jpg';
+  assert.equal((await generate(0)).ok, true);
+  provider.referenceType = 'application/octet-stream';
+  assert.equal((await generate(1)).ok, true);
+  provider.referenceType = 'image/png';
+  provider.invalidReference = true;
+  assert.equal((await generate(2)).status, 422);
+  assert.equal(provider.edits, 2, 'HTML with an image MIME label must not reach a paid edit');
 });
