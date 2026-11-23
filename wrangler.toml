@@ -19,6 +19,9 @@ enabled = true
 binding = "INSTAGRAM_MEDIA"
 bucket_name = "maison-marnier-instagram"
 
+[ai]
+binding = "AI"
+
 [observability.traces]
 enabled = true
 

@@ -549,13 +549,16 @@ td,th{padding:16px;font-size:14px}th{font-weight:500;color:#b0bea4}table{backgro
           <button class="btn secondary" type="button" id="igManage">Connect Instagram</button>
         </section>
         <section class="editor-section" id="openaiSettings" aria-labelledby="openaiSettingsTitle">
-          <h3 id="openaiSettingsTitle">OpenAI · Instagram mockups</h3>
-          <p class="field-note">Already copied your new OpenAI API key? Paste it here once. The key is encrypted before storage; it is never shown again.</p>
-          <p id="igKeyStatus" role="status">Checking OpenAI connection…</p>
-          <label for="igKeyField">OpenAI API key</label>
-          <input id="igKeyField" type="password" autocomplete="off" spellcheck="false" placeholder="Paste your sk-proj-… key here">
-          <button class="btn save" id="igKeyConnect" type="button">Save OpenAI API key</button>
-          <p id="igKeyMessage" class="msg" role="status"></p>
+          <h3 id="openaiSettingsTitle">Instagram mockups · Cloudflare AI</h3>
+          <p class="field-note">Mockups use Cloudflare Workers AI by default. An OpenAI key is optional fallback only if Workers AI is unavailable.</p>
+          <p id="igKeyStatus" role="status">Checking mockup provider…</p>
+          <details id="igOpenAIFallback">
+            <summary>Optional OpenAI fallback</summary>
+            <label for="igKeyField">OpenAI API key</label>
+            <input id="igKeyField" type="password" autocomplete="off" spellcheck="false" placeholder="Paste your sk-proj-… key here">
+            <button class="btn save" id="igKeyConnect" type="button">Save OpenAI API key</button>
+            <p id="igKeyMessage" class="msg" role="status"></p>
+          </details>
         </section>
       </section>
     </main>
@@ -624,12 +627,12 @@ td,th{padding:16px;font-size:14px}th{font-weight:500;color:#b0bea4}table{backgro
       <fieldset class="ig-scenes" id="igScenes"><legend>Scenes to generate</legend></fieldset>
       <div class="row"><button class="btn" id="igGenerate" type="button" disabled>Generate mockups</button><span id="igStudioStatus" role="status"></span></div>
       <progress id="igStudioProgress" max="5" value="0" hidden aria-label="Mockups completed"></progress>
-      <p class="field-note">AI-styled previews run up to two at a time. Check shape, colour and details before publishing. Credits come from your OpenAI account; completed scenes are saved.</p>
-      <details id="igStudioConnection"><summary>OpenAI connection</summary>
-        <p class="field-note">Connect your existing key here. It is encrypted on the server and never returned to the browser.</p>
-        <label for="igStudioKey">Existing OpenAI API key</label>
-        <input id="igStudioKey" type="password" autocomplete="off" spellcheck="false" placeholder="Your existing OpenAI key">
-        <button class="btn secondary" id="igStudioConnect" type="button">Connect existing key</button>
+      <p class="field-note" id="igStudioBillingNote">AI-styled previews run up to two at a time on Cloudflare Workers AI. Check shape, colour and details before publishing; completed scenes are saved.</p>
+      <details id="igStudioConnection"><summary>Optional OpenAI fallback</summary>
+        <p class="field-note">Only needed if Workers AI is unavailable. The key is encrypted on the server and never returned to the browser.</p>
+        <label for="igStudioKey">OpenAI API key</label>
+        <input id="igStudioKey" type="password" autocomplete="off" spellcheck="false" placeholder="Optional OpenAI key">
+        <button class="btn secondary" id="igStudioConnect" type="button">Save OpenAI key</button>
         <p class="msg" id="igStudioKeyMessage" role="status"></p>
       </details>
     </section>
@@ -1695,9 +1698,12 @@ async function loadInstagramSettings() {
   catch (error) { igById('igSettingsStatus').textContent = error.message; }
   try {
     const data = await igApi('studio-connection');
-    igById('igKeyStatus').textContent = data.configured
-      ? 'OpenAI key connected. Instagram mockups are ready to generate.'
-      : 'No OpenAI key connected yet. Paste the key you have already copied below.';
+    igById('igKeyStatus').textContent = data.provider === 'workers-ai'
+      ? 'Cloudflare Workers AI is ready for Instagram mockups.'
+      : data.configured
+        ? 'OpenAI fallback connected. Instagram mockups are ready to generate.'
+        : 'Mockup provider unavailable. Deploy Workers AI binding, or paste an OpenAI key below.';
+    if (igById('igOpenAIFallback')) igById('igOpenAIFallback').open = data.provider !== 'workers-ai';
   } catch (error) { igById('igKeyStatus').textContent = error.message; }
 }
 
@@ -1803,11 +1809,18 @@ function updateInstagramControls() {
   igById('igStudioProgress').hidden = !session?.generating;
   igById('igStudioProgress').value = session?.photos?.length || 0;
   if (!session?.generating) igById('igStudioStatus').textContent = !session?.loaded ? 'Loading…'
-    : !session.studio?.configured ? 'Connect your existing OpenAI key below.'
+    : !session.studio?.configured ? (session.studio?.openaiOptional === false
+      ? 'Connect an OpenAI key below, or enable Cloudflare Workers AI.'
+      : 'Mockup provider is not ready yet.')
     : !session.studio.storageReady ? 'Image storage unavailable.'
     : !refs.length ? 'Choose product photo(s) to mock up.'
     : !pending.length ? session.photos.length + ' mockup' + (session.photos.length === 1 ? '' : 's') + ' ready'
     : session.photos.length + ' ready · ' + pending.length + ' selected to generate';
+  const billing = igById('igStudioBillingNote');
+  if (billing) billing.textContent = session?.studio?.provider === 'openai'
+    ? 'AI-styled previews run up to two at a time. Credits come from your OpenAI account; completed scenes are saved.'
+    : 'AI-styled previews run up to two at a time on Cloudflare Workers AI. Check shape, colour and details before publishing; completed scenes are saved.';
+  if (igById('igStudioConnection')) igById('igStudioConnection').hidden = session?.studio?.provider === 'workers-ai';
 }
 
 function displayInstagramPost(row) {
@@ -1874,12 +1887,20 @@ async function connectOpenAIKey(fieldId, buttonId, messageId) {
         ? 'Key saved securely. OpenAI could not be reached for a live check; generation will verify the key.'
         : 'OpenAI key saved securely. You can now generate Instagram mockups.';
     msg(messageId, message);
-    igById('igKeyStatus').textContent = 'OpenAI key connected.';
+    igById('igKeyStatus').textContent = data.provider === 'workers-ai'
+      ? 'Cloudflare Workers AI ready (OpenAI fallback also saved).'
+      : 'OpenAI fallback connected.';
     if (igSession) {
-      igSession.studio = { ...igSession.studio, configured: data.configured, storageReady: data.storageReady };
+      igSession.studio = {
+        ...igSession.studio,
+        configured: data.configured,
+        storageReady: data.storageReady,
+        provider: data.provider,
+        openaiOptional: data.openaiOptional,
+      };
       updateInstagramControls();
       igById('igStudioConnection').open = false;
-      if (fieldId !== 'igStudioKey') msg('igStudioKeyMessage', 'OpenAI key connected.');
+      if (fieldId !== 'igStudioKey') msg('igStudioKeyMessage', 'OpenAI key saved.');
     }
   } catch (error) {
     // Keep the pasted key in the field after an error so users can retry without regenerating it.
@@ -1938,7 +1959,7 @@ async function generateOneScene(session, slot, photoKeys, target) {
       if (igSession !== session) return;
       if (error.status === 429 && attempt < 4) {
         const waitSec = Math.min(15 * (2 ** attempt), 60);
-        msg('igMessage', session.photos.length + ' of ' + target + ' mockups saved. OpenAI rate limit — waiting ' + waitSec + 's…');
+        msg('igMessage', session.photos.length + ' of ' + target + ' mockups saved. Image AI rate limit — waiting ' + waitSec + 's…');
         igById('igStudioStatus').textContent = session.photos.length + '/' + target + ' ready · waiting ' + waitSec + 's';
         await new Promise(resolve => setTimeout(resolve, waitSec * 1000));
         continue;
@@ -1946,7 +1967,7 @@ async function generateOneScene(session, slot, photoKeys, target) {
       throw error;
     }
   }
-  throw new Error('OpenAI kept rate-limiting this scene.');
+  throw new Error('Image AI kept rate-limiting this scene.');
 }
 
 async function runPool(items, limit, worker) {
