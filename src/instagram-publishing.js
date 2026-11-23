@@ -5,7 +5,7 @@ import {
   instagramHandle, instagramRequest, verifyInstagramIdentity,
 } from './instagram-account.js';
 import { digest, instagramProduct } from './instagram-photos.js';
-import { defaultSceneCount, generateStudioPhoto, studioConfigured, studioConnection, studioGallery, studioScenes, supplierReferencePhotos } from './instagram-studio.js';
+import { defaultSceneCount, generateStudioPhoto, studioConfigured, studioConnection, studioGallery, studioProvider, studioScenes, supplierReferencePhotos } from './instagram-studio.js';
 
 const pendingStates = "('creating','ready','publishing')";
 const pending = () => json({ ok: true, pending: true, retryAfter: 60 }, 202);
@@ -40,11 +40,11 @@ function savedContainer(state) {
 async function composer(env, id) {
   const product = await instagramProduct(env, id);
   if (!product) throw new InstagramError('This product is no longer available on the storefront.', 404);
-  const [account, lastPost, studio, configured] = await Promise.all([
+  const [account, lastPost, studio, configured, provider] = await Promise.all([
     connectionStatus(env),
     env.LUME_DB.prepare(`SELECT * FROM instagram_posts WHERE product_id=?
       ORDER BY (state IN ${pendingStates}) DESC, updated_at DESC, rowid DESC LIMIT 1`).bind(id).first(),
-    studioGallery(env, product), studioConfigured(env),
+    studioGallery(env, product), studioConfigured(env), studioProvider(env),
   ]);
   const last = postForAdmin(lastPost);
   // Keep old in-flight publications recoverable after the studio upgrade.
@@ -55,7 +55,8 @@ async function composer(env, id) {
     photos: legacy ? product.photos.map(({ key, url }) => ({ key, url })) : studio.photos,
     references,
     studio: {
-      ...studio, configured, storageReady: !!env.INSTAGRAM_MEDIA, legacy,
+      ...studio, configured, provider, storageReady: !!env.INSTAGRAM_MEDIA, legacy,
+      openaiOptional: provider === 'workers-ai',
       scenes: studioScenes.map(([label], slot) => ({ slot, label })),
       defaultSceneCount: defaultSceneCount(references.length),
     }, lastPost: last,

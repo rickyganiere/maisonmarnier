@@ -4,13 +4,13 @@ import { DatabaseSync } from 'node:sqlite';
 import test from 'node:test';
 import { instagramAdminRoute } from '../src/instagram-publishing.js';
 import { instagramProduct } from '../src/instagram-photos.js';
-import { defaultSceneCount, requestStudioImageEdit, resolveReferencePhotos, studioGallery, studioPhotoResponse } from '../src/instagram-studio.js';
+import { defaultSceneCount, requestStudioImageEdit, requestWorkersAiImage, resolveReferencePhotos, studioGallery, studioPhotoResponse, workersAiModel } from '../src/instagram-studio.js';
 
 const root = 'https://maisonmarnier.com/api/lume/instagram/';
 const key = 'sk-proj-' + 'local-key-fixture-'.repeat(5);
 const jpeg = new Uint8Array([255, 216, 255, 224, 1, 2, 255, 217]);
 
-function setup(t) {
+function setup(t, { workersAi = false } = {}) {
   const db = new DatabaseSync(':memory:');
   t.after(() => db.close());
   for (const file of ['0001_init.sql', '0004_product_images.sql', '0006_instagram_publishing.sql', '0007_instagram_login_method.sql', '0009_instagram_studio.sql'])
@@ -19,6 +19,7 @@ function setup(t) {
   db.prepare(`INSERT INTO products(lume_sku,supplier_product_id,name,slug,image_url,image_urls,retail_price_eur,status)
     VALUES('fixture','fixture-id','Burgundy cushion','cushion',?,?,25,'live')`).run(images[0], JSON.stringify(images));
   const objects = new Map();
+  const provider = { edits: 0, children: [], publishes: 0, fail: false, wait: null, badKey: false, restrictedKey: false, unreachable: false, rateLimitsLeft: 0, lastAiForm: null };
   const env = {
     LUME_ADMIN_TOKEN: 'studio-admin-fixture',
     INSTAGRAM_TOKEN_KEY: Buffer.from(crypto.getRandomValues(new Uint8Array(32))).toString('base64'),
@@ -32,7 +33,30 @@ function setup(t) {
       get: async path => objects.has(path) ? { body: objects.get(path), size: objects.get(path).length } : null,
     },
   };
-  const provider = { edits: 0, children: [], publishes: 0, fail: false, wait: null, badKey: false, restrictedKey: false, unreachable: false, rateLimitsLeft: 0 };
+  if (workersAi) {
+    env.AI = {
+      async run(model, input) {
+        assert.equal(model, workersAiModel);
+        assert.ok(input?.multipart?.body);
+        assert.match(input.multipart.contentType, /^multipart\/form-data/i);
+        const form = await new Response(input.multipart.body, { headers: { 'content-type': input.multipart.contentType } }).formData();
+        provider.lastAiForm = form;
+        provider.edits++;
+        assert.equal(form.get('width'), '1024');
+        assert.equal(form.get('height'), '1280');
+        assert.ok(form.get('input_image_0'));
+        assert.ok(form.get('prompt'));
+        assert.match(form.get('prompt'), /Image 0 is the EXACT product identity reference/);
+        if (provider.wait) await provider.wait;
+        if (provider.fail) throw new Error('insufficient quota for Workers AI');
+        if (provider.rateLimitsLeft > 0) {
+          provider.rateLimitsLeft--;
+          throw new Error('429 rate limit exceeded');
+        }
+        return { image: Buffer.from(jpeg).toString('base64') };
+      },
+    };
+  }
   t.mock.method(globalThis, 'fetch', async (url, options = {}) => {
     const u = new URL(url);
     assert.equal(options.redirect, 'manual', 'Workers must reject redirects without using unsupported redirect:error');
@@ -109,9 +133,12 @@ test('default scene count follows how many product photos were chosen', () => {
 test('studio connection is admin-only, validates the key and returns no credential', async t => {
   const { db, call, provider } = setup(t);
   assert.equal((await call('studio-connection', { key }, false)).httpStatus, 401);
-  assert.equal((await call('studio-connection')).configured, false);
+  const unset = await call('studio-connection');
+  assert.equal(unset.configured, false);
+  assert.equal(unset.provider, null);
   const connected = await call('studio-connection', { key });
   assert.equal(connected.configured, true);
+  assert.equal(connected.provider, 'openai');
   assert.ok(!JSON.stringify(connected).includes(key));
   const saved = db.prepare('SELECT sealed_key FROM instagram_studio_connection').get().sealed_key;
   assert.ok(!saved.includes(key));
@@ -130,6 +157,48 @@ test('studio connection is admin-only, validates the key and returns no credenti
   assert.equal(offline.configured, true, 'outbound OpenAI probe failures must not block encrypting the pasted key');
   assert.equal(offline.validation, 'unverified');
   assert.ok(db.prepare('SELECT sealed_key FROM instagram_studio_connection').get().sealed_key);
+});
+
+test('Workers AI is ready without an OpenAI key and generates mockups from product photos', async t => {
+  const { call, generate, provider } = setup(t, { workersAi: true });
+  const connection = await call('studio-connection');
+  assert.equal(connection.configured, true);
+  assert.equal(connection.provider, 'workers-ai');
+  assert.equal(connection.openaiOptional, true);
+  const product = await call('product?id=1');
+  assert.equal(product.studio.configured, true);
+  assert.equal(product.studio.provider, 'workers-ai');
+  const one = await generate(0, [product.references[0].key]);
+  assert.equal(one.ok, true);
+  assert.equal(one.photos.length, 1);
+  assert.equal(provider.edits, 1);
+  assert.ok(provider.lastAiForm.get('input_image_0'));
+  assert.ok(provider.lastAiForm.get('input_image_1'), 'homepage style is the last reference');
+  assert.equal(provider.lastAiForm.get('input_image_2'), null);
+});
+
+test('Workers AI retries transient rate limits and treats billing as non-retryable', async () => {
+  const waits = [];
+  let runs = 0;
+  const ai = {
+    async run() {
+      runs++;
+      if (runs < 3) throw new Error('429 Too Many Requests');
+      return { image: Buffer.from(jpeg).toString('base64') };
+    },
+  };
+  const encoded = await requestWorkersAiImage(ai, () => {
+    const form = new FormData();
+    form.set('prompt', 'test');
+    return form;
+  }, { wait: async ms => { waits.push(ms); } });
+  assert.equal(runs, 3);
+  assert.equal(waits.length, 2);
+  assert.equal(encoded, Buffer.from(jpeg).toString('base64'));
+  await assert.rejects(
+    () => requestWorkersAiImage({ async run() { throw new Error('insufficient quota'); } }, new FormData(), { attempts: 2, wait: async () => {} }),
+    error => error.status === 422 && /credit/i.test(error.message),
+  );
 });
 
 test('composer exposes reference photos and mockups require an explicit photo choice', async t => {

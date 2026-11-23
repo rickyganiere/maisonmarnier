@@ -9,7 +9,9 @@ const workerRequire = createRequire(require.resolve('wrangler/package.json'));
 const { Miniflare, convertV4MiniflareOptions, Response: RuntimeResponse } = workerRequire('miniflare');
 const { build } = workerRequire('esbuild');
 
-test('Cloudflare runtime verifies the key and renders with the bundled homepage reference without following redirects', async t => {
+test('Cloudflare runtime verifies OpenAI fallback and renders with the bundled homepage reference without following redirects', async t => {
+  // Miniflare cannot host a custom Workers AI binding object, so this runtime
+  // path covers the OpenAI fallback. Unit tests cover the Workers AI provider.
   const bundle = await build({
     entryPoints: [new URL('../src/worker.js', import.meta.url).pathname],
     bundle: true, write: false, format: 'esm', platform: 'browser', target: 'es2022',
@@ -69,8 +71,10 @@ test('Cloudflare runtime verifies the key and renders with the bundled homepage 
   redirect = false;
   const connection = await call('studio-connection', { key: apiKey });
   assert.equal(connection.configured, true, JSON.stringify(connection));
+  assert.equal(connection.provider, 'openai');
   const product = await call('product?id=1');
   assert.ok(product.references?.length >= 1, JSON.stringify(product));
+  assert.equal(product.studio.provider, 'openai');
   const result = await call('mockups', {
     productId: 1, slot: 0, revision: product.studio.revision,
     photoKeys: product.references.slice(0, 2).map(photo => photo.key),
