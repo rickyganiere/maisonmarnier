@@ -43,7 +43,7 @@ async function stripeForm(env, path, params, { method = 'POST', idempotencyKey }
  */
 export async function createCheckoutSession(
   env,
-  { orderNumber, lineItems, shippingCents, successUrl, cancelUrl, customerEmail },
+  { orderNumber, lineItems, shippingCents, successUrl, cancelUrl, customerEmail, shippingCountry = 'EU' },
 ) {
   const params = {
     mode: 'payment',
@@ -60,7 +60,7 @@ export async function createCheckoutSession(
     // tax_behavior exclusive: VAT added on top of listed EUR retail prices
   };
 
-  EU_SHIPPING.forEach((cc, i) => {
+  (shippingCountry === 'US' ? ['US'] : EU_SHIPPING).forEach((cc, i) => {
     params[`shipping_address_collection[allowed_countries][${i}]`] = cc;
   });
 
@@ -76,7 +76,7 @@ export async function createCheckoutSession(
     params['shipping_options[0][shipping_rate_data][type]'] = 'fixed_amount';
     params['shipping_options[0][shipping_rate_data][fixed_amount][amount]'] = '0';
     params['shipping_options[0][shipping_rate_data][fixed_amount][currency]'] = 'eur';
-    params['shipping_options[0][shipping_rate_data][display_name]'] = 'Free shipping (orders over €100)';
+    params['shipping_options[0][shipping_rate_data][display_name]'] = 'Free shipping (EU orders over €100)';
     params['shipping_options[0][shipping_rate_data][tax_behavior]'] = 'exclusive';
     params['shipping_options[0][shipping_rate_data][tax_code]'] = 'txcd_92010001';
   }

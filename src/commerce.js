@@ -1,5 +1,5 @@
 import { json } from './lib/json.js';
-import { createCJOrder, resolveCJVariantId } from './cj.js';
+import { createCJOrder, quoteCjUsShipping, resolveCJVariantId } from './cj.js';
 import { getCustomerFromRequest } from './db/customers.js';
 import {
   attachStripeSession,
@@ -33,12 +33,36 @@ function shippingFor(subtotal) {
   return subtotal >= FREE_SHIPPING_EUR ? 0 : FLAT_SHIPPING_EUR;
 }
 
+function usZip(value) {
+  const zip = String(value || '').trim();
+  if (!/^\d{5}(?:-\d{4})?$/.test(zip)) {
+    const err = new Error('Enter a valid US ZIP code to check delivery.');
+    err.status = 400;
+    throw err;
+  }
+  return zip;
+}
+
+async function usShipping(env, lines, zip) {
+  if (lines.some((line) => !line.supplier_product_id)) {
+    throw new Error('US shipping is unavailable for one of these products.');
+  }
+  const products = [];
+  for (const line of lines) {
+    const vid = await resolveCJVariantId(env, line.supplier_product_id, line.supplier_sku);
+    products.push({ vid, quantity: line.quantity });
+  }
+  return quoteCjUsShipping(env, products, zip);
+}
+
 export async function checkout(request, env) {
   try {
     if (!stripeConfigured(env)) {
       return json({ ok: false, error: 'El pago aún no está configurado.' }, 503);
     }
     const body = await request.json();
+    const shippingCountry = body.shippingCountry === 'US' ? 'US' : 'EU';
+    const shippingZip = shippingCountry === 'US' ? usZip(body.shippingZip) : '';
     const rawItems = Array.isArray(body.items) ? body.items : [];
     if (!rawItems.length) return json({ ok: false, error: 'El carrito está vacío' }, 400);
 
@@ -83,7 +107,9 @@ export async function checkout(request, env) {
     }
 
     const subtotal = lines.reduce((s, l) => s + l.unit_price_eur * l.quantity, 0);
-    const shipping = shippingFor(subtotal);
+    const shipping = shippingCountry === 'US'
+      ? (await usShipping(env, lines, shippingZip)).shippingEur
+      : shippingFor(subtotal);
     const total = Math.round((subtotal + shipping) * 100) / 100;
     const orderNumber = makeOrderNumber();
     const customer = await getCustomerFromRequest(request, env);
@@ -113,6 +139,7 @@ export async function checkout(request, env) {
       successUrl: origin + '/checkout/success?session_id={CHECKOUT_SESSION_ID}',
       cancelUrl: origin + '/cart?cancelled=1',
       customerEmail,
+      shippingCountry,
     });
 
     await attachStripeSession(env, orderNumber, session.id);
