@@ -2,6 +2,10 @@ name = "lume-living-dev"
 main = "src/worker.js"
 compatibility_date = "2026-10-29"
 
+[vars]
+# CJ quotes USD freight; 1.25 EUR per quoted USD includes conversion and a shipping reserve.
+US_SHIPPING_EUR_PER_USD = "1.25"
+
 routes = [
   { pattern = "maisonmarnier.com", custom_domain = true },
   { pattern = "www.maisonmarnier.com", custom_domain = true }

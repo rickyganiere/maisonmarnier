@@ -24,6 +24,11 @@ export function cartPage(url, request) {
     clear: tr(lang, { es: 'Vaciar carrito', en: 'Clear cart' }),
     redirecting: tr(lang, { es: 'Redirigiendo a Stripe…', en: 'Redirecting to Stripe…' }),
     failed: tr(lang, { es: 'El pago ha fallado', en: 'Checkout failed' }),
+    destination: tr(lang, { es: 'Destino de entrega', en: 'Shipping destination' }),
+    usZip: tr(lang, { es: 'Código postal de EE. UU.', en: 'US ZIP code' }),
+    calculated: tr(lang, { es: 'Calculado antes del pago', en: 'Calculated before payment' }),
+    eu: tr(lang, { es: 'Unión Europea', en: 'European Union' }),
+    usa: tr(lang, { es: 'Estados Unidos', en: 'United States' }),
   };
   const body = `
 <nav class="crumbs" aria-label="${t(lang, 'crumbs_aria')}">
@@ -33,7 +38,7 @@ export function cartPage(url, request) {
 <div class="head">
   <div>
     <h1>${tr(lang, { es: 'Tu carrito', en: 'Your cart' })}</h1>
-    <p class="lead">${tr(lang, { es: 'Envío gratis en pedidos superiores a 100 €.', en: 'Free shipping on orders over €100.' })}</p>
+    <p class="lead">${tr(lang, { es: 'Envío gratis dentro de la UE en pedidos superiores a 100 €.', en: 'Free EU shipping on orders over €100.' })}</p>
   </div>
 </div>
 ${cancelled ? `<p class="muted" style="margin-bottom:18px">${tr(lang, { es: 'El pago se canceló — tu carrito sigue aquí.', en: 'Checkout was cancelled — your cart is still here.' })}</p>` : ''}
@@ -51,6 +56,8 @@ ${cancelled ? `<p class="muted" style="margin-bottom:18px">${tr(lang, { es: 'El 
   const KEY='mm_cart';
   const L=${JSON.stringify(copy)};
   const root=document.getElementById('cartRoot');
+  let destination='EU';
+  let zip='';
   function load(){try{return JSON.parse(localStorage.getItem(KEY)||'[]')}catch(e){return []}}
   function save(c){localStorage.setItem(KEY,JSON.stringify(c));window.dispatchEvent(new Event('mm-cart'));}
   function money(n){return '€'+Number(n||0).toFixed(2)}
@@ -86,9 +93,13 @@ ${cancelled ? `<p class="muted" style="margin-bottom:18px">${tr(lang, { es: 'El 
       </div>\`).join('')+'</div>'+
       \`<aside class="cart-summary">
         <h2>\${L.summary}</h2>
+        <label style="display:block;margin:12px 0">\${L.destination}
+          <select id="shippingDestination" style="display:block;width:100%;padding:10px;margin-top:6px"><option value="EU">\${L.eu}</option><option value="US">\${L.usa}</option></select>
+        </label>
+        \${destination==='US'?\`<label style="display:block;margin:12px 0">\${L.usZip}<input id="shippingZip" inputmode="numeric" autocomplete="postal-code" maxlength="10" style="display:block;width:100%;padding:10px;margin-top:6px" placeholder="10001"></label>\`:''}
         <div class="row"><span>\${L.subtotal}</span><span>\${money(sub)}</span></div>
-        <div class="row muted"><span>\${L.shipping}</span><span>\${ship?money(ship):L.free}</span></div>
-        <div class="row total"><span>\${L.total}</span><span>\${money(sub+ship)}</span></div>
+        <div class="row muted"><span>\${L.shipping}</span><span>\${destination==='US'?L.calculated:ship?money(ship):L.free}</span></div>
+        <div class="row total"><span>\${L.total}</span><span>\${destination==='US'?L.calculated:money(sub+ship)}</span></div>
         \${registerPanel}
         <div class="buy-actions" style="margin-top:18px;flex-direction:column;align-items:stretch">
           <button class="btn btn-block" type="button" id="checkoutBtn">\${L.checkout}</button>
@@ -96,6 +107,13 @@ ${cancelled ? `<p class="muted" style="margin-bottom:18px">${tr(lang, { es: 'El 
         </div>
         <p class="muted" id="cartMsg" style="margin-top:12px"></p>
       </aside>\`;
+    document.getElementById('shippingDestination').value=destination;
+    document.getElementById('shippingDestination').onchange=e=>{destination=e.target.value;render(loggedIn)};
+    if(destination==='US'){
+      const input=document.getElementById('shippingZip');
+      input.value=zip;
+      input.oninput=()=>{zip=input.value};
+    }
     root.querySelectorAll('.qty').forEach(inp=>{
       inp.onchange=()=>{
         const c=load(); const i=Number(inp.dataset.idx);
@@ -113,7 +131,7 @@ ${cancelled ? `<p class="muted" style="margin-bottom:18px">${tr(lang, { es: 'El 
       msg.textContent=L.redirecting;
       document.getElementById('checkoutBtn').disabled=true;
       try{
-        const r=await fetch('/api/checkout',{method:'POST',headers:{'content-type':'application/json'},credentials:'same-origin',body:JSON.stringify({items:cart.map(i=>({productId:i.id,quantity:i.qty}))})});
+        const r=await fetch('/api/checkout',{method:'POST',headers:{'content-type':'application/json'},credentials:'same-origin',body:JSON.stringify({items:cart.map(i=>({productId:i.id,quantity:i.qty})),shippingCountry:destination,shippingZip:zip})});
         const d=await r.json();
         if(!d.ok||!d.url){msg.textContent=d.error||L.failed;document.getElementById('checkoutBtn').disabled=false;return}
         location.href=d.url;

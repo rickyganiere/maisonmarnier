@@ -6,11 +6,11 @@ const PAGES = {
   shipping: {
     es: [
       'Envíos',
-      'Maison Marnier envía a toda la Unión Europea desde almacenes asociados. Los plazos varían según la pieza y el destino.\n\nEl envío estándar cuesta 6,90 €. Los pedidos superiores a 100 € tienen envío gratuito en la UE. Te enviamos el seguimiento por correo cuando el paquete sale del almacén.',
+      'Maison Marnier envía a la Unión Europea y, cuando el producto y el código postal lo permitan, a Estados Unidos desde almacenes asociados. Los plazos varían según la pieza y el destino.\n\nEn la UE, el envío estándar cuesta 6,90 € y es gratuito en pedidos superiores a 100 €. El envío a EE. UU. se calcula para cada carrito antes de pagar y se muestra en Stripe. Te enviamos el seguimiento por correo cuando el paquete sale del almacén.',
     ],
     en: [
       'Shipping',
-      'Maison Marnier ships across the European Union from partner warehouses. Delivery windows vary by piece and destination.\n\nStandard shipping is €6.90. Orders over €100 ship free within the EU. Tracking details are emailed when your parcel leaves the warehouse.',
+      'Maison Marnier ships across the European Union and, where the product and ZIP code allow, to the United States from partner warehouses. Delivery windows vary by piece and destination.\n\nEU standard shipping is €6.90, with free shipping on EU orders over €100. US shipping is calculated for each cart before payment and shown in Stripe. Tracking details are emailed when your parcel leaves the warehouse.',
     ],
   },
   returns: {
@@ -171,7 +171,7 @@ See also our Privacy policy (/privacidad) or email hello@maisonmarnier.com.`,
       `Última actualización: noviembre de 2026.
 
 1. Ámbito
-Estos términos regulan el uso de maisonmarnier.com y la compra de productos ofrecidos por Maison Marnier a consumidores en la Unión Europea.
+Estos términos regulan el uso de maisonmarnier.com y la compra de productos ofrecidos por Maison Marnier a consumidores en la Unión Europea y Estados Unidos.
 
 2. Cuenta
 Puedes comprar como invitado o creando una cuenta. Eres responsable de la confidencialidad de tu contraseña y de la exactitud de tus datos. Nos reservamos el derecho de suspender cuentas ante uso abusivo o fraude.
@@ -183,7 +183,7 @@ Los precios se muestran en euros (EUR) e impuestos se calculan en el pago (Strip
 Al confirmar el checkout con Stripe formalizas el pedido sujeto a disponibilidad. El pago se procesa de forma segura por Stripe. Recibirás confirmación por correo.
 
 5. Envíos y riesgo
-Enviamos dentro de la UE desde almacenes asociados. Plazos orientativos; el riesgo se transmite según la normativa de consumo aplicable. El envío estándar es 6,90 €; gratuito a partir de 100 € en la UE.
+Enviamos dentro de la UE y a destinos de EE. UU. disponibles desde almacenes asociados. Plazos orientativos; el riesgo se transmite según la normativa de consumo aplicable. En la UE, el envío estándar es 6,90 € y gratuito a partir de 100 €. El coste de envío a EE. UU. depende del carrito y del código postal; se muestra antes del pago.
 
 6. Derecho de desistimiento y devoluciones
 Dispone de 14 días naturales para desistir en compras a distancia, sin perjuicio de nuestra política comercial de 30 días para artículos no usados en estado original (ver /returns). Algunas piezas de temporada o personalizadas pueden quedar excluidas cuando la ley lo permita.
@@ -208,7 +208,7 @@ hello@maisonmarnier.com`,
       `Last updated: November 2026.
 
 1. Scope
-These terms govern use of maisonmarnier.com and purchases from Maison Marnier by consumers in the European Union.
+These terms govern use of maisonmarnier.com and purchases from Maison Marnier by consumers in the European Union and United States.
 
 2. Account
 You may buy as a guest or create an account. You are responsible for password confidentiality and accurate details. We may suspend accounts for abuse or fraud.
@@ -220,7 +220,7 @@ Prices are shown in euros (EUR); tax is calculated at payment (Stripe Tax) from 
 Confirming Stripe checkout places the order subject to availability. Payment is processed securely by Stripe. You will receive email confirmation.
 
 5. Shipping and risk
-We ship within the EU from partner warehouses. Timelines are indicative; risk passes under applicable consumer law. Standard shipping is €6.90; free from €100 in the EU.
+We ship within the EU and to available US destinations from partner warehouses. Timelines are indicative; risk passes under applicable consumer law. EU standard shipping is €6.90 and free from €100. US shipping depends on the cart and ZIP code and is shown before payment.
 
 6. Withdrawal and returns
 You have 14 calendar days to withdraw from distance purchases, without prejudice to our 30-day commercial returns policy for unused items in original condition (see /returns). Some seasonal or custom pieces may be excluded where the law allows.
@@ -245,8 +245,8 @@ hello@maisonmarnier.com`,
 
 const SEO_DESCRIPTIONS = {
   shipping: {
-    es: 'Información de envíos Maison Marnier: entregas en la Unión Europea, tarifa estándar de 6,90 € y envío gratuito desde 100 €.',
-    en: 'Maison Marnier shipping information: EU delivery, €6.90 standard shipping, and free shipping on orders over €100.',
+    es: 'Envíos Maison Marnier a la UE y destinos disponibles de EE. UU. Precio estadounidense calculado antes del pago.',
+    en: 'Maison Marnier shipping to the EU and available US destinations. US shipping calculated before payment.',
   },
   returns: {
     es: 'Política de devoluciones Maison Marnier: 30 días desde la entrega para artículos sin usar y en su estado original.',

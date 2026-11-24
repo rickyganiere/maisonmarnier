@@ -690,6 +690,31 @@ export async function resolveCJVariantId(env, supplierProductId, supplierSku) {
   return pid;
 }
 
+/** Quote the same CJPacket Ordinary route used when placing a paid order. */
+export async function quoteCjUsShipping(env, products, zip) {
+  const token = await getCJToken(env);
+  const response = await fetch('https://developers.cjdropshipping.com/api2.0/v1/logistic/freightCalculate', {
+    method: 'POST',
+    headers: { 'CJ-Access-Token': token, 'content-type': 'application/json', accept: 'application/json' },
+    body: JSON.stringify({ startCountryCode: 'CN', endCountryCode: 'US', zip, products }),
+  });
+  const data = await response.json();
+  if (!response.ok || data.code !== 200 || !Array.isArray(data.data)) {
+    throw new Error('US delivery could not be checked with our supplier. Please try again later.');
+  }
+  const method = data.data.find((option) => option.logisticName === 'CJPacket Ordinary');
+  const amount = Number(method?.totalPostageFee ?? method?.logisticPrice);
+  if (!method || !Number.isFinite(amount) || amount <= 0) {
+    throw new Error('CJPacket Ordinary is unavailable for this cart and US ZIP code.');
+  }
+  // Supplier freight is in USD; the configured multiplier includes currency and cost buffer.
+  const multiplier = Number(env.US_SHIPPING_EUR_PER_USD);
+  if (!Number.isFinite(multiplier) || multiplier < 1) {
+    throw new Error('US shipping pricing is not configured.');
+  }
+  return { shippingEur: Math.ceil(amount * multiplier * 100) / 100, deliveryDays: method.logisticAging || '' };
+}
+
 /**
  * Create a CJ logistics order after Stripe payment.
  * payType=2 uses CJ balance; set env.CJ_ORDER_SANDBOX=1 for sandbox orders.
