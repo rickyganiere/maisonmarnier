@@ -130,14 +130,14 @@ export async function productPage(url, env, request) {
           </section>
           <div class="specs">
             <div><strong>${tr(lang, { es: 'Categoría', en: 'Category' })}</strong>${esc(p.category || tr(lang, { es: 'Decoración', en: 'Decor' }))}</div>
-            <div><strong>${tr(lang, { es: 'Envío', en: 'Shipping' })}</strong>${tr(lang, { es: 'Europa · almacén asociado', en: 'Europe · partner warehouse' })}</div>
+            <div><strong>${tr(lang, { es: 'Envío', en: 'Shipping' })}</strong>${tr(lang, { es: 'UE y destinos disponibles de EE. UU.', en: 'EU and available US destinations' })}</div>
             <div><strong>${tr(lang, { es: 'Devoluciones', en: 'Returns' })}</strong>${tr(lang, { es: '30 días', en: '30 days' })}</div>
             <div><strong>${tr(lang, { es: 'Pago', en: 'Payment' })}</strong>${tr(lang, { es: 'Stripe · IVA en el checkout', en: 'Stripe · VAT at checkout' })}</div>
           </div>
           <div class="trust">
-            <span><i>✓</i> ${tr(lang, { es: 'Envío gratis en pedidos superiores a 100 €', en: 'Free shipping on orders over €100' })}</span>
+            <span><i>✓</i> ${tr(lang, { es: 'Envío gratis en la UE desde 100 €', en: 'Free EU shipping over €100' })}</span>
             <span><i>✓</i> ${tr(lang, { es: 'Pago seguro con Stripe', en: 'Secure Stripe checkout' })}</span>
-            <span><i>✓</i> ${tr(lang, { es: 'Cumplimiento con socios en Europa', en: 'Fulfilled with partners in Europe' })}</span>
+            <span><i>✓</i> ${tr(lang, { es: 'Envío desde almacenes asociados', en: 'Shipped from partner warehouses' })}</span>
           </div>
         </div>
       </div>
