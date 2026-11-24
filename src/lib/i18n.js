@@ -5,7 +5,7 @@ export const LANGS = ['es', 'en'];
 
 const DICT = {
   es: {
-    announce: 'Edición Navidad · Envío gratis desde 100 € · Europa',
+    announce: 'Edición Navidad · Envío gratis en la UE desde 100 €',
     nav_seasonal: 'Tienda Navidad',
     nav_new: 'Novedades',
     nav_lighting: 'Iluminación',
@@ -39,7 +39,7 @@ const DICT = {
     footer_privacy: 'Privacidad',
     footer_cookies: 'Cookies',
     footer_terms: 'Términos',
-    footer_region: 'Europa · EUR €',
+    footer_region: 'UE y destinos de EE. UU. · EUR €',
     cookie_aria: 'Consentimiento de cookies',
     cookie_body:
       'Usamos cookies esenciales para la tienda y, si lo aceptas, cookies de medición. Más info en la <a href="/cookies">política de cookies</a> y la <a href="/privacidad">privacidad</a>.',
@@ -54,7 +54,7 @@ const DICT = {
     crumbs_aria: 'Miga de pan',
   },
   en: {
-    announce: 'Christmas Edit · Free shipping over €100 · Europe',
+    announce: 'Christmas Edit · Free EU shipping over €100',
     nav_seasonal: 'Christmas Shop',
     nav_new: 'New Arrivals',
     nav_lighting: 'Lighting',
@@ -88,7 +88,7 @@ const DICT = {
     footer_privacy: 'Privacy',
     footer_cookies: 'Cookies',
     footer_terms: 'Terms',
-    footer_region: 'Europe · EUR €',
+    footer_region: 'EU and available US destinations · EUR €',
     cookie_aria: 'Cookie consent',
     cookie_body:
       'We use essential cookies for the store and, if you accept, measurement cookies. More in the <a href="/cookies">cookie policy</a> and <a href="/privacidad">privacy</a>.',

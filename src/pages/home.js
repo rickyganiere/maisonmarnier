@@ -438,7 +438,7 @@ ${storefrontHeaderHtml({ search: false, lang, path: '/' })}
   </section>
 
   <div class="mm-benefits">
-    <div class="mm-benefit"><strong>${esc(tr(lang, { es: 'Envíos UE', en: 'EU shipping' }))}</strong><span>${esc(tr(lang, { es: 'Cumplimiento con socios en Europa.', en: 'Partner fulfilment across Europe.' }))}</span></div>
+    <div class="mm-benefit"><strong>${esc(tr(lang, { es: 'Envíos UE y EE. UU.', en: 'EU and US shipping' }))}</strong><span>${esc(tr(lang, { es: 'EE. UU. sujeto a producto y destino.', en: 'US delivery depends on product and destination.' }))}</span></div>
     <div class="mm-benefit"><strong>${esc(tr(lang, { es: 'Devoluciones 30 días', en: '30-day returns' }))}</strong><span>${esc(tr(lang, { es: 'Claras, sencillas y justas.', en: 'Clear, simple and fair.' }))}</span></div>
     <div class="mm-benefit"><strong>${esc(tr(lang, { es: 'Fotos reales', en: 'Real product photos' }))}</strong><span>${esc(tr(lang, { es: 'Galerías del proveedor, no relleno genérico.', en: 'Supplier galleries — not stock fillers.' }))}</span></div>
     <div class="mm-benefit"><strong>${esc(tr(lang, { es: 'Pago seguro', en: 'Secure checkout' }))}</strong><span>${esc(tr(lang, { es: 'Stripe · IVA calculado en el pago.', en: 'Stripe · VAT calculated at payment.' }))}</span></div>
